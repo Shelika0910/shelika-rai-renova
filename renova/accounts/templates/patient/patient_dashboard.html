@@ -1,0 +1,1684 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Dashboard | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .patient-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+
+    .patient-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+        margin-bottom: 18px;
+    }
+
+    .patient-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .patient-nav a {
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dce6e8;
+        background: #f7fbfc;
+        color: #2b4e59;
+        font-weight: 600;
+        font-size: 0.92rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .patient-nav a.active {
+        background: #4da3a9;
+        color: white;
+        border-color: #4da3a9;
+    }
+
+    .patient-nav a:hover {
+        background: #e8f4f5;
+        border-color: #4da3a9;
+    }
+
+    .patient-nav a.active:hover {
+        background: #3c8b90;
+    }
+
+    .logout-link {
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #ead6cf;
+        background: #fff8f5;
+        color: #8a4b3f;
+        font-weight: 600;
+        font-size: 0.92rem;
+    }
+
+    .hero-card {
+        background: linear-gradient(135deg, #f2fbfc, #fdf8f5);
+        border: 1px solid #e7ddd6;
+        border-radius: 18px;
+        padding: 28px;
+        margin-bottom: 16px;
+    }
+
+    .hero-card h1 {
+        margin: 0 0 8px;
+        font-size: 1.8rem;
+    }
+
+    .hero-card p {
+        margin: 0;
+        color: #5f6b7a;
+    }
+
+    .hero-sub {
+        margin-top: 12px;
+        font-size: 0.95rem;
+        color: #4f6673;
+    }
+
+    .muted-email {
+        color: #4f6673;
+        font-weight: 600;
+    }
+
+    /* Daily Quote Card - Joyful Design */
+    .quote-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        border-radius: 18px;
+        padding: 24px 28px;
+        margin-bottom: 16px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
+    }
+
+    .quote-card::before {
+        content: '"';
+        position: absolute;
+        top: -20px;
+        left: 20px;
+        font-size: 120px;
+        opacity: 0.1;
+        font-family: Georgia, serif;
+    }
+
+    .quote-card::after {
+        content: '✨';
+        position: absolute;
+        top: 20px;
+        right: 25px;
+        font-size: 28px;
+        opacity: 0.6;
+        animation: sparkle 2s ease-in-out infinite;
+    }
+
+    @keyframes sparkle {
+        0%, 100% { transform: scale(1); opacity: 0.6; }
+        50% { transform: scale(1.2); opacity: 1; }
+    }
+
+    .quote-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        opacity: 0.85;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .quote-text {
+        font-size: 1.15rem;
+        line-height: 1.6;
+        font-style: italic;
+        margin-bottom: 12px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .quote-author {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        text-align: right;
+    }
+
+    /* Upcoming Appointments */
+    .upcoming-section {
+        background: linear-gradient(135deg, #fff9f5 0%, #f5fcfc 100%);
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        padding: 18px;
+        margin-bottom: 16px;
+    }
+
+    .upcoming-section h3 {
+        margin: 0 0 12px;
+        font-size: 1.05rem;
+        color: #2c4652;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .upcoming-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .upcoming-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px;
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #e7f0f1;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .upcoming-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    }
+
+    .upcoming-date {
+        background: linear-gradient(135deg, #4da3a9 0%, #3c8b90 100%);
+        color: white;
+        padding: 10px 14px;
+        border-radius: 10px;
+        text-align: center;
+        min-width: 65px;
+    }
+
+    .upcoming-date .day {
+        font-size: 1.3rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .upcoming-date .month {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        opacity: 0.9;
+    }
+
+    .upcoming-info h4 {
+        margin: 0 0 4px;
+        font-size: 0.95rem;
+        color: #2c4652;
+    }
+
+    .upcoming-info p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #657482;
+    }
+
+    .no-upcoming {
+        text-align: center;
+        padding: 20px;
+        color: #657482;
+        font-size: 0.92rem;
+    }
+
+    .no-upcoming span {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    /* Journey Progress Section */
+    .journey-progress {
+        background: linear-gradient(135deg, #f0fafa 0%, #fff9f5 100%);
+        border: 1px solid #e7ddd6;
+        border-radius: 18px;
+        padding: 24px;
+        margin-bottom: 16px;
+    }
+
+    .journey-progress h3 {
+        margin: 0 0 20px;
+        font-size: 1.15rem;
+        color: #2c4652;
+    }
+
+    .journey-steps {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+    }
+
+    .journey-steps::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 40px;
+        right: 40px;
+        height: 3px;
+        background: #e0e7eb;
+        z-index: 0;
+    }
+
+    .journey-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+        flex: 1;
+    }
+
+    .step-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e0e7eb;
+        color: #657482;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        margin-bottom: 10px;
+        transition: all 0.3s;
+    }
+
+    .journey-step.completed .step-icon {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white;
+    }
+
+    .journey-step.current .step-icon {
+        background: #fff;
+        border: 3px solid #4da3a9;
+        color: #4da3a9;
+        box-shadow: 0 0 0 4px rgba(77, 163, 169, 0.2);
+    }
+
+    .step-info h4 {
+        margin: 0 0 4px;
+        font-size: 0.85rem;
+        color: #2c4652;
+    }
+
+    .step-info p {
+        margin: 0;
+        font-size: 0.78rem;
+        color: #657482;
+    }
+
+    /* Daily Activity Section */
+    .daily-activity {
+        background: linear-gradient(135deg, #f0fafa 0%, #e8f4f5 100%);
+        border: 2px dashed #4da3a9;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 16px;
+        position: relative;
+    }
+
+    .activity-badge {
+        position: absolute;
+        top: -10px;
+        left: 20px;
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 12px;
+        letter-spacing: 1px;
+    }
+
+    .daily-activity h3 {
+        margin: 8px 0 12px;
+        font-size: 1.1rem;
+        color: #2d6a6f;
+    }
+
+    .activity-text {
+        margin: 0 0 16px;
+        font-size: 0.95rem;
+        color: #3c8b90;
+        line-height: 1.6;
+    }
+
+    /* Today's Tasks */
+    .tasks-section {
+        margin-top: 16px;
+    }
+
+    .tasks-section h4 {
+        margin: 0 0 10px;
+        font-size: 0.95rem;
+        color: #2d6a6f;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .task-list {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .task-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        background: white;
+        border-radius: 10px;
+        border: 1px solid #b8e0e3;
+        font-size: 0.9rem;
+        color: #2d6a6f;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .task-item:hover {
+        background: #f0fafa;
+        border-color: #4da3a9;
+    }
+
+    .task-item.completed {
+        background: #e0f5f6;
+        border-color: #4da3a9;
+        text-decoration: line-through;
+        opacity: 0.8;
+    }
+
+    .task-checkbox {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #4da3a9;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.2s;
+    }
+
+    .task-item.completed .task-checkbox {
+        background: #4da3a9;
+        border-color: #4da3a9;
+        color: white;
+    }
+
+    /* Fun Challenges */
+    .challenges-section {
+        background: linear-gradient(135deg, #e8f4f5 0%, #f0fafa 100%);
+        border: 1px solid #b8e0e3;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 16px;
+    }
+
+    .challenges-section h4 {
+        margin: 0 0 12px;
+        font-size: 0.95rem;
+        color: #2d6a6f;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .challenge-cards {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .challenge-card {
+        background: white;
+        border: 1px solid #b8e0e3;
+        border-radius: 10px;
+        padding: 14px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .challenge-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(77, 163, 169, 0.2);
+        border-color: #4da3a9;
+    }
+
+    .challenge-card.accepted {
+        background: linear-gradient(135deg, #e0f5f6 0%, #b8e0e3 100%);
+        border-color: #4da3a9;
+    }
+
+    .challenge-emoji {
+        font-size: 1.5rem;
+        margin-bottom: 6px;
+    }
+
+    .challenge-card p {
+        margin: 0;
+        font-size: 0.82rem;
+        color: #2d6a6f;
+        line-height: 1.4;
+    }
+
+    .challenge-card small {
+        display: block;
+        margin-top: 6px;
+        font-size: 0.72rem;
+        color: #4da3a9;
+        font-weight: 600;
+    }
+
+    /* Mood Check-In */
+    .mood-checkin {
+        background: linear-gradient(135deg, #f0fafa 0%, #e8f4f5 100%);
+        border: 1px solid #b8e0e3;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 16px;
+        text-align: center;
+    }
+
+    .mood-checkin h3 {
+        margin: 0 0 16px;
+        font-size: 1.1rem;
+        color: #2d6a6f;
+    }
+
+    .mood-options {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .mood-btn {
+        padding: 12px 18px;
+        border: 2px solid #b8e0e3;
+        border-radius: 12px;
+        background: white;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .mood-btn:hover {
+        border-color: #4da3a9;
+        background: #f0fafa;
+        transform: translateY(-2px);
+    }
+
+    .mood-btn.selected {
+        border-color: #4da3a9;
+        background: linear-gradient(135deg, #e0f5f6 0%, #b8e0e3 100%);
+    }
+
+    .mood-note {
+        margin: 14px 0 0;
+        font-size: 0.82rem;
+        color: #3c8b90;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .stat {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.03);
+    }
+
+    .stat small {
+        display: block;
+        color: #657482;
+        font-size: 0.83rem;
+        margin-bottom: 4px;
+    }
+
+    .stat strong {
+        font-size: 1.2rem;
+        color: #2c4652;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 14px;
+        margin-bottom: 14px;
+    }
+
+    .section-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        padding: 18px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .section-card h3 {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+    }
+
+    .section-card p {
+        margin: 0;
+        color: #627180;
+        font-size: 0.92rem;
+    }
+
+    .mini-list {
+        margin: 12px 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 8px;
+    }
+
+    .mini-list li {
+        border: 1px solid #edf0f1;
+        border-radius: 10px;
+        padding: 10px 12px;
+        background: #fcfefe;
+        color: #516473;
+        font-size: 0.9rem;
+    }
+
+    .mini-list li strong {
+        color: #2c4652;
+    }
+
+    .care-plan {
+        margin-top: 12px;
+        border-left: 3px solid #4da3a9;
+        padding-left: 12px;
+        color: #4f6472;
+        font-size: 0.92rem;
+    }
+
+    .section-card a,
+    .quick-card a {
+        display: inline-block;
+        margin-top: 12px;
+        color: #3c8b90;
+        font-weight: 600;
+    }
+
+    .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .quick-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 12px;
+        padding: 14px;
+        text-align: center;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.03);
+    }
+
+    .quick-card h4 {
+        margin: 6px 0;
+        font-size: 0.95rem;
+        color: #294955;
+    }
+
+    .quick-card p {
+        margin: 0;
+        color: #627180;
+        font-size: 0.84rem;
+    }
+
+    /* AI Chatbot Support Section */
+    .chatbot-support {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        border-radius: 18px;
+        padding: 28px;
+        margin-top: 16px;
+        color: white;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 20px;
+        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .chatbot-support::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+    }
+
+    .chatbot-content h3 {
+        margin: 0 0 8px;
+        font-size: 1.3rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .chatbot-content p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .chatbot-features {
+        display: flex;
+        gap: 16px;
+        margin-top: 14px;
+        flex-wrap: wrap;
+    }
+
+    .chatbot-feature {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.88rem;
+        opacity: 0.95;
+    }
+
+    .chatbot-btn {
+        background: white;
+        color: #2d6a6f;
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1rem;
+        text-decoration: none;
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .chatbot-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+
+    /* Resources Highlight Section */
+    .resources-highlight {
+        background: linear-gradient(135deg, #fff9f0 0%, #f0fafa 100%);
+        border: 1px solid #e7ddd6;
+        border-radius: 18px;
+        padding: 24px;
+        margin-top: 16px;
+    }
+
+    .resources-highlight h3 {
+        margin: 0 0 16px;
+        font-size: 1.15rem;
+        color: #2c4652;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .resources-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+    }
+
+    .resource-card {
+        background: white;
+        border: 1px solid #e7f0f1;
+        border-radius: 14px;
+        padding: 18px;
+        text-align: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+
+    .resource-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+    }
+
+    .resource-icon {
+        font-size: 2.2rem;
+        margin-bottom: 10px;
+    }
+
+    .resource-card h4 {
+        margin: 0 0 6px;
+        font-size: 0.95rem;
+        color: #2c4652;
+    }
+
+    .resource-card p {
+        margin: 0;
+        font-size: 0.82rem;
+        color: #657482;
+    }
+
+    /* Self-Care Reminder */
+    .selfcare-reminder {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        border-radius: 14px;
+        padding: 20px 24px;
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .selfcare-icon {
+        font-size: 2.5rem;
+    }
+
+    .selfcare-content h4 {
+        margin: 0 0 4px;
+        color: #7c4a15;
+        font-size: 1rem;
+    }
+
+    .selfcare-content p {
+        margin: 0;
+        color: #8a5a30;
+        font-size: 0.9rem;
+    }
+
+    @media (max-width: 900px) {
+        .stats-grid,
+        .content-grid,
+        .quick-grid {
+            grid-template-columns: 1fr;
+        }
+        .quote-card {
+            padding: 20px;
+        }
+        .quote-text {
+            font-size: 1rem;
+        }
+        .chatbot-support {
+            grid-template-columns: 1fr;
+            text-align: center;
+        }
+        .chatbot-features {
+            justify-content: center;
+        }
+        .resources-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .selfcare-reminder {
+            flex-direction: column;
+            text-align: center;
+        }
+        .journey-steps {
+            flex-direction: column;
+            gap: 16px;
+        }
+        .journey-steps::before {
+            display: none;
+        }
+        .journey-step {
+            flex-direction: row;
+            text-align: left;
+            gap: 14px;
+        }
+        .mood-options {
+            gap: 8px;
+        }
+        .mood-btn {
+            padding: 10px 14px;
+            font-size: 0.85rem;
+        }
+        .challenge-cards {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="patient-wrap">
+    <nav class="patient-nav" aria-label="Patient Navigation">
+        <div class="patient-nav-row">
+            <div class="nav-links">
+                <a href="{% url 'accounts:patient_dashboard' %}" class="nav-item active">Dashboard</a>
+                <a href="{% url 'accounts:find_therapist' %}" class="nav-item">Find Therapist</a>
+                <a href="{% url 'accounts:patient_appointments' %}" class="nav-item">Appointments</a>
+                <a href="{% url 'accounts:patient_resources' %}" class="nav-item">Resources</a>
+                <a href="{% url 'accounts:ai_chatbot' %}" class="nav-item">AI-Chatbot</a>
+                <a href="{% url 'accounts:patient_profile' %}" class="nav-item">Profile</a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a href="{% url 'accounts:notifications' %}" style="position: relative; padding: 8px 12px; border-radius: 8px; color: #000; text-decoration: none; font-size: 1.2rem; transition: all 0.2s ease;" title="Notifications">
+                    🔔
+                    {% if unread_notifications > 0 %}
+                        <span style="position: absolute; top: -4px; right: -4px; background: #dc3545; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; min-width: 16px; text-align: center;">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div id="dashboard-content">
+        <div class="hero-card">
+            <h1>Welcome back, {{ request.user.full_name }}! 🌟</h1>
+            <p>We're here to support your wellness journey every step of the way.</p>
+            <div class="hero-sub">Your assessment category: <strong>{{ category_display }}</strong></div>
+        </div>
+
+        <!-- Daily Inspirational Quote -->
+        {% if daily_quote %}
+        <div class="quote-card">
+            <div class="quote-label">🌈 Today's Inspiration</div>
+            <div class="quote-text">"{{ daily_quote.text }}"</div>
+            <div class="quote-author">— {{ daily_quote.author }}</div>
+        </div>
+        {% endif %}
+
+    <div class="stats-grid">
+        <article class="stat">
+            <small>Assessment Category</small>
+            <strong>{{ category_display }}</strong>
+        </article>
+        <article class="stat">
+            <small>Completed Sessions</small>
+            <strong>{{ completed_sessions }}</strong>
+        </article>
+        <article class="stat">
+            <small>Total Appointments</small>
+            <strong>{{ total_appointments }}</strong>
+        </article>
+        <article class="stat">
+            <small>Matched Therapists</small>
+            <strong>{{ recommended_therapists.count }}</strong>
+        </article>
+    </div>
+
+    <!-- Upcoming Appointments Section -->
+    <div class="upcoming-section">
+        <h3>📅 Upcoming Appointments</h3>
+        {% if upcoming_appointments %}
+        <div class="upcoming-list">
+            {% for apt in upcoming_appointments %}
+            <div class="upcoming-item">
+                <div class="upcoming-date">
+                    <div class="day">{{ apt.scheduled_time|date:'d' }}</div>
+                    <div class="month">{{ apt.scheduled_time|date:'M' }}</div>
+                </div>
+                <div class="upcoming-info">
+                    <h4>Session with Dr. {{ apt.therapist.full_name }}</h4>
+                    <p>{{ apt.scheduled_time|date:'l, g:i A' }} · {{ apt.therapist.get_specialization_display }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-upcoming">
+            <span>📭</span>
+            <p>No upcoming appointments. <a href="{% url 'accounts:find_therapist' %}">Book a session</a> with a therapist!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Daily Activity Suggestion -->
+    <div class="daily-activity">
+        <div class="activity-badge">TODAY'S ACTIVITY</div>
+        <h3>🎯 Try This Today</h3>
+        {% if mcq.category == 'anxiety' %}
+        <p class="activity-text">Practice the 5-4-3-2-1 grounding technique: Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, and 1 you taste.</p>
+        {% elif mcq.category == 'depression' %}
+        <p class="activity-text">Step outside for just 5 minutes today. Fresh air and sunlight can help boost your mood, even on cloudy days.</p>
+        {% elif mcq.category == 'stress' %}
+        <p class="activity-text">Take 3 deep breaths right now. Inhale for 4 counts, hold for 4, exhale for 6. Repeat and feel the tension release.</p>
+        {% elif mcq.category == 'ptsd' %}
+        <p class="activity-text">Create a safe space in your mind. Picture a place where you feel completely at peace. Return to it whenever you need comfort.</p>
+        {% else %}
+        <p class="activity-text">Spend 10 minutes doing something that brings you joy today—no matter how small it seems.</p>
+        {% endif %}
+
+        <!-- Today's Tasks -->
+        <div class="tasks-section">
+            <h4>📋 Today's Tasks</h4>
+            <div class="task-list">
+                {% if mcq.category == 'anxiety' %}
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Do 5 minutes of deep breathing exercises</span>
+                </div>
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Write down 3 things you're grateful for</span>
+                </div>
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Take a 10-minute walk without your phone</span>
+                </div>
+                {% elif mcq.category == 'depression' %}
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Open the curtains and let sunlight in</span>
+                </div>
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Send a message to someone you care about</span>
+                </div>
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Do one small productive task (make bed, wash dishes)</span>
+                </div>
+                {% elif mcq.category == 'stress' %}
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Write your top 3 priorities for today</span>
+                </div>
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Take a 15-minute break without screens</span>
+                </div>
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Say "no" to one non-essential request</span>
+                </div>
+                {% elif mcq.category == 'ptsd' %}
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Practice your safe space visualization for 5 min</span>
+                </div>
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Ground yourself: feel your feet on the floor</span>
+                </div>
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Write in your journal for 10 minutes</span>
+                </div>
+                {% else %}
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Drink 8 glasses of water today</span>
+                </div>
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Get at least 7 hours of sleep tonight</span>
+                </div>
+                <div class="task-item" onclick="toggleTask(this)">
+                    <div class="task-checkbox"></div>
+                    <span>Do something that makes you smile</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Fun Challenges -->
+        <div class="challenges-section">
+            <h4>🏆 Fun Challenges</h4>
+            <div class="challenge-cards">
+                {% if mcq.category == 'anxiety' %}
+                <div class="challenge-card" onclick="acceptChallenge(this)">
+                    <div class="challenge-emoji">🧘</div>
+                    <p>Complete a 10-min meditation without checking your phone</p>
+                    <small>+50 Calm Points</small>
+                </div>
+                <div class="challenge-card" onclick="acceptChallenge(this)">
+                    <div class="challenge-emoji">🌿</div>
+                    <p>Spend 20 minutes in nature today</p>
+                    <small>+30 Peace Points</small>
+                </div>
+                {% elif mcq.category == 'depression' %}
+                <div class="challenge-card" onclick="acceptChallenge(this)">
+                    <div class="challenge-emoji">🎨</div>
+                    <p>Create something today - draw, write, or craft</p>
+                    <small>+50 Joy Points</small>
+                </div>
+                <div class="challenge-card" onclick="acceptChallenge(this)">
+                    <div class="challenge-emoji">🤝</div>
+                    <p>Have a real conversation with someone face-to-face</p>
+                    <small>+40 Connection Points</small>
+                </div>
+                {% elif mcq.category == 'stress' %}
+                <div class="challenge-card" onclick="acceptChallenge(this)">
+                    <div class="challenge-emoji">📵</div>
+                    <p>Go 1 hour without checking work emails</p>
+                    <small>+40 Balance Points</small>
+                </div>
+                <div class="challenge-card" onclick="acceptChallenge(this)">
+                    <div class="challenge-emoji">😂</div>
+                    <p>Watch something funny and laugh out loud</p>
+                    <small>+30 Relief Points</small>
+                </div>
+                {% elif mcq.category == 'ptsd' %}
+                <div class="challenge-card" onclick="acceptChallenge(this)">
+                    <div class="challenge-emoji">🎧</div>
+                    <p>Listen to calming music for 15 minutes</p>
+                    <small>+40 Serenity Points</small>
+                </div>
+                <div class="challenge-card" onclick="acceptChallenge(this)">
+                    <div class="challenge-emoji">✍️</div>
+                    <p>Write a letter to your future self</p>
+                    <small>+50 Hope Points</small>
+                </div>
+                {% else %}
+                <div class="challenge-card" onclick="acceptChallenge(this)">
+                    <div class="challenge-emoji">🏃</div>
+                    <p>Get moving - 20 min of any physical activity</p>
+                    <small>+40 Energy Points</small>
+                </div>
+                <div class="challenge-card" onclick="acceptChallenge(this)">
+                    <div class="challenge-emoji">📚</div>
+                    <p>Read for 15 minutes before bed</p>
+                    <small>+30 Wellness Points</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="content-grid">
+        <section class="section-card">
+            <h3>Recommended Therapists</h3>
+            <p>Based on your <strong>{{ category_display }}</strong> assessment, these therapists match your needs.</p>
+
+            {% if recommended_therapists %}
+            <ul class="mini-list">
+                {% for t in recommended_therapists %}
+                <li><strong>{{ t.full_name }}</strong> · {{ t.get_specialization_display }} · {{ t.email }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div style="margin-top:12px;padding:14px;background:#fef7f0;border:1px solid #f4a261;border-radius:8px;color:#7c4a15;font-size:0.92rem;">No therapists registered for {{ category_display }} yet. Check Find Therapist for all available doctors.</div>
+            {% endif %}
+
+            <a href="{% url 'accounts:find_therapist' %}" style="display:inline-block;margin-top:10px;">View all therapists</a>
+        </section>
+
+        <section class="section-card">
+            <h3>Recommended For You</h3>
+            <p>Personalized support based on your {{ category_display }} category.</p>
+
+            <ul class="mini-list">
+                {% if mcq.category == 'anxiety' %}
+                <li>🎧 8-minute grounding audio for anxiety relief</li>
+                <li>🧠 CBT worksheet: challenge anxious thought loops</li>
+                <li>📘 Progressive muscle relaxation guide</li>
+                {% elif mcq.category == 'depression' %}
+                <li>🌞 Daily mood tracking and journaling template</li>
+                <li>📘 Behavioral activation: small steps to motivation</li>
+                <li>🧠 Cognitive reframing exercises for low mood</li>
+                {% elif mcq.category == 'stress' %}
+                <li>🧘 10-minute guided meditation for stress</li>
+                <li>📘 Time management & boundary-setting worksheet</li>
+                <li>🎵 Calming soundscape playlist for wind-down</li>
+                {% elif mcq.category == 'ptsd' %}
+                <li>🛡️ Grounding techniques for flashbacks</li>
+                <li>📘 EMDR self-help overview guide</li>
+                <li>🧠 Trauma-informed breathing exercises</li>
+                {% else %}
+                <li>🎧 8-minute grounding audio for relaxation</li>
+                <li>📘 Sleep reset checklist for better night routine</li>
+                <li>🧠 General wellness self-assessment tools</li>
+                {% endif %}
+            </ul>
+
+            <a href="{% url 'accounts:patient_resources' %}">Open resources</a>
+        </section>
+    </div>
+
+    <!-- Mood Check-In -->
+    <div class="mood-checkin">
+        <h3>How are you feeling today?</h3>
+        <div class="mood-options">
+            <button class="mood-btn" data-mood="great">😊 Great</button>
+            <button class="mood-btn" data-mood="good">🙂 Good</button>
+            <button class="mood-btn" data-mood="okay">😐 Okay</button>
+            <button class="mood-btn" data-mood="low">😔 Low</button>
+            <button class="mood-btn" data-mood="struggling">😢 Struggling</button>
+        </div>
+        <p class="mood-note">Tracking your mood helps understand patterns over time</p>
+    </div>
+
+    <!-- AI Chatbot Support Section -->
+    <div class="chatbot-support">
+        <div class="chatbot-content">
+            <h3>🤖 24/7 AI Support Available</h3>
+            <p>Need someone to talk to right now? Our AI chatbot is here for you anytime, day or night. It's completely private and non-judgmental.</p>
+            <div class="chatbot-features">
+                <span class="chatbot-feature">✓ Instant responses</span>
+                <span class="chatbot-feature">✓ 100% confidential</span>
+                <span class="chatbot-feature">✓ Always available</span>
+                <span class="chatbot-feature">✓ No appointment needed</span>
+            </div>
+        </div>
+        <a href="{% url 'accounts:ai_chatbot' %}" class="chatbot-btn">
+            💬 Start Chatting
+        </a>
+    </div>
+
+    <!-- Resources Highlight Section -->
+    <div class="resources-highlight">
+        <h3>📚 Healing Resources Just for You</h3>
+        <div class="resources-grid">
+            <a href="{% url 'accounts:patient_resources' %}" class="resource-card" style="text-decoration: none;">
+                <div class="resource-icon">🧘</div>
+                <h4>Guided Meditations</h4>
+                <p>Calm your mind with relaxing audio sessions</p>
+            </a>
+            <a href="{% url 'accounts:patient_resources' %}" class="resource-card" style="text-decoration: none;">
+                <div class="resource-icon">📖</div>
+                <h4>Self-Help Articles</h4>
+                <p>Expert tips for managing {{ category_display|lower }}</p>
+            </a>
+            <a href="{% url 'accounts:patient_resources' %}" class="resource-card" style="text-decoration: none;">
+                <div class="resource-icon">🎧</div>
+                <h4>Audio Exercises</h4>
+                <p>Breathing & grounding techniques</p>
+            </a>
+            <a href="{% url 'accounts:patient_resources' %}" class="resource-card" style="text-decoration: none;">
+                <div class="resource-icon">📝</div>
+                <h4>Worksheets</h4>
+                <p>CBT exercises & mood trackers</p>
+            </a>
+        </div>
+    </div>
+
+    <!-- Self-Care Reminder -->
+    <div class="selfcare-reminder">
+        <div class="selfcare-icon">🌻</div>
+        <div class="selfcare-content">
+            <h4>Daily Self-Care Reminder</h4>
+            <p>Remember: You deserve kindness, especially from yourself. Take a moment today to do something that makes you smile.</p>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- Therapist Section -->
+    <div id="therapist-section" class="content-section" style="display: none;">
+        <div class="hero-card">
+            <h1>Find Therapist</h1>
+            <p>Connect with qualified mental health professionals matching your needs.</p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="section-card" style="margin-bottom: 14px;">
+            <h3>Search Therapists</h3>
+            <div style="background: #e8f4f5; border-radius: 8px; padding: 10px 12px; margin: 8px 0; font-size: 0.88rem; color: #2d6770;">
+                <strong>💡 Tip:</strong> Your assessment identified you as <strong>{{ category_display }}</strong>. Therapists specializing in "{{ category_display|title }}" are automatically recommended for you.
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
+                <input type="text" id="therapistSearch" placeholder="Search by name..." oninput="filterTherapists()" style="flex: 1; min-width: 180px; padding: 10px 14px; border: 1px solid #d8d2cc; border-radius: 10px; font: inherit;">
+                <select id="specFilter" onchange="filterTherapists()" style="min-width: 180px; padding: 10px 14px; border: 1px solid #d8d2cc; border-radius: 10px; font: inherit;">
+                    <option value="">All Specializations</option>
+                    <option value="anxiety">Anxiety Disorders</option>
+                    <option value="depression">Depression Treatment</option>
+                    <option value="stress">Stress Management</option>
+                    <option value="ptsd">Trauma & PTSD</option>
+                    <option value="general">General Wellness</option>
+                    <option value="addiction">Addiction Counseling</option>
+                    <option value="family">Family Therapy</option>
+                </select>
+            </div>
+            <div id="searchCount" style="margin-top: 8px; font-size: 0.85rem; color: #657482; font-weight: 600;"></div>
+        </div>
+
+        {% if recommended_therapists %}
+        <div class="section-card" style="margin-bottom: 14px; border: 2px solid #4da3a9; background: linear-gradient(135deg, #f3fafb, #e8f4f5);">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span style="font-size: 1.3rem;">🎯</span>
+                <h3 style="margin: 0; color: #2d6a6f;">Personalized Matches for {{ category_display }}</h3>
+            </div>
+            <div style="background: #dff1f2; border-radius: 8px; padding: 10px 12px; margin-bottom: 16px; font-size: 0.92rem; color: #2d6770;">
+                <strong>Why these therapists?</strong> Based on your mental health assessment, you were categorized as <strong>{{ category_display }}</strong>. These therapists specialize in treating patients with similar needs.
+            </div>
+            <div class="mini-list" style="margin-top: 16px;" id="recommended-list">
+                {% for t in recommended_therapists %}
+                <div class="therapist-card recommended-match" data-name="{{ t.full_name|lower }}" data-spec="{{ t.specialization }}" style="padding: 16px; border: 2px solid #4da3a9; border-radius: 12px; margin-bottom: 10px; background: white; box-shadow: 0 4px 12px rgba(77, 163, 169, 0.15);">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <span style="background: #4da3a9; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;">MATCH</span>
+                        <strong style="color: #2d6a6f;">{{ t.full_name }}</strong>
+                    </div>
+                    <div style="color: #4da3a9; font-weight: 600; margin-bottom: 6px;">Specialization: {{ t.get_specialization_display }}</div>
+                    <small style="color: #627180;">Contact: {{ t.email }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="section-card">
+            <h3>All Available Therapists</h3>
+            <p>Browse our complete directory. Therapists matching your <strong>{{ category_display }}</strong> category are highlighted.</p>
+            <div class="mini-list" style="margin-top: 16px;" id="all-therapist-list">
+                {% if all_therapists %}
+                    {% for t in all_therapists %}
+                    {% if t.specialization == mcq.category %}
+                    <div class="therapist-card recommended-match" data-name="{{ t.full_name|lower }}" data-spec="{{ t.specialization }}" style="padding: 14px; border: 2px solid #4da3a9; border-radius: 10px; margin-bottom: 8px; background: #f3fafb; position: relative;">
+                        <div style="position: absolute; top: 8px; right: 8px; background: #4da3a9; color: white; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 999px;">RECOMMENDED</div>
+                        <strong style="color: #2d6a6f;">{{ t.full_name }}</strong> — {{ t.get_specialization_display|default:'General' }}<br>
+                        <small style="color: #627180;">{{ t.email }}</small><br>
+                        <small style="color: #4da3a9; font-weight: 600;">✓ Matches your {{ category_display }} category</small>
+                    </div>
+                    {% else %}
+                    <div class="therapist-card" data-name="{{ t.full_name|lower }}" data-spec="{{ t.specialization }}" style="padding: 12px; border: 1px solid #e7ddd6; border-radius: 8px; margin-bottom: 8px;">
+                        <strong>{{ t.full_name }}</strong> — {{ t.get_specialization_display|default:'General' }}<br>
+                        <small style="color: #627180;">{{ t.email }}</small>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div style="padding: 14px; background: #fef7f0; border: 1px solid #f4a261; border-radius: 8px; color: #7c4a15;">No therapists registered yet. Please check back later.</div>
+                {% endif %}
+            </div>
+            <div id="noResults" style="display:none; padding: 14px; background: #fef7f0; border: 1px solid #f4a261; border-radius: 8px; color: #7c4a15; margin-top: 8px;">No therapists match your search criteria.</div>
+        </div>
+    </div>
+
+    <!-- Appointments Section -->
+    <div id="appointments-section" class="content-section" style="display: none;">
+        <div class="hero-card">
+            <h1>My Appointments</h1>
+            <p>View and manage your therapy sessions.</p>
+        </div>
+        
+        <div class="section-card" style="margin-bottom: 16px;">
+            <h3>Quick Actions</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
+                <a href="{% url 'accounts:patient_appointments' %}" style="padding: 10px 20px; background: #4da3a9; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.background='#3c8b90'" onmouseout="this.style.background='#4da3a9'">
+                    View All Appointments
+                </a>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="section-card">
+                <h3>Recent Activity</h3>
+                <div class="mini-list">
+                    <li>📅 Check your appointment calendar regularly</li>
+                    <li>💬 Contact therapists directly via email</li>
+                    <li>📝 Add personal notes to track your progress</li>
+                    <li>🔔 Enable notifications for appointment reminders</li>
+                </div>
+            </div>
+            <div class="section-card">
+                <h3>Appointment Tips</h3>
+                <p>Make the most of your therapy sessions.</p>
+                <div style="margin-top: 12px; padding: 12px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; color: #0c4a6e; font-size: 0.9rem;">
+                    <strong>💡 Pro Tip:</strong> Arrive 5 minutes early, prepare questions in advance, and keep a journal between sessions for better outcomes.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resources Section -->
+    <div id="resources-section" class="content-section" style="display: none;">
+        <div class="hero-card">
+            <h1>Mental Health Resources</h1>
+            <p>Access helpful tools and educational materials.</p>
+        </div>
+        <div class="content-grid">
+            <div class="section-card">
+                <h3>Self-Help Guides</h3>
+                <div class="mini-list">
+                    <li>Managing Anxiety: A Complete Guide</li>
+                    <li>Depression Recovery Workbook</li>
+                    <li>Mindfulness & Meditation Basics</li>
+                    <li>Sleep Hygiene Tips</li>
+                </div>
+            </div>
+            <div class="section-card">
+                <h3>Crisis Support</h3>
+                <p>24/7 support lines and emergency contacts.</p>
+                <div style="margin-top: 12px; padding: 12px; background: #fef7f0; border: 1px solid #f4a261; border-radius: 8px;">
+                    <strong>Crisis Hotline:</strong> 988<br>
+                    <strong>Text Support:</strong> Text HOME to 741741
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chatbot Section -->
+    <div id="chatbot-section" class="content-section" style="display: none;">
+        <div class="hero-card">
+            <h1>AI Mental Health Assistant</h1>
+            <p>Get instant support and guidance from our AI chatbot.</p>
+        </div>
+        <div class="section-card">
+            <h3>Chat Interface</h3>
+            <div style="height: 300px; border: 1px solid #e7ddd6; border-radius: 8px; padding: 16px; background: #f8f9fa; margin: 12px 0;">
+                <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #4da3a9;">
+                    <strong>AI Assistant:</strong> Hello! I'm here to provide mental health support and resources. How can I help you today?
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" placeholder="Type your message..." style="flex: 1; padding: 8px 12px; border: 1px solid #e7ddd6; border-radius: 6px;">
+                <button style="padding: 8px 16px; background: #4da3a9; color: white; border: none; border-radius: 6px; cursor: pointer;">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Section -->
+    <div id="profile-section" class="content-section" style="display: none;">
+        <div class="hero-card">
+            <h1>My Profile</h1>
+            <p>Manage your account settings and preferences.</p>
+        </div>
+        <div class="content-grid">
+            <div class="section-card">
+                <h3>Personal Information</h3>
+                <div style="margin: 12px 0;">
+                    <label style="display: block; margin-bottom: 4px; font-weight: 600;">Email:</label>
+                    <input type="email" value="{{ request.user.email }}" style="width: 100%; padding: 8px 12px; border: 1px solid #e7ddd6; border-radius: 6px;">
+                </div>
+                <div style="margin: 12px 0;">
+                    <label style="display: block; margin-bottom: 4px; font-weight: 600;">Phone:</label>
+                    <input type="tel" placeholder="Enter phone number" style="width: 100%; padding: 8px 12px; border: 1px solid #e7ddd6; border-radius: 6px;">
+                </div>
+                <button style="margin-top: 12px; padding: 8px 16px; background: #4da3a9; color: white; border: none; border-radius: 6px; cursor: pointer;">Update Profile</button>
+            </div>
+            <div class="section-card">
+                <h3>Preferences</h3>
+                <div style="margin: 12px 0;">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" checked> Email notifications
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                        <input type="checkbox"> SMS reminders
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+</section>
+
+<script>
+function showSection(sectionName) {
+    // Hide all content sections
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Hide dashboard content
+    const dashboardContent = document.getElementById('dashboard-content');
+    
+    // Remove active class from all nav items
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Show selected section and set active nav item
+    if (sectionName === 'dashboard') {
+        if (dashboardContent) dashboardContent.style.display = 'block';
+        document.querySelector('[onclick="showSection(\'dashboard\')"]').classList.add('active');
+    } else {
+        if (dashboardContent) dashboardContent.style.display = 'none';
+        const targetSection = document.getElementById(sectionName + '-section');
+        if (targetSection) {
+            targetSection.style.display = 'block';
+        }
+        document.querySelector(`[onclick="showSection('${sectionName}')"]`).classList.add('active');
+    }
+}
+
+function filterTherapists() {
+    const query = document.getElementById('therapistSearch').value.toLowerCase().trim();
+    const spec = document.getElementById('specFilter').value;
+    const cards = document.querySelectorAll('.therapist-card');
+    let visible = 0;
+    let recommendedVisible = 0;
+
+    cards.forEach(card => {
+        const name = card.getAttribute('data-name') || '';
+        const cardSpec = card.getAttribute('data-spec') || '';
+        const matchName = !query || name.includes(query);
+        const matchSpec = !spec || cardSpec === spec;
+        const isRecommended = card.classList.contains('recommended-match');
+
+        if (matchName && matchSpec) {
+            card.style.display = '';
+            visible++;
+            if (isRecommended) recommendedVisible++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    const noResults = document.getElementById('noResults');
+    const countEl = document.getElementById('searchCount');
+    if (query || spec) {
+        let countText = visible + ' therapist' + (visible !== 1 ? 's' : '') + ' found';
+        if (recommendedVisible > 0) {
+            countText += ' (' + recommendedVisible + ' recommended for you)';
+        }
+        countEl.textContent = countText;
+        countEl.style.color = recommendedVisible > 0 ? '#4da3a9' : '#657482';
+        noResults.style.display = visible === 0 ? 'block' : 'none';
+    } else {
+        countEl.textContent = '';
+        noResults.style.display = 'none';
+    }
+}
+
+// Mood check-in functionality
+document.querySelectorAll('.mood-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+        this.classList.add('selected');
+        const mood = this.getAttribute('data-mood');
+        const messages = {
+            'great': "That's wonderful! 🌟 Keep embracing the positive energy!",
+            'good': "Nice! 😊 Small wins matter. Keep going!",
+            'okay': "Thanks for sharing. 💙 Remember, okay days are still progress.",
+            'low': "We're here for you. 💜 Consider talking to our AI chatbot or therapist.",
+            'struggling': "You're not alone. 🤗 Please reach out - we're here to help."
+        };
+        const noteEl = document.querySelector('.mood-note');
+        if (noteEl && messages[mood]) {
+            noteEl.textContent = messages[mood];
+            noteEl.style.fontWeight = '600';
+        }
+        
+        // Save mood to backend
+        logActivity('mood', mood, 'Mood check-in', mood, 10);
+    });
+});
+
+// Log activity to backend
+function logActivity(type, title, description, mood, points) {
+    fetch("{% url 'accounts:log_activity' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            activity_type: type,
+            title: title,
+            description: description,
+            mood: mood || '',
+            points: points || 0
+        })
+    }).catch(err => console.log('Activity log error:', err));
+}
+
+// Task toggle functionality
+function toggleTask(element) {
+    element.classList.toggle('completed');
+    const checkbox = element.querySelector('.task-checkbox');
+    const taskText = element.querySelector('span').textContent;
+    
+    if (element.classList.contains('completed')) {
+        checkbox.innerHTML = '✓';
+        
+        // Save task completion to backend
+        logActivity('task', taskText, 'Daily task completed', '', 20);
+        
+        // Check if all tasks completed
+        const allTasks = document.querySelectorAll('.task-item');
+        const completedTasks = document.querySelectorAll('.task-item.completed');
+        if (allTasks.length === completedTasks.length) {
+            showConfetti();
+        }
+    } else {
+        checkbox.innerHTML = '';
+    }
+}
+
+// Challenge accept functionality
+function acceptChallenge(element) {
+    element.classList.toggle('accepted');
+    const challengeText = element.querySelector('p').textContent;
+    
+    if (element.classList.contains('accepted')) {
+        const small = element.querySelector('small');
+        const pointsMatch = small ? small.textContent.match(/\+(\d+)/) : null;
+        const points = pointsMatch ? parseInt(pointsMatch[1]) : 30;
+        
+        if (small) {
+            small.textContent = '✓ Challenge Accepted!';
+            small.style.color = '#4da3a9';
+        }
+        
+        // Save challenge to backend
+        logActivity('challenge', challengeText, 'Fun challenge accepted', '', points);
+    } else {
+        // Reset to original points
+        const emoji = element.querySelector('.challenge-emoji').textContent;
+        const points = {
+            '🧘': '+50 Calm Points', '🌿': '+30 Peace Points',
+            '🎨': '+50 Joy Points', '🤝': '+40 Connection Points',
+            '📵': '+40 Balance Points', '😂': '+30 Relief Points',
+            '🎧': '+40 Serenity Points', '✍️': '+50 Hope Points',
+            '🏃': '+40 Energy Points', '📚': '+30 Wellness Points'
+        };
+        const small = element.querySelector('small');
+        if (small && points[emoji]) {
+            small.textContent = points[emoji];
+            small.style.color = '#4da3a9';
+        }
+    }
+}
+
+// Mini confetti effect when all tasks complete
+function showConfetti() {
+    const confettiEmojis = ['🎉', '⭐', '✨', '🌟', '💫'];
+    for (let i = 0; i < 10; i++) {
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.textContent = confettiEmojis[Math.floor(Math.random() * confettiEmojis.length)];
+            confetti.style.cssText = `
+                position: fixed;
+                top: ${Math.random() * 50 + 20}%;
+                left: ${Math.random() * 80 + 10}%;
+                font-size: 2rem;
+                pointer-events: none;
+                animation: confettiFall 2s ease-out forwards;
+                z-index: 9999;
+            `;
+            document.body.appendChild(confetti);
+            setTimeout(() => confetti.remove(), 2000);
+        }, i * 100);
+    }
+}
+
+// Add confetti animation
+const confettiStyle = document.createElement('style');
+confettiStyle.textContent = `
+    @keyframes confettiFall {
+        0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(100px) rotate(360deg); opacity: 0; }
+    }
+`;
+document.head.appendChild(confettiStyle);
+
+// Load today's completed activities on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Load completed tasks
+    const todayTasks = {{ today_tasks|safe }};
+    document.querySelectorAll('.task-item').forEach(item => {
+        const taskText = item.querySelector('span').textContent;
+        if (todayTasks.includes(taskText)) {
+            item.classList.add('completed');
+            item.querySelector('.task-checkbox').innerHTML = '✓';
+        }
+    });
+    
+    // Load accepted challenges
+    const todayChallenges = {{ today_challenges|safe }};
+    document.querySelectorAll('.challenge-card').forEach(card => {
+        const challengeText = card.querySelector('p').textContent;
+        if (todayChallenges.includes(challengeText)) {
+            card.classList.add('accepted');
+            const small = card.querySelector('small');
+            if (small) {
+                small.textContent = '✓ Challenge Accepted!';
+                small.style.color = '#4da3a9';
+            }
+        }
+    });
+    
+    // Load today's mood
+    const todayMood = "{{ today_mood }}";
+    if (todayMood) {
+        const moodBtn = document.querySelector(`.mood-btn[data-mood="${todayMood}"]`);
+        if (moodBtn) {
+            moodBtn.classList.add('selected');
+            const messages = {
+                'great': "That's wonderful! 🌟 Keep embracing the positive energy!",
+                'good': "Nice! 😊 Small wins matter. Keep going!",
+                'okay': "Thanks for sharing. 💙 Remember, okay days are still progress.",
+                'low': "We're here for you. 💜 Consider talking to our AI chatbot or therapist.",
+                'struggling': "You're not alone. 🤗 Please reach out - we're here to help."
+            };
+            const noteEl = document.querySelector('.mood-note');
+            if (noteEl && messages[todayMood]) {
+                noteEl.textContent = messages[todayMood];
+                noteEl.style.fontWeight = '600';
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

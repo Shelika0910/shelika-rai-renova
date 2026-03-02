@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}Mental Health Assessment | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .mcq-wrap {
+        width: min(780px, calc(100% - 40px));
+        margin: 36px auto 60px;
+    }
+
+    .mcq-hero {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white;
+        padding: 28px 32px;
+        border-radius: 18px;
+        margin-bottom: 24px;
+        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
+    }
+
+    .mcq-hero h1 {
+        margin: 0 0 6px;
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .mcq-hero p {
+        margin: 0;
+        opacity: 0.92;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .progress-bar-wrap {
+        background: #e7eef0;
+        border-radius: 999px;
+        height: 8px;
+        margin-bottom: 28px;
+        overflow: hidden;
+    }
+
+    .progress-bar-fill {
+        background: linear-gradient(90deg, #4da3a9, #2d6a6f);
+        height: 100%;
+        border-radius: 999px;
+        transition: width 0.45s ease;
+    }
+
+    .progress-text {
+        text-align: center;
+        font-size: 0.85rem;
+        color: #657482;
+        margin-bottom: 6px;
+    }
+
+    .question-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 16px;
+        padding: 28px 30px;
+        margin-bottom: 18px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+        display: none;
+    }
+
+    .question-card.active {
+        display: block;
+        animation: fadeIn 0.35s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .question-card h3 {
+        margin: 0 0 6px;
+        font-size: 1.1rem;
+        color: #2c4652;
+    }
+
+    .question-card .q-num {
+        display: inline-block;
+        background: #e8f4f5;
+        color: #2d6a6f;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 999px;
+        margin-bottom: 12px;
+    }
+
+    .options-list {
+        list-style: none;
+        margin: 16px 0 0;
+        padding: 0;
+        display: grid;
+        gap: 10px;
+    }
+
+    .options-list li {
+        position: relative;
+    }
+
+    .options-list input[type="radio"] {
+        display: none;
+    }
+
+    .options-list label {
+        display: block;
+        padding: 14px 18px;
+        border: 2px solid #e7eef0;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 0.94rem;
+        color: #3a4f5c;
+        transition: all 0.2s ease;
+        font-weight: 500;
+    }
+
+    .options-list label:hover {
+        border-color: #4da3a9;
+        background: #f3fafb;
+    }
+
+    .options-list input[type="radio"]:checked + label {
+        border-color: #4da3a9;
+        background: #e8f4f5;
+        color: #1a4a4f;
+        font-weight: 600;
+    }
+
+    .mcq-nav {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 24px;
+    }
+
+    .mcq-btn {
+        padding: 10px 26px;
+        border-radius: 10px;
+        border: none;
+        font-weight: 600;
+        font-size: 0.94rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .mcq-btn-prev {
+        background: #f0f2f4;
+        color: #3a4f5c;
+    }
+
+    .mcq-btn-prev:hover {
+        background: #e0e4e8;
+    }
+
+    .mcq-btn-next {
+        background: linear-gradient(135deg, #4da3a9, #2d6a6f);
+        color: white;
+    }
+
+    .mcq-btn-next:hover {
+        opacity: 0.92;
+    }
+
+    .mcq-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .mcq-btn-submit {
+        background: linear-gradient(135deg, #38b000, #007f5f);
+        color: white;
+        padding: 12px 36px;
+        font-size: 1rem;
+    }
+
+    .mcq-btn-submit:hover {
+        opacity: 0.92;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="mcq-wrap">
+    <div class="mcq-hero">
+        <h1>Mental Health Assessment</h1>
+        <p>Welcome, {{ request.user.full_name }}! Please answer the following 10 questions honestly. This one-time assessment helps us understand your needs and personalize your care experience.</p>
+    </div>
+
+    <div class="progress-text">Question <span id="currentQ">1</span> of 10</div>
+    <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressBar" style="width: 10%;"></div>
+    </div>
+
+    <form method="post" id="mcqForm">
+        {% csrf_token %}
+
+        <!-- Q1 -->
+        <div class="question-card active" data-q="1">
+            <span class="q-num">Question 1</span>
+            <h3>How often do you feel overwhelmed by worry or nervousness?</h3>
+            <ul class="options-list">
+                <li><input type="radio" name="q1" id="q1a" value="0"><label for="q1a">Never</label></li>
+                <li><input type="radio" name="q1" id="q1b" value="1"><label for="q1b">Rarely (a few times a month)</label></li>
+                <li><input type="radio" name="q1" id="q1c" value="2"><label for="q1c">Sometimes (a few times a week)</label></li>
+                <li><input type="radio" name="q1" id="q1d" value="3"><label for="q1d">Almost every day</label></li>
+            </ul>
+        </div>
+
+        <!-- Q2 -->
+        <div class="question-card" data-q="2">
+            <span class="q-num">Question 2</span>
+            <h3>How would you describe your sleep quality over the past two weeks?</h3>
+            <ul class="options-list">
+                <li><input type="radio" name="q2" id="q2a" value="0"><label for="q2a">Very good — I sleep well most nights</label></li>
+                <li><input type="radio" name="q2" id="q2b" value="1"><label for="q2b">Slightly disturbed — occasional trouble falling asleep</label></li>
+                <li><input type="radio" name="q2" id="q2c" value="2"><label for="q2c">Frequently disturbed — I wake up often or can't sleep</label></li>
+                <li><input type="radio" name="q2" id="q2d" value="3"><label for="q2d">Severely disturbed — I barely sleep at all</label></li>
+            </ul>
+        </div>
+
+        <!-- Q3 -->
+        <div class="question-card" data-q="3">
+            <span class="q-num">Question 3</span>
+            <h3>How often do you feel sad, hopeless, or lose interest in things you used to enjoy?</h3>
+            <ul class="options-list">
+                <li><input type="radio" name="q3" id="q3a" value="0"><label for="q3a">Never</label></li>
+                <li><input type="radio" name="q3" id="q3b" value="1"><label for="q3b">Occasionally</label></li>
+                <li><input type="radio" name="q3" id="q3c" value="2"><label for="q3c">Most of the time</label></li>
+                <li><input type="radio" name="q3" id="q3d" value="3"><label for="q3d">Nearly every day</label></li>
+            </ul>
+        </div>
+
+        <!-- Q4 -->
+        <div class="question-card" data-q="4">
+            <span class="q-num">Question 4</span>
+            <h3>Have you experienced any traumatic events that still affect your daily life?</h3>
+            <ul class="options-list">
+                <li><input type="radio" name="q4" id="q4a" value="0"><label for="q4a">No, nothing significant</label></li>
+                <li><input type="radio" name="q4" id="q4b" value="1"><label for="q4b">Yes, but it rarely affects me now</label></li>
+                <li><input type="radio" name="q4" id="q4c" value="2"><label for="q4c">Yes, it affects me several times a week</label></li>
+                <li><input type="radio" name="q4" id="q4d" value="3"><label for="q4d">Yes, it impacts me almost every day</label></li>
+            </ul>
+        </div>
+
+        <!-- Q5 -->
+        <div class="question-card" data-q="5">
+            <span class="q-num">Question 5</span>
+            <h3>How well do you manage stress in your daily routine?</h3>
+            <ul class="options-list">
+                <li><input type="radio" name="q5" id="q5a" value="0"><label for="q5a">Very well — stress doesn't bother me much</label></li>
+                <li><input type="radio" name="q5" id="q5b" value="1"><label for="q5b">Fairly well — I cope, but it's tiring</label></li>
+                <li><input type="radio" name="q5" id="q5c" value="2"><label for="q5c">Poorly — I often feel burned out</label></li>
+                <li><input type="radio" name="q5" id="q5d" value="3"><label for="q5d">I can't manage it at all</label></li>
+            </ul>
+        </div>
+
+        <!-- Q6 -->
+        <div class="question-card" data-q="6">
+            <span class="q-num">Question 6</span>
+            <h3>Do you experience sudden episodes of intense fear or panic attacks?</h3>
+            <ul class="options-list">
+                <li><input type="radio" name="q6" id="q6a" value="0"><label for="q6a">Never</label></li>
+                <li><input type="radio" name="q6" id="q6b" value="1"><label for="q6b">Very rarely</label></li>
+                <li><input type="radio" name="q6" id="q6c" value="2"><label for="q6c">Several times a month</label></li>
+                <li><input type="radio" name="q6" id="q6d" value="3"><label for="q6d">Frequently — multiple times a week</label></li>
+            </ul>
+        </div>
+
+        <!-- Q7 -->
+        <div class="question-card" data-q="7">
+            <span class="q-num">Question 7</span>
+            <h3>How would you rate your energy and motivation levels recently?</h3>
+            <ul class="options-list">
+                <li><input type="radio" name="q7" id="q7a" value="0"><label for="q7a">High — I feel motivated and energized</label></li>
+                <li><input type="radio" name="q7" id="q7b" value="1"><label for="q7b">Moderate — some days are harder than others</label></li>
+                <li><input type="radio" name="q7" id="q7c" value="2"><label for="q7c">Low — I struggle to get things done</label></li>
+                <li><input type="radio" name="q7" id="q7d" value="3"><label for="q7d">Very low — I can barely function day to day</label></li>
+            </ul>
+        </div>
+
+        <!-- Q8 -->
+        <div class="question-card" data-q="8">
+            <span class="q-num">Question 8</span>
+            <h3>How do you feel about your social connections and relationships?</h3>
+            <ul class="options-list">
+                <li><input type="radio" name="q8" id="q8a" value="0"><label for="q8a">I have strong, supportive relationships</label></li>
+                <li><input type="radio" name="q8" id="q8b" value="1"><label for="q8b">Mostly good, but sometimes I feel lonely</label></li>
+                <li><input type="radio" name="q8" id="q8c" value="2"><label for="q8c">I often feel isolated or disconnected</label></li>
+                <li><input type="radio" name="q8" id="q8d" value="3"><label for="q8d">I feel completely alone and unsupported</label></li>
+            </ul>
+        </div>
+
+        <!-- Q9 -->
+        <div class="question-card" data-q="9">
+            <span class="q-num">Question 9</span>
+            <h3>Do you have trouble concentrating, making decisions, or remembering things?</h3>
+            <ul class="options-list">
+                <li><input type="radio" name="q9" id="q9a" value="0"><label for="q9a">No difficulty at all</label></li>
+                <li><input type="radio" name="q9" id="q9b" value="1"><label for="q9b">Slight difficulty, but manageable</label></li>
+                <li><input type="radio" name="q9" id="q9c" value="2"><label for="q9c">Noticeable difficulty — it impacts my daily tasks</label></li>
+                <li><input type="radio" name="q9" id="q9d" value="3"><label for="q9d">Severe difficulty — I can't focus or decide</label></li>
+            </ul>
+        </div>
+
+        <!-- Q10 -->
+        <div class="question-card" data-q="10">
+            <span class="q-num">Question 10</span>
+            <h3>Overall, how would you rate your mental well-being right now?</h3>
+            <ul class="options-list">
+                <li><input type="radio" name="q10" id="q10a" value="0"><label for="q10a">Excellent — I feel balanced and healthy</label></li>
+                <li><input type="radio" name="q10" id="q10b" value="1"><label for="q10b">Good — occasional ups and downs</label></li>
+                <li><input type="radio" name="q10" id="q10c" value="2"><label for="q10c">Fair — I'm struggling in some areas</label></li>
+                <li><input type="radio" name="q10" id="q10d" value="3"><label for="q10d">Poor — I need significant support</label></li>
+            </ul>
+        </div>
+
+        <div class="mcq-nav">
+            <button type="button" class="mcq-btn mcq-btn-prev" id="prevBtn" onclick="changeQ(-1)" disabled>← Previous</button>
+            <button type="button" class="mcq-btn mcq-btn-next" id="nextBtn" onclick="changeQ(1)">Next →</button>
+            <button type="submit" class="mcq-btn mcq-btn-submit" id="submitBtn" style="display:none;">Submit Assessment</button>
+        </div>
+    </form>
+</section>
+
+<script>
+let current = 1;
+const total = 10;
+
+function changeQ(dir) {
+    const card = document.querySelector(`.question-card[data-q="${current}"]`);
+    const selected = card.querySelector('input[type="radio"]:checked');
+
+    if (dir === 1 && !selected) {
+        card.style.border = '2px solid #f4a261';
+        setTimeout(() => card.style.border = '1px solid #e7ddd6', 1200);
+        return;
+    }
+
+    card.classList.remove('active');
+    current += dir;
+    document.querySelector(`.question-card[data-q="${current}"]`).classList.add('active');
+
+    document.getElementById('currentQ').textContent = current;
+    document.getElementById('progressBar').style.width = (current / total * 100) + '%';
+    document.getElementById('prevBtn').disabled = current === 1;
+
+    if (current === total) {
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('submitBtn').style.display = 'inline-block';
+    } else {
+        document.getElementById('nextBtn').style.display = 'inline-block';
+        document.getElementById('submitBtn').style.display = 'none';
+    }
+}
+
+document.getElementById('mcqForm').addEventListener('submit', function(e) {
+    const lastCard = document.querySelector(`.question-card[data-q="${total}"]`);
+    const selected = lastCard.querySelector('input[type="radio"]:checked');
+    if (!selected) {
+        e.preventDefault();
+        lastCard.style.border = '2px solid #f4a261';
+        setTimeout(() => lastCard.style.border = '1px solid #e7ddd6', 1200);
+    }
+});
+</script>
+{% endblock %}

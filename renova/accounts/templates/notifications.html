@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .patient-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+
+    .doctor-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+
+    .patient-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+        margin-bottom: 18px;
+    }
+
+    .doctor-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+        margin-bottom: 18px;
+    }
+
+    .patient-nav-row, .doctor-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .patient-nav a, .doctor-nav a {
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dce6e8;
+        background: #f7fbfc;
+        color: #2b4e59;
+        font-weight: 600;
+        font-size: 0.92rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .patient-nav a.active, .doctor-nav a.active {
+        background: #4da3a9;
+        color: white;
+        border-color: #4da3a9;
+    }
+
+    .patient-nav a:hover, .doctor-nav a:hover {
+        background: #e8f4f5;
+        border-color: #4da3a9;
+    }
+
+    .patient-nav a.active:hover, .doctor-nav a.active:hover {
+        background: #3c8b90;
+    }
+    .notifications-wrap {
+        width: min(920px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+
+    .hero-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white;
+        padding: 24px;
+        border-radius: 16px;
+        margin-bottom: 18px;
+        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
+    }
+
+    .hero-card h1 {
+        margin: 0 0 8px;
+        font-size: 1.65rem;
+        font-weight: 700;
+    }
+
+    .notifications-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .mark-read-btn {
+        padding: 8px 16px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .mark-read-btn:hover {
+        background: #218838;
+    }
+
+    .notification-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        transition: all 0.2s ease;
+        position: relative;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        color: inherit;
+    }
+
+    .notification-card:hover {
+        border-color: #4da3a9;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(77, 163, 169, 0.15);
+    }
+
+    .notification-card.unread {
+        border-left: 4px solid #4da3a9;
+        background: #f8fdfd;
+    }
+
+    .notification-card.unread::before {
+        content: '';
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 8px;
+        height: 8px;
+        background: #4da3a9;
+        border-radius: 50%;
+    }
+
+    .notification-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+    }
+
+    .notification-title {
+        font-weight: 700;
+        color: #2c4652;
+        font-size: 1.05rem;
+    }
+
+    .notification-type {
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        background: #e8f4f5;
+        color: #2d6770;
+    }
+
+    .notification-message {
+        color: #627180;
+        line-height: 1.5;
+        margin-bottom: 8px;
+    }
+
+    .notification-time {
+        font-size: 0.85rem;
+        color: #8a95a0;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #657482;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        display: block;
+        opacity: 0.3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding: 20px 40px;">
+    {% if request.user.groups.all.0.name == 'Patient' %}
+    <a href="{% url 'accounts:patient_dashboard' %}" style="display: inline-flex; align-items: center; gap: 8px; color: #4da3a9; text-decoration: none; font-weight: 600; font-size: 1rem; transition: all 0.2s;">
+        <span style="font-size: 1.4rem;">←</span> Back to Dashboard
+    </a>
+    {% else %}
+    <a href="{% url 'accounts:doctor_dashboard' %}" style="display: inline-flex; align-items: center; gap: 8px; color: #4da3a9; text-decoration: none; font-weight: 600; font-size: 1rem; transition: all 0.2s;">
+        <span style="font-size: 1.4rem;">←</span> Back to Dashboard
+    </a>
+    {% endif %}
+</div>
+<section class="notifications-wrap">
+    <div class="hero-card">
+        <h1>Notifications</h1>
+        <p>Stay updated with your appointments and important messages.</p>
+    </div>
+
+    <div class="notifications-header">
+        <h2 style="margin: 0;">
+            All Notifications 
+            {% if unread_count > 0 %}
+                <span style="background: #dc3545; color: white; font-size: 0.7rem; padding: 4px 8px; border-radius: 999px; margin-left: 8px;">
+                    {{ unread_count }} unread
+                </span>
+            {% endif %}
+        </h2>
+    </div>
+
+    {% if notifications %}
+        {% for notification in notifications %}
+        <a href="{{ notification.redirect_url|default:'#' }}" class="notification-card {% if not notification.is_read %}unread{% endif %}">
+            <div class="notification-header">
+                <div class="notification-title">{{ notification.title }}</div>
+                <div class="notification-type">{{ notification.get_type_display }}</div>
+            </div>
+            <div class="notification-message">
+                {{ notification.message }}
+            </div>
+            <div class="notification-time">
+                {{ notification.created_at|timesince }} ago
+                {% if not notification.is_read %}
+                    <span style="color: #4da3a9; font-weight: 600;"> • Unread</span>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <i>🔔</i>
+            <h3>No Notifications</h3>
+            <p>You're all caught up! Notifications about appointments and messages will appear here.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

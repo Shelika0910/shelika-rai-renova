@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}{{ therapist.full_name }} | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .patient-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+    .patient-nav {
+        display: flex; flex-wrap: wrap; gap: 10px; padding: 14px;
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.04); margin-bottom: 18px;
+    }
+    .patient-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .patient-nav a {
+        padding: 9px 14px; border-radius: 999px; border: 1px solid #dce6e8;
+        background: #f7fbfc; color: #2b4e59; font-weight: 600; font-size: 0.92rem;
+        cursor: pointer; transition: all 0.2s ease; text-decoration: none;
+    }
+    .patient-nav a.active { background: #4da3a9; color: white; border-color: #4da3a9; }
+    .patient-nav a:hover { background: #e8f4f5; border-color: #4da3a9; }
+    .patient-nav a.active:hover { background: #3c8b90; }
+
+    .profile-wrap {
+        width: min(900px, calc(100% - 40px));
+        margin: 0 auto 46px;
+    }
+
+    .hero-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white; padding: 28px; border-radius: 16px; margin-bottom: 22px;
+        box-shadow: 0 12px 28px rgba(77,163,169,0.25);
+        display: flex; align-items: center; gap: 22px;
+    }
+    .hero-avatar {
+        width: 90px; height: 90px; border-radius: 50%;
+        background: rgba(255,255,255,0.2); color: white; font-size: 2.2rem;
+        font-weight: 700; display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; overflow: hidden; border: 3px solid rgba(255,255,255,0.3);
+    }
+    .hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .hero-text h1 { margin: 0 0 6px; font-size: 1.55rem; font-weight: 700; }
+    .hero-text p { margin: 0; opacity: 0.92; }
+    .hero-badge {
+        display: inline-block; padding: 4px 12px; background: rgba(255,255,255,0.2);
+        border-radius: 999px; font-size: 0.85rem; font-weight: 600; margin-top: 6px;
+    }
+
+    .profile-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+    }
+    @media (max-width: 700px) { .profile-grid { grid-template-columns: 1fr; } }
+
+    .card {
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 16px;
+        padding: 24px; box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+    }
+    .card h3 { margin: 0 0 14px; font-size: 1.05rem; color: #2c4652; }
+
+    .stat-row { display: flex; gap: 14px; margin-bottom: 18px; }
+    .stat-item {
+        flex: 1; text-align: center; padding: 14px; background: #f8fdfd;
+        border: 1px solid #e0f0f1; border-radius: 12px;
+    }
+    .stat-num { font-size: 1.4rem; font-weight: 700; color: #4da3a9; }
+    .stat-label { font-size: 0.8rem; color: #627180; margin-top: 2px; }
+
+    .bio-text { color: #4a5568; line-height: 1.65; font-size: 0.95rem; }
+
+    .day-group { margin-bottom: 12px; }
+    .day-group-title { font-weight: 700; color: #2c4652; font-size: 0.92rem; margin-bottom: 6px; }
+    .slot-tag {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 12px; background: #edf8f8; color: #2d6a6f; border-radius: 10px;
+        font-size: 0.85rem; font-weight: 600; margin: 0 5px 6px 0;
+    }
+    .no-avail { color: #8a95a0; font-size: 0.92rem; }
+
+    .contact-info { font-size: 0.93rem; color: #4a5568; }
+    .contact-info div { padding: 8px 0; border-bottom: 1px solid #f0f2f4; }
+    .contact-info div:last-child { border-bottom: none; }
+    .contact-info strong { color: #2c4652; }
+
+    .book-btn {
+        display: block; width: 100%; padding: 16px; background: #4da3a9; color: white;
+        border: none; border-radius: 12px; font-size: 1.05rem; font-weight: 700;
+        text-align: center; text-decoration: none; cursor: pointer; transition: all 0.2s;
+        margin-top: 18px;
+    }
+    .book-btn:hover { background: #3c8b90; }
+
+    .back-link {
+        display: inline-flex; align-items: center; gap: 6px;
+        color: #4da3a9; font-weight: 600; font-size: 0.92rem;
+        text-decoration: none; margin-bottom: 16px;
+    }
+    .back-link:hover { color: #2d6a6f; }
+
+    /* Booked times section */
+    .booked-section { margin-top: 16px; }
+    .booked-date-group { margin-bottom: 12px; }
+    .booked-date-title { font-weight: 700; color: #dc3545; font-size: 0.88rem; margin-bottom: 4px; }
+    .booked-time-tag {
+        display: inline-flex; padding: 4px 10px; background: #fbeaea; color: #dc3545;
+        border-radius: 8px; font-size: 0.82rem; font-weight: 600; margin: 0 4px 4px 0;
+    }
+    .day-off-notice {
+        display: flex; align-items: center; gap: 6px; padding: 8px 12px;
+        background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px;
+        font-size: 0.85rem; color: #856404; margin-bottom: 8px;
+    }
+    .card-full { grid-column: 1 / -1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="patient-wrap">
+    <nav class="patient-nav" aria-label="Patient Navigation">
+        <div class="patient-nav-row">
+            <div class="nav-links">
+                <a href="{% url 'accounts:patient_dashboard' %}" class="nav-item">Dashboard</a>
+                <a href="{% url 'accounts:find_therapist' %}" class="nav-item active">Find Therapist</a>
+                <a href="{% url 'accounts:patient_appointments' %}" class="nav-item">Appointments</a>
+                <a href="{% url 'accounts:patient_resources' %}" class="nav-item">Resources</a>
+                <a href="{% url 'accounts:ai_chatbot' %}" class="nav-item">AI-Chatbot</a>
+                <a href="{% url 'accounts:patient_profile' %}" class="nav-item">Profile</a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a href="{% url 'accounts:notifications' %}" style="position: relative; padding: 8px 12px; border-radius: 8px; color: #000; text-decoration: none; font-size: 1.2rem;" title="Notifications">
+                    🔔
+                    {% if unread_notifications > 0 %}
+                        <span style="position: absolute; top: -4px; right: -4px; background: #dc3545; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; min-width: 16px; text-align: center;">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </nav>
+</section>
+
+<section class="profile-wrap">
+    <a href="{% url 'accounts:find_therapist' %}" class="back-link">&larr; Back to Therapists</a>
+
+    <div class="hero-card">
+        <div class="hero-avatar">
+            {% if therapist.profile_image %}
+                <img src="{{ therapist.profile_image.url }}" alt="{{ therapist.full_name }}">
+            {% else %}
+                {{ therapist.full_name|first }}
+            {% endif %}
+        </div>
+        <div class="hero-text">
+            <h1>{{ therapist.full_name }}</h1>
+            <p>{{ therapist.email }}</p>
+            {% if therapist.specialization %}
+            <span class="hero-badge">{{ therapist.get_specialization_display }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="stat-row">
+        <div class="stat-item">
+            <div class="stat-num">{{ completed_count }}</div>
+            <div class="stat-label">Sessions Completed</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num">{{ slots|length }}</div>
+            <div class="stat-label">Weekly Slots</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num">
+                {% if therapist.specialization %}{{ therapist.get_specialization_display }}{% else %}General{% endif %}
+            </div>
+            <div class="stat-label">Focus Area</div>
+        </div>
+    </div>
+
+    <div class="profile-grid">
+        <div class="card">
+            <h3>About</h3>
+            {% if therapist.bio %}
+            <div class="bio-text">{{ therapist.bio }}</div>
+            {% else %}
+            <div class="bio-text" style="color:#8a95a0;">This therapist has not added a bio yet.</div>
+            {% endif %}
+
+            <div class="contact-info" style="margin-top: 16px;">
+                {% if therapist.phone %}
+                <div><strong>Phone:</strong> {{ therapist.phone }}</div>
+                {% endif %}
+                <div><strong>Email:</strong> {{ therapist.email }}</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Weekly Availability</h3>
+            {% if slots %}
+                {% for val, label in day_choices %}
+                    {% if val in grouped_slots %}
+                    <div class="day-group">
+                        <div class="day-group-title">{{ label }}</div>
+                        {% for s in slots %}
+                            {% if s.day_of_week == val %}
+                            <span class="slot-tag">{{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+            <div class="no-avail">No availability slots set yet.</div>
+            {% endif %}
+        </div>
+
+        <!-- Booked Times & Days Off -->
+        <div class="card card-full">
+            <h3>📅 Upcoming Schedule (Next 14 Days)</h3>
+
+            {% if days_off %}
+            <div style="margin-bottom: 12px;">
+                <strong style="font-size: 0.88rem; color: #856404;">Days Off:</strong>
+                {% for day_off in days_off %}
+                <div class="day-off-notice">
+                    🚫 {{ day_off.date|date:"l, M j" }}{% if day_off.reason %} — {{ day_off.reason }}{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if booked_by_date %}
+            <div class="booked-section">
+                <strong style="font-size: 0.88rem; color: #dc3545;">Already Booked Times:</strong>
+                {% for date, appointments in booked_by_date.items %}
+                <div class="booked-date-group">
+                    <div class="booked-date-title">{{ date|date:"l, M j" }}</div>
+                    {% for apt in appointments %}
+                    <span class="booked-time-tag">{{ apt.date_time|time:"g:i A" }} ({{ apt.duration_minutes }}min)</span>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="color: #28a745; font-size: 0.9rem;">✓ No appointments booked in the next 14 days — all times open!</div>
+            {% endif %}
+
+            <p style="margin-top: 12px; font-size: 0.85rem; color: #627180;">
+                💡 <strong>Tip:</strong> You can request any time, even outside available slots. The therapist will accept or decline your request.
+            </p>
+        </div>
+    </div>
+
+    <a href="{% url 'accounts:book_appointment' %}?therapist={{ therapist.pk }}" class="book-btn">Book an Appointment with {{ therapist.full_name }}</a>
+</section>
+{% endblock %}

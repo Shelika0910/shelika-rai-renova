@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }} | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .patient-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+
+    .patient-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+        margin-bottom: 18px;
+    }
+
+    .patient-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .patient-nav a {
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dce6e8;
+        background: #f7fbfc;
+        color: #2b4e59;
+        font-weight: 600;
+        font-size: 0.92rem;
+    }
+
+    .patient-nav a.active {
+        background: #4da3a9;
+        color: #fff;
+        border-color: #4da3a9;
+    }
+
+    .logout-link {
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #ead6cf;
+        background: #fff8f5;
+        color: #8a4b3f;
+        font-weight: 600;
+        font-size: 0.92rem;
+    }
+
+    .content-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 16px;
+        padding: 26px;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.04);
+    }
+
+    .content-card h1 {
+        margin: 0 0 8px;
+        font-size: 1.7rem;
+    }
+
+    .content-card p {
+        margin: 0;
+        color: #5f6b7a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="patient-wrap">
+    <nav class="patient-nav" aria-label="Patient Navigation">
+        <div class="patient-nav-row">
+            <div class="nav-links">
+                <a href="{% url 'accounts:patient_dashboard' %}">Dashboard</a>
+                <a class="{% if request.resolver_match.url_name == 'find_therapist' %}active{% endif %}" href="{% url 'accounts:find_therapist' %}">Find Therapist</a>
+                <a class="{% if request.resolver_match.url_name == 'patient_appointments' %}active{% endif %}" href="{% url 'accounts:patient_appointments' %}">Appointments</a>
+                <a class="{% if request.resolver_match.url_name == 'patient_resources' %}active{% endif %}" href="{% url 'accounts:patient_resources' %}">Resources</a>
+                <a class="{% if request.resolver_match.url_name == 'ai_chatbot' %}active{% endif %}" href="{% url 'accounts:ai_chatbot' %}">AI-Chatbot</a>
+                <a class="{% if request.resolver_match.url_name == 'patient_profile' %}active{% endif %}" href="{% url 'accounts:patient_profile' %}">Profile</a>
+            </div>
+            <a class="logout-link" href="{% url 'accounts:logout' %}">Logout</a>
+        </div>
+    </nav>
+
+    <div class="content-card">
+        <h1>{{ page_title }}</h1>
+        <p>{{ page_text }}</p>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}My Clients | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .doctor-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+    .doctor-nav {
+        display: flex; flex-wrap: wrap; gap: 10px; padding: 14px;
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.04); margin-bottom: 18px;
+    }
+    .doctor-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .doctor-nav a {
+        padding: 9px 14px; border-radius: 999px; border: 1px solid #dce6e8;
+        background: #f7fbfc; color: #2b4e59; font-weight: 600; font-size: 0.92rem;
+        cursor: pointer; transition: all 0.2s ease;
+    }
+    .doctor-nav a.active { background: #4da3a9; color: white; border-color: #4da3a9; }
+    .doctor-nav a:hover { background: #e8f4f5; border-color: #4da3a9; }
+    .doctor-nav a.active:hover { background: #3c8b90; }
+
+    .clients-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 0 auto 46px;
+    }
+    .hero-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white; padding: 24px; border-radius: 16px; margin-bottom: 22px;
+        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
+    }
+    .hero-card h1 { margin: 0 0 6px; font-size: 1.55rem; font-weight: 700; }
+    .hero-card p { margin: 0; opacity: 0.92; }
+
+    .clients-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;
+    }
+    .client-card {
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 16px;
+        padding: 20px; box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+        transition: all 0.2s; border-top: 4px solid #4da3a9;
+    }
+    .client-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .client-name { font-size: 1.1rem; font-weight: 700; color: #2c4652; margin: 0 0 4px; }
+    .client-email { font-size: 0.88rem; color: #8a95a0; margin-bottom: 12px; }
+    .client-category {
+        display: inline-block; padding: 3px 10px; border-radius: 999px;
+        font-size: 0.8rem; font-weight: 600; background: #edf8f8; color: #2d6a6f;
+        margin-bottom: 12px;
+    }
+
+    .client-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .stat-item {
+        background: #f8fafc; border: 1px solid #e7ddd6; border-radius: 8px;
+        padding: 8px 12px; text-align: center;
+    }
+    .stat-item .val { font-weight: 700; color: #2c4652; font-size: 1rem; }
+    .stat-item .lbl { font-size: 0.78rem; color: #8a95a0; }
+
+    .client-actions { display: flex; gap: 8px; }
+    .client-actions a {
+        flex: 1; padding: 8px; text-align: center; border-radius: 8px;
+        font-size: 0.85rem; font-weight: 600; text-decoration: none; transition: all 0.2s;
+    }
+    .action-profile { background: #4da3a9; color: white; }
+    .action-profile:hover { background: #3c8b90; }
+    .action-message { background: #f0f2f4; color: #374151; }
+    .action-message:hover { background: #e5e7eb; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #657482; }
+    .empty-state i { font-size: 3rem; margin-bottom: 16px; display: block; opacity: 0.3; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="doctor-wrap">
+    <nav class="doctor-nav" aria-label="Doctor Navigation">
+        <div class="doctor-nav-row">
+            <div class="nav-links">
+                <a href="{% url 'accounts:doctor_dashboard' %}" class="nav-item">Dashboard</a>
+                <a href="{% url 'accounts:client_list' %}" class="nav-item active">Patients</a>
+                <a href="{% url 'accounts:therapist_appointments' %}" class="nav-item">Appointments</a>
+                <a href="{% url 'accounts:manage_availability' %}" class="nav-item">Availability</a>
+                <a href="{% url 'accounts:therapist_profile' %}" class="nav-item">Profile</a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a href="{% url 'accounts:notifications' %}" style="position: relative; padding: 8px 12px; border-radius: 8px; color: #000; text-decoration: none; font-size: 1.2rem;" title="Notifications">
+                    🔔
+                    {% if unread_notifications > 0 %}
+                        <span style="position: absolute; top: -4px; right: -4px; background: #dc3545; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; min-width: 16px; text-align: center;">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </nav>
+</section>
+
+<section class="clients-wrap">
+    <div class="hero-card">
+        <h1>My Clients</h1>
+        <p>View and manage your patient caseload, track progress, and access profiles.</p>
+    </div>
+
+    {% if clients %}
+    <div class="clients-grid">
+        {% for c in clients %}
+        <div class="client-card">
+            <div class="client-name">{{ c.user.full_name }}</div>
+            <div class="client-email">{{ c.user.email }}</div>
+            <div class="client-category">{{ c.category }}</div>
+
+            <div class="client-stats">
+                <div class="stat-item">
+                    <div class="val">{{ c.completed_sessions }}</div>
+                    <div class="lbl">Completed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="val">{{ c.upcoming_sessions }}</div>
+                    <div class="lbl">Upcoming</div>
+                </div>
+                <div class="stat-item">
+                    <div class="val">{{ c.avg_mood }}</div>
+                    <div class="lbl">Avg Mood</div>
+                </div>
+                <div class="stat-item">
+                    <div class="val">{{ c.avg_progress }}</div>
+                    <div class="lbl">Avg Progress</div>
+                </div>
+            </div>
+
+            <div class="client-actions">
+                <a href="{% url 'accounts:client_profile' c.user.pk %}" class="action-profile">View Profile</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i>👥</i>
+        <h3>No Clients Yet</h3>
+        <p>When patients book appointments with you, they'll appear here.</p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

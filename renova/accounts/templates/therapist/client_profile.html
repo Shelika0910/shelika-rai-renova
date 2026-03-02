@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.full_name }} — Client Profile | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-wrap {
+        width: min(1000px, calc(100% - 40px));
+        margin: 40px auto 60px;
+    }
+    .hero-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white; padding: 24px; border-radius: 16px; margin-bottom: 22px;
+        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
+    }
+    .hero-card h1 { margin: 0 0 6px; font-size: 1.55rem; font-weight: 700; }
+    .hero-card p { margin: 0; opacity: 0.92; }
+
+    .profile-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; margin-bottom: 16px; }
+
+    .card {
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 16px;
+        padding: 20px; box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+    }
+    .card h3 { margin: 0 0 12px; font-size: 1.05rem; color: #2c4652; border-bottom: 2px solid #e7ddd6; padding-bottom: 8px; }
+
+    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f2f4; font-size: 0.93rem; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-weight: 600; color: #2c4652; }
+    .info-value { color: #627180; }
+
+    .chart-container { position: relative; height: 220px; margin-top: 12px; }
+
+    .timeline-wrap { margin-bottom: 16px; }
+    .timeline-item {
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 12px;
+        padding: 14px 18px; margin-bottom: 10px; border-left: 4px solid #4da3a9;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.03);
+    }
+    .timeline-item .date { font-size: 0.85rem; color: #8a95a0; }
+    .timeline-item .title { font-weight: 700; color: #2c4652; }
+    .timeline-item .details { font-size: 0.9rem; color: #627180; margin-top: 4px; }
+
+    .status-badge {
+        display: inline-block; padding: 2px 8px; border-radius: 999px;
+        font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    }
+    .status-completed { background: #d1fae5; color: #065f46; }
+    .status-confirmed { background: #dbeafe; color: #1e40af; }
+    .status-requested { background: #fef3c7; color: #92400e; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
+
+    .report-link {
+        display: inline-block; padding: 4px 12px; background: #edf8f8; color: #2d6a6f;
+        border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;
+        margin-top: 6px;
+    }
+    .report-link:hover { background: #d5eeef; }
+
+    .btn-row { display: flex; gap: 12px; }
+    .btn {
+        padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+        text-decoration: none; transition: all 0.2s;
+    }
+    .btn-back { background: #f0f2f4; color: #374151; }
+    .btn-back:hover { background: #e5e7eb; }
+    .btn-msg { background: #4da3a9; color: white; }
+    .btn-msg:hover { background: #3c8b90; }
+
+    @media (max-width: 768px) { .profile-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-wrap">
+    <div class="hero-card">
+        <h1>{{ client.full_name }}</h1>
+        <p>Client profile, progress tracking, and session history.</p>
+    </div>
+
+    <div class="profile-grid">
+        <!-- Client Details -->
+        <div class="card">
+            <h3>Client Information</h3>
+            <div class="info-row">
+                <span class="info-label">Email</span>
+                <span class="info-value">{{ client.email }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Phone</span>
+                <span class="info-value">{{ client.phone|default:"Not provided" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Joined</span>
+                <span class="info-value">{{ client.date_joined|date:"F j, Y" }}</span>
+            </div>
+            {% if mcq %}
+            <div class="info-row">
+                <span class="info-label">Assessment Category</span>
+                <span class="info-value">{{ mcq.get_category_display }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Assessment Score</span>
+                <span class="info-value">{{ mcq.score }}/30</span>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <span class="info-label">Total Sessions</span>
+                <span class="info-value">{{ appointments|length }}</span>
+            </div>
+            {% if client.bio %}
+            <div style="margin-top: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; font-size: 0.9rem; color: #627180;">
+                <strong>Bio:</strong> {{ client.bio }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Progress Chart -->
+        <div class="card">
+            <h3>Progress Tracking</h3>
+            {% if reports %}
+            <canvas id="progressChart" style="width:100%; height: 220px;"></canvas>
+            {% else %}
+            <div style="text-align: center; padding: 40px 20px; color: #8a95a0;">
+                <p>No session data available yet for charting.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Session History -->
+    <div class="card" style="margin-bottom: 16px;">
+        <h3>Session History</h3>
+    </div>
+    <div class="timeline-wrap">
+        {% for apt in appointments %}
+        <div class="timeline-item">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span class="date">{{ apt.date_time|date:"F j, Y" }} at {{ apt.date_time|time:"g:i A" }}</span>
+                    <span class="status-badge status-{{ apt.status }}">{{ apt.get_status_display }}</span>
+                </div>
+                <span class="date">{{ apt.duration_minutes }} min</span>
+            </div>
+            {% if apt.notes %}
+            <div class="details">{{ apt.notes|truncatechars:100 }}</div>
+            {% endif %}
+            {% for r in reports %}
+                {% if r.appointment_id == apt.pk %}
+                    <a href="{% url 'accounts:view_session_report' r.pk %}" class="report-link">View Report</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% empty %}
+        <div style="text-align: center; padding: 30px; color: #8a95a0;">No sessions yet.</div>
+        {% endfor %}
+    </div>
+
+    <div class="btn-row">
+        <a href="{% url 'accounts:client_list' %}" class="btn btn-back">&larr; Back to Clients</a>
+    </div>
+</section>
+
+{% if reports %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+const moodData = {{ mood_data|safe }};
+const progressData = {{ progress_data|safe }};
+const labels = moodData.map((_, i) => 'Session ' + (i + 1));
+
+new Chart(document.getElementById('progressChart'), {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Mood',
+                data: moodData,
+                borderColor: '#0369a1',
+                backgroundColor: 'rgba(3,105,161,0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+            },
+            {
+                label: 'Progress',
+                data: progressData,
+                borderColor: '#15803d',
+                backgroundColor: 'rgba(21,128,61,0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+            }
+        ]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, max: 10, title: { display: true, text: 'Rating' } } },
+        plugins: { legend: { position: 'top' } }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

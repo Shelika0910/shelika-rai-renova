@@ -1,0 +1,658 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .patient-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+    .patient-nav {
+        display: flex; flex-wrap: wrap; gap: 10px; padding: 14px;
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.04); margin-bottom: 18px;
+    }
+    .patient-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .patient-nav a {
+        padding: 9px 14px; border-radius: 999px; border: 1px solid #dce6e8;
+        background: #f7fbfc; color: #2b4e59; font-weight: 600; font-size: 0.92rem;
+        cursor: pointer; transition: all 0.2s ease; text-decoration: none;
+    }
+    .patient-nav a.active { background: #4da3a9; color: white; border-color: #4da3a9; }
+    .patient-nav a:hover { background: #e8f4f5; border-color: #4da3a9; }
+    .patient-nav a.active:hover { background: #3c8b90; }
+
+    .profile-wrap {
+        width: min(960px, calc(100% - 40px));
+        margin: 0 auto 46px;
+    }
+    .hero-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white; padding: 28px; border-radius: 16px; margin-bottom: 22px;
+        box-shadow: 0 12px 28px rgba(77,163,169,0.25);
+    }
+    .hero-card h1 { margin: 0 0 6px; font-size: 1.55rem; font-weight: 700; }
+    .hero-card p { margin: 0; opacity: 0.92; }
+
+    .stat-row { display: flex; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+    .stat-item {
+        flex: 1; min-width: 120px; text-align: center; padding: 18px; background: #fff;
+        border: 1px solid #e7ddd6; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+    .stat-num { font-size: 1.5rem; font-weight: 700; color: #4da3a9; }
+    .stat-label { font-size: 0.82rem; color: #627180; margin-top: 4px; }
+
+    .card {
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 16px;
+        padding: 24px; box-shadow: 0 6px 16px rgba(0,0,0,0.04); margin-bottom: 18px;
+    }
+    .card h3 { margin: 0 0 16px; font-size: 1.1rem; color: #2c4652; display: flex; align-items: center; gap: 8px; }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
+    .info-item { padding: 14px; background: #f8fdfd; border-radius: 10px; border: 1px solid #e0f0f1; }
+    .info-label { font-size: 0.82rem; color: #627180; margin-bottom: 4px; }
+    .info-value { font-weight: 600; color: #2c4652; }
+
+    .assessment-list { display: flex; flex-direction: column; gap: 12px; }
+    .assessment-card {
+        padding: 16px; background: #f8fdfd; border: 1px solid #e0f0f1;
+        border-radius: 12px; display: flex; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: 12px;
+    }
+    .assessment-card.latest { border-color: #4da3a9; background: #f0fafa; }
+    .assessment-info { flex: 1; }
+    .assessment-category {
+        font-weight: 700; color: #2c4652; font-size: 1rem;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .assessment-date { font-size: 0.85rem; color: #627180; margin-top: 2px; }
+    .latest-badge {
+        background: #4da3a9; color: white; padding: 3px 10px; border-radius: 999px;
+        font-size: 0.75rem; font-weight: 700;
+    }
+    .category-badge {
+        display: inline-block; padding: 4px 12px; background: #edf8f8; color: #2d6a6f;
+        border-radius: 999px; font-size: 0.82rem; font-weight: 600;
+    }
+
+    .empty-state { text-align: center; padding: 40px; color: #8a95a0; }
+    .empty-state i { font-size: 2.5rem; margin-bottom: 12px; display: block; opacity: 0.4; }
+
+    .btn-retake {
+        display: inline-block; padding: 10px 20px; background: #4da3a9; color: white;
+        border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 0.92rem;
+        transition: all 0.2s;
+    }
+    .btn-retake:hover { background: #3c8b90; }
+
+    /* Progress Chart */
+    .chart-container { height: 200px; margin: 16px 0; }
+
+    /* Session Records */
+    .record-list { display: flex; flex-direction: column; gap: 12px; }
+    .record-card {
+        padding: 16px; background: #f8fdfd; border: 1px solid #e0f0f1;
+        border-radius: 12px; transition: all 0.2s;
+    }
+    .record-card:hover { border-color: #4da3a9; box-shadow: 0 4px 12px rgba(77,163,169,0.1); }
+    .record-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .record-therapist { font-weight: 700; color: #2c4652; }
+    .record-date { font-size: 0.82rem; color: #627180; }
+    .record-ratings { display: flex; gap: 16px; margin-bottom: 10px; }
+    .rating-item { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; }
+    .rating-bar { width: 60px; height: 6px; background: #e0f0f1; border-radius: 3px; overflow: hidden; }
+    .rating-fill { height: 100%; border-radius: 3px; }
+    .rating-fill.mood { background: linear-gradient(90deg, #4da3a9, #2d6a6f); }
+    .rating-fill.progress { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .record-summary { font-size: 0.9rem; color: #4a5568; line-height: 1.5; }
+    .record-homework { margin-top: 10px; padding: 10px; background: #fff; border-radius: 8px; border-left: 3px solid #4da3a9; }
+    .record-homework-title { font-weight: 600; color: #2d6a6f; font-size: 0.82rem; margin-bottom: 4px; }
+    .record-homework-text { font-size: 0.88rem; color: #4a5568; }
+
+    /* Appointment History */
+    .apt-list { display: flex; flex-direction: column; gap: 8px; }
+    .apt-item {
+        display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        padding: 12px 14px; background: #f8fdfd; border-radius: 10px; border: 1px solid #e0f0f1;
+        flex-wrap: wrap;
+    }
+    .apt-info { flex: 1; }
+    .apt-therapist { font-weight: 600; color: #2c4652; font-size: 0.92rem; }
+    .apt-datetime { font-size: 0.82rem; color: #627180; }
+    .apt-status {
+        padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
+    }
+    .status-completed { background: #d1fae5; color: #059669; }
+    .status-confirmed { background: #dbeafe; color: #2563eb; }
+    .status-requested { background: #fef3c7; color: #d97706; }
+    .status-cancelled { background: #fee2e2; color: #dc2626; }
+    .status-rejected { background: #fecaca; color: #b91c1c; }
+
+    /* Therapists */
+    .therapist-list { display: flex; gap: 12px; flex-wrap: wrap; }
+    .therapist-chip {
+        display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+        background: #f8fdfd; border: 1px solid #e0f0f1; border-radius: 12px;
+    }
+    .therapist-avatar {
+        width: 36px; height: 36px; border-radius: 50%;
+        background: linear-gradient(135deg, #4da3a9, #2d6a6f);
+        color: white; font-weight: 700; font-size: 0.9rem;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .therapist-name { font-weight: 600; color: #2c4652; font-size: 0.9rem; }
+    .therapist-spec { font-size: 0.78rem; color: #627180; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #e7ddd6; padding-bottom: 12px; flex-wrap: wrap; }
+    .tab-btn {
+        padding: 8px 16px; background: transparent; border: none; cursor: pointer;
+        font-weight: 600; color: #627180; font-size: 0.9rem; border-radius: 8px 8px 0 0;
+        transition: all 0.2s;
+    }
+    .tab-btn.active { color: #4da3a9; background: #f0fafa; }
+    .tab-btn:hover { color: #4da3a9; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Activities Tab */
+    .activity-stats {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
+    }
+    .activity-stat {
+        background: linear-gradient(135deg, #f0fafa 0%, #e8f4f5 100%);
+        border: 1px solid #b8e0e3; border-radius: 12px; padding: 16px; text-align: center;
+    }
+    .activity-stat-icon { font-size: 1.8rem; margin-bottom: 6px; }
+    .activity-stat-value { font-size: 1.4rem; font-weight: 700; color: #2d6a6f; }
+    .activity-stat-label { font-size: 0.8rem; color: #657482; }
+
+    .activity-feed { display: grid; gap: 12px; }
+    .activity-item {
+        display: flex; align-items: flex-start; gap: 14px; padding: 14px;
+        background: white; border: 1px solid #e7f0f1; border-radius: 12px;
+        transition: all 0.2s;
+    }
+    .activity-item:hover { border-color: #4da3a9; }
+    .activity-icon {
+        width: 40px; height: 40px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem; flex-shrink: 0;
+    }
+    .activity-icon.task { background: #e0f5f6; }
+    .activity-icon.challenge { background: #fef3c7; }
+    .activity-icon.mood { background: #f0fafa; }
+    .activity-details { flex: 1; }
+    .activity-title { font-weight: 600; color: #2c4652; font-size: 0.92rem; margin-bottom: 2px; }
+    .activity-meta { font-size: 0.8rem; color: #657482; }
+    .activity-points {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+        .activity-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* Edit Modal */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5); z-index: 1000;
+        display: none; align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-content {
+        background: white; border-radius: 16px; width: min(500px, 90%);
+        max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+        padding: 20px 24px; border-bottom: 1px solid #e7ddd6;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-header h3 { margin: 0; color: #2c4652; }
+    .modal-close {
+        background: none; border: none; font-size: 1.5rem;
+        cursor: pointer; color: #627180; transition: color 0.2s;
+    }
+    .modal-close:hover { color: #dc3545; }
+    .modal-body { padding: 24px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label {
+        display: block; font-weight: 600; color: #2c4652;
+        margin-bottom: 6px; font-size: 0.9rem;
+    }
+    .form-group input, .form-group textarea {
+        width: 100%; padding: 12px 14px;
+        border: 1px solid #d8d2cc; border-radius: 10px;
+        font: inherit; transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group textarea:focus {
+        outline: none; border-color: #4da3a9;
+    }
+    .form-group textarea { min-height: 100px; resize: vertical; }
+    .modal-footer {
+        padding: 16px 24px; border-top: 1px solid #e7ddd6;
+        display: flex; justify-content: flex-end; gap: 12px;
+    }
+    .btn-cancel {
+        padding: 10px 20px; background: #f7f7f7; color: #627180;
+        border: 1px solid #ddd; border-radius: 10px;
+        font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-cancel:hover { background: #eee; }
+    .btn-save {
+        padding: 10px 20px; background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white; border: none; border-radius: 10px;
+        font-weight: 600; cursor: pointer; transition: transform 0.2s;
+    }
+    .btn-save:hover { transform: translateY(-2px); }
+    .edit-btn {
+        padding: 6px 14px; background: #e8f4f5; color: #2d6a6f;
+        border: 1px solid #b8e0e3; border-radius: 8px;
+        font-size: 0.85rem; font-weight: 600; cursor: pointer;
+        transition: all 0.2s;
+    }
+    .edit-btn:hover { background: #4da3a9; color: white; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="patient-wrap">
+    <nav class="patient-nav" aria-label="Patient Navigation">
+        <div class="patient-nav-row">
+            <div class="nav-links">
+                <a href="{% url 'accounts:patient_dashboard' %}" class="nav-item">Dashboard</a>
+                <a href="{% url 'accounts:find_therapist' %}" class="nav-item">Find Therapist</a>
+                <a href="{% url 'accounts:patient_appointments' %}" class="nav-item">Appointments</a>
+                <a href="{% url 'accounts:patient_resources' %}" class="nav-item">Resources</a>
+                <a href="{% url 'accounts:ai_chatbot' %}" class="nav-item">AI-Chatbot</a>
+                <a href="{% url 'accounts:patient_profile' %}" class="nav-item active">Profile</a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a href="{% url 'accounts:notifications' %}" style="position: relative; padding: 8px 12px; border-radius: 8px; color: #000; text-decoration: none; font-size: 1.2rem;" title="Notifications">
+                    🔔
+                    {% if unread_notifications > 0 %}
+                        <span style="position: absolute; top: -4px; right: -4px; background: #dc3545; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; min-width: 16px; text-align: center;">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </nav>
+</section>
+
+<section class="profile-wrap">
+    <div class="hero-card">
+        <h1>My Profile</h1>
+        <p>View your account information, track your progress, and access session records.</p>
+    </div>
+
+    <div class="stat-row">
+        <div class="stat-item">
+            <div class="stat-num">{{ completed_sessions }}</div>
+            <div class="stat-label">Completed Sessions</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num">{{ upcoming_sessions }}</div>
+            <div class="stat-label">Upcoming Sessions</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num">{% if avg_mood %}{{ avg_mood }}{% else %}N/A{% endif %}</div>
+            <div class="stat-label">Avg Mood (1-10)</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num">{% if avg_progress %}{{ avg_progress }}{% else %}N/A{% endif %}</div>
+            <div class="stat-label">Avg Progress (1-10)</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-num">{% if latest_mcq %}{{ latest_mcq.get_category_display }}{% else %}N/A{% endif %}</div>
+            <div class="stat-label">Category</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0;">👤 Personal Information</h3>
+            <button class="edit-btn" onclick="openEditModal()">✏️ Edit Profile</button>
+        </div>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Full Name</div>
+                <div class="info-value">{{ request.user.full_name|default:"Not set" }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Email</div>
+                <div class="info-value">{{ request.user.email }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Phone</div>
+                <div class="info-value">{{ request.user.phone|default:"Not provided" }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Member Since</div>
+                <div class="info-value">{{ request.user.date_joined|date:"F j, Y" }}</div>
+            </div>
+            {% if request.user.bio %}
+            <div class="info-item" style="grid-column: span 2;">
+                <div class="info-label">About Me</div>
+                <div class="info-value">{{ request.user.bio }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Profile</h3>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="full_name">Full Name</label>
+                        <input type="text" id="full_name" name="full_name" value="{{ request.user.full_name }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" value="{{ request.user.phone }}" placeholder="Enter your phone number">
+                    </div>
+                    <div class="form-group">
+                        <label for="bio">About Me</label>
+                        <textarea id="bio" name="bio" placeholder="Tell us a bit about yourself...">{{ request.user.bio }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="profile_image">Profile Photo</label>
+                        <input type="file" id="profile_image" name="profile_image" accept="image/*">
+                        {% if request.user.profile_image %}
+                        <small style="color: #627180;">Current: {{ request.user.profile_image.name }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn-save">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if therapists_worked_with %}
+    <div class="card">
+        <h3>👨‍⚕️ My Therapists</h3>
+        <div class="therapist-list">
+            {% for t in therapists_worked_with %}
+            <div class="therapist-chip">
+                <div class="therapist-avatar">{{ t.full_name|first }}</div>
+                <div>
+                    <div class="therapist-name">{{ t.full_name }}</div>
+                    <div class="therapist-spec">{{ t.get_specialization_display|default:"General" }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if session_reports %}
+    <div class="card">
+        <h3>📈 Progress Tracking</h3>
+        <div class="chart-container">
+            <canvas id="progressChart"></canvas>
+        </div>
+        <div style="display: flex; gap: 20px; justify-content: center; margin-top: 12px; font-size: 0.85rem;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 12px; height: 12px; background: #4da3a9; border-radius: 2px;"></span>
+                <span>Mood Rating</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 12px; height: 12px; background: #f59e0b; border-radius: 2px;"></span>
+                <span>Progress Rating</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <h3>📋 Records</h3>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('records')">Session Records</button>
+            <button class="tab-btn" onclick="showTab('appointments')">Appointment History</button>
+            <button class="tab-btn" onclick="showTab('assessments')">Assessments</button>
+            <button class="tab-btn" onclick="showTab('activities')">My Activities</button>
+        </div>
+
+        <!-- Session Records Tab -->
+        <div id="records-tab" class="tab-content active">
+            {% if session_reports %}
+            <div class="record-list">
+                {% for report in session_reports %}
+                <div class="record-card">
+                    <div class="record-header">
+                        <div>
+                            <div class="record-therapist">Dr. {{ report.therapist.full_name }}</div>
+                            <div class="record-date">{{ report.created_at|date:"F j, Y" }} at {{ report.created_at|time:"g:i A" }}</div>
+                        </div>
+                    </div>
+                    <div class="record-ratings">
+                        <div class="rating-item">
+                            <span>😊 Mood:</span>
+                            <div class="rating-bar">
+                                <div class="rating-fill mood" style="width: {{ report.mood_rating }}0%;"></div>
+                            </div>
+                            <span style="font-weight: 600;">{{ report.mood_rating }}/10</span>
+                        </div>
+                        <div class="rating-item">
+                            <span>📈 Progress:</span>
+                            <div class="rating-bar">
+                                <div class="rating-fill progress" style="width: {{ report.progress_rating }}0%;"></div>
+                            </div>
+                            <span style="font-weight: 600;">{{ report.progress_rating }}/10</span>
+                        </div>
+                    </div>
+                    <div class="record-summary">{{ report.summary|truncatechars:200 }}</div>
+                    {% if report.homework %}
+                    <div class="record-homework">
+                        <div class="record-homework-title">📝 Homework / Exercises</div>
+                        <div class="record-homework-text">{{ report.homework }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i>📄</i>
+                <h4>No Session Records Yet</h4>
+                <p>Session records from your therapists will appear here after completed appointments.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Appointment History Tab -->
+        <div id="appointments-tab" class="tab-content">
+            {% if appointment_history %}
+            <div class="apt-list">
+                {% for apt in appointment_history %}
+                <div class="apt-item">
+                    <div class="apt-info">
+                        <div class="apt-therapist">{{ apt.therapist.full_name }}</div>
+                        <div class="apt-datetime">{{ apt.date_time|date:"M j, Y" }} at {{ apt.date_time|time:"g:i A" }}</div>
+                    </div>
+                    <span class="apt-status status-{{ apt.status }}">{{ apt.get_status_display }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i>📅</i>
+                <h4>No Appointments Yet</h4>
+                <p>Your appointment history will appear here.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Assessments Tab -->
+        <div id="assessments-tab" class="tab-content">
+            {% if mcq_results %}
+            <div class="assessment-list">
+                {% for mcq in mcq_results %}
+                <div class="assessment-card {% if forloop.first %}latest{% endif %}">
+                    <div class="assessment-info">
+                        <div class="assessment-category">
+                            <span class="category-badge">{{ mcq.get_category_display }}</span>
+                            {% if forloop.first %}
+                            <span class="latest-badge">Current</span>
+                            {% endif %}
+                        </div>
+                        <div class="assessment-date">Completed on {{ mcq.completed_at|date:"F j, Y" }} at {{ mcq.completed_at|time:"g:i A" }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="margin-top: 18px; padding-top: 18px; border-top: 1px solid #e7ddd6;">
+                <a href="{% url 'accounts:patient_mcq' %}" class="btn-retake">Retake Assessment</a>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i>📝</i>
+                <h4>No Assessments Yet</h4>
+                <p>Take the mental health assessment to get personalized therapist recommendations.</p>
+                <a href="{% url 'accounts:patient_mcq' %}" class="btn-retake" style="margin-top: 12px;">Take Assessment</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Activities Tab -->
+        <div id="activities-tab" class="tab-content">
+            <div class="activity-stats">
+                <div class="activity-stat">
+                    <div class="activity-stat-icon">✅</div>
+                    <div class="activity-stat-value">{{ tasks_completed }}</div>
+                    <div class="activity-stat-label">Tasks Done</div>
+                </div>
+                <div class="activity-stat">
+                    <div class="activity-stat-icon">🏆</div>
+                    <div class="activity-stat-value">{{ challenges_accepted }}</div>
+                    <div class="activity-stat-label">Challenges</div>
+                </div>
+                <div class="activity-stat">
+                    <div class="activity-stat-icon">😊</div>
+                    <div class="activity-stat-value">{{ mood_checkins|length }}</div>
+                    <div class="activity-stat-label">Mood Logs</div>
+                </div>
+                <div class="activity-stat">
+                    <div class="activity-stat-icon">⭐</div>
+                    <div class="activity-stat-value">{{ total_points }}</div>
+                    <div class="activity-stat-label">Total Points</div>
+                </div>
+            </div>
+            
+            <h4 style="margin-bottom: 12px; color: #2d6a6f; font-weight: 600;">Recent Activity</h4>
+            {% if activity_logs %}
+            <div class="activity-feed">
+                {% for activity in activity_logs %}
+                <div class="activity-item">
+                    <div class="activity-icon {% if activity.activity_type == 'task' %}task{% elif activity.activity_type == 'challenge' %}challenge{% else %}mood{% endif %}">
+                        {% if activity.activity_type == 'task' %}✅{% elif activity.activity_type == 'challenge' %}🏆{% elif activity.mood == 'great' %}😊{% elif activity.mood == 'good' %}🙂{% elif activity.mood == 'okay' %}😐{% elif activity.mood == 'low' %}😔{% elif activity.mood == 'struggling' %}😢{% else %}🎯{% endif %}
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-title">{{ activity.title }}</div>
+                        <div class="activity-meta">
+                            {{ activity.get_activity_type_display }} · {{ activity.created_at|date:"M j" }} at {{ activity.created_at|time:"g:i A" }}
+                        </div>
+                    </div>
+                    {% if activity.points > 0 %}
+                    <span class="activity-points">+{{ activity.points }} pts</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i>🎯</i>
+                <h4>No Activities Yet</h4>
+                <p>Complete tasks, accept challenges, and track your mood on the dashboard to see your progress here!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+{% if session_reports %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+const moodData = {{ mood_data|safe }};
+const progressData = {{ progress_data|safe }};
+const labels = moodData.map((_, i) => 'Session ' + (i + 1));
+
+new Chart(document.getElementById('progressChart'), {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Mood',
+                data: moodData,
+                borderColor: '#4da3a9',
+                backgroundColor: 'rgba(77, 163, 169, 0.1)',
+                tension: 0.3,
+                fill: true
+            },
+            {
+                label: 'Progress',
+                data: progressData,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                tension: 0.3,
+                fill: true
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: { min: 0, max: 10, ticks: { stepSize: 2 } }
+        },
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+</script>
+{% endif %}
+
+<script>
+function showTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(tab + '-tab').classList.add('active');
+    event.target.classList.add('active');
+}
+
+function openEditModal() {
+    document.getElementById('editModal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// Close modal when clicking outside
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeEditModal();
+});
+</script>
+{% endblock %}

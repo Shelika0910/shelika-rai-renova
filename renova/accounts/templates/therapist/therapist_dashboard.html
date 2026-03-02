@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Dashboard | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .doctor-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+
+    .doctor-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+        margin-bottom: 18px;
+    }
+
+    .doctor-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .doctor-nav a {
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dce6e8;
+        background: #f7fbfc;
+        color: #2b4e59;
+        font-weight: 600;
+        font-size: 0.92rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .doctor-nav a.active {
+        background: #4da3a9;
+        color: white;
+        border-color: #4da3a9;
+    }
+
+    .doctor-nav a:hover {
+        background: #e8f4f5;
+        border-color: #4da3a9;
+    }
+
+    .doctor-nav a.active:hover {
+        background: #3c8b90;
+    }
+
+    .hero-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white;
+        padding: 24px;
+        border-radius: 16px;
+        margin-bottom: 22px;
+        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
+    }
+
+    .hero-card h1 { margin: 0 0 6px; font-size: 1.55rem; font-weight: 700; }
+    .hero-card p { margin: 0; opacity: 0.92; }
+
+    .hero-sub { margin-top: 10px; font-size: 0.93rem; opacity: 0.88; }
+    .muted-email { opacity: 0.95; font-weight: 600; }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .stat {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+    }
+
+    .stat small {
+        display: block;
+        color: #8a95a0;
+        font-size: 0.82rem;
+        margin-bottom: 6px;
+        font-weight: 500;
+    }
+
+    .stat strong {
+        font-size: 1.25rem;
+        color: #2c4652;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .section-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 16px;
+        padding: 22px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+    }
+
+    .section-card h3 {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+        color: #2c4652;
+    }
+
+    .section-card p {
+        margin: 0;
+        color: #627180;
+        font-size: 0.92rem;
+    }
+
+    .mini-list {
+        margin: 12px 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 8px;
+    }
+
+    .mini-list li {
+        border: 1px solid #e7ddd6;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+        color: #4a5568;
+        background: #f9fcfd;
+    }
+
+    .care-plan {
+        margin-top: 14px;
+        padding: 12px 14px;
+        background: #edf8f8;
+        border: 1px solid #b6dfe1;
+        border-radius: 10px;
+        color: #27625e;
+        font-size: 0.88rem;
+    }
+
+    .section-card > a {
+        display: inline-block;
+        margin-top: 14px;
+        padding: 8px 16px;
+        background: #4da3a9;
+        color: white;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background 0.2s;
+    }
+
+    .section-card > a:hover { background: #3c8b90; }
+
+    .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .quick-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+        transition: all 0.2s ease;
+    }
+
+    .quick-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .quick-card h4 {
+        margin: 0 0 4px;
+        font-size: 0.95rem;
+        color: #2c4652;
+    }
+
+    .quick-card p {
+        margin: 0 0 10px;
+        font-size: 0.83rem;
+        color: #8a95a0;
+    }
+
+    .quick-card a {
+        display: inline-block;
+        padding: 7px 16px;
+        background: #4da3a9;
+        color: white;
+        border-radius: 10px;
+        font-size: 0.83rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background 0.2s;
+    }
+
+    .quick-card a:hover { background: #3c8b90; }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+        .quick-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .nav-links {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="doctor-wrap">
+    <nav class="doctor-nav" aria-label="Doctor Navigation">
+        <div class="doctor-nav-row">
+            <div class="nav-links">
+                <a href="{% url 'accounts:doctor_dashboard' %}" class="nav-item active">Dashboard</a>
+                <a href="{% url 'accounts:client_list' %}" class="nav-item">Patients</a>
+                <a href="{% url 'accounts:therapist_appointments' %}" class="nav-item">Appointments</a>
+                <a href="{% url 'accounts:manage_availability' %}" class="nav-item">Availability</a>
+                <a href="{% url 'accounts:therapist_profile' %}" class="nav-item">Profile</a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a href="{% url 'accounts:notifications' %}" style="position: relative; padding: 8px 12px; border-radius: 8px; color: #000; text-decoration: none; font-size: 1.2rem; transition: all 0.2s ease;" title="Notifications">
+                    🔔
+                    {% if unread_notifications > 0 %}
+                        <span style="position: absolute; top: -4px; right: -4px; background: #dc3545; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; min-width: 16px; text-align: center;">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div id="dashboard-content">
+        <div class="hero-card">
+            <h1>Doctor Dashboard</h1>
+            <p>Welcome back, <span class="muted-email">{{ request.user.email }}</span>.</p>
+            <div class="hero-sub">Your practice overview for today: appointments, patient updates, and clinical insights.</div>
+        </div>
+
+        <div class="stats-grid">
+            <article class="stat">
+                <small>Today's Appointments</small>
+                <strong>{{ today_appointments|length }} Sessions</strong>
+            </article>
+            <article class="stat">
+                <small>Total Patients</small>
+                <strong>{{ total_patients }}</strong>
+            </article>
+            <article class="stat">
+                <small>Pending Requests</small>
+                <strong>{{ pending_requests }}</strong>
+            </article>
+            <article class="stat">
+                <small>Completed Sessions</small>
+                <strong>{{ completed_sessions }}</strong>
+            </article>
+        </div>
+
+        <div class="content-grid">
+            <section class="section-card">
+                <h3>Today's Schedule</h3>
+                <p>Your appointments for today.</p>
+
+                <ul class="mini-list">
+                    {% for apt in today_appointments %}
+                    <li><strong>{{ apt.date_time|time:"g:i A" }}</strong> · {{ apt.patient.full_name }} · {{ apt.get_status_display }} ({{ apt.duration_minutes }} min)</li>
+                    {% empty %}
+                    <li style="color:#8a95a0;">No appointments scheduled for today.</li>
+                    {% endfor %}
+                </ul>
+
+                <div class="care-plan">
+                    Reminder: Complete session reports within 24 hours for optimal patient care tracking.
+                </div>
+
+                <a href="{% url 'accounts:therapist_appointments' %}">View all appointments</a>
+            </section>
+
+            <section class="section-card">
+                <h3>Upcoming Appointments</h3>
+                <p>Your next scheduled sessions.</p>
+
+                <ul class="mini-list">
+                    {% for apt in upcoming_appointments %}
+                    <li>📅 <strong>{{ apt.date_time|date:"M d" }} {{ apt.date_time|time:"g:i A" }}</strong> · {{ apt.patient.full_name }} · {{ apt.get_status_display }}</li>
+                    {% empty %}
+                    <li style="color:#8a95a0;">No upcoming appointments.</li>
+                    {% endfor %}
+                </ul>
+
+                <a href="{% url 'accounts:client_list' %}">View all patients</a>
+            </section>
+        </div>
+
+        <div class="quick-grid">
+            <article class="quick-card">
+                <h4>Patients</h4>
+                <p>Manage patient profiles.</p>
+                <a href="{% url 'accounts:client_list' %}">Open</a>
+            </article>
+            <article class="quick-card">
+                <h4>Appointments</h4>
+                <p>View appointments.</p>
+                <a href="{% url 'accounts:therapist_appointments' %}">Open</a>
+            </article>
+            <article class="quick-card">
+                <h4>Availability</h4>
+                <p>Set your schedule.</p>
+                <a href="{% url 'accounts:manage_availability' %}">Open</a>
+            </article>
+            <article class="quick-card">
+                <h4>Profile</h4>
+                <p>Account settings.</p>
+                <a href="{% url 'accounts:therapist_profile' %}">Open</a>
+            </article>
+        </div>
+    </div>
+
+</section>
+{% endblock %}

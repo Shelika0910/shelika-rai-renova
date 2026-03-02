@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Session Report | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-wrap {
+        width: min(800px, calc(100% - 40px));
+        margin: 40px auto 60px;
+    }
+    .hero-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white; padding: 24px; border-radius: 16px; margin-bottom: 22px;
+        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
+    }
+    .hero-card h1 { margin: 0 0 6px; font-size: 1.55rem; font-weight: 700; }
+    .hero-card p { margin: 0; opacity: 0.92; }
+
+    .report-section {
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 16px;
+        padding: 24px; box-shadow: 0 6px 16px rgba(0,0,0,0.04); margin-bottom: 16px;
+    }
+    .section-title {
+        font-size: 1rem; font-weight: 700; color: #2c4652; margin: 0 0 12px;
+        padding-bottom: 8px; border-bottom: 2px solid #e7ddd6;
+    }
+    .section-text { color: #4a5568; line-height: 1.6; font-size: 0.95rem; }
+    .section-text.empty { color: #8a95a0; font-style: italic; }
+
+    .session-info {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 4px;
+    }
+    .info-item { font-size: 0.93rem; }
+    .info-item strong { color: #2c4652; }
+    .info-item span { color: #627180; }
+
+    .ratings-row { display: flex; gap: 20px; margin-top: 8px; }
+    .rating-box {
+        flex: 1; text-align: center; border: 1px solid #e7ddd6; border-radius: 12px;
+        padding: 16px; background: #f8fafc;
+    }
+    .rating-box .value { font-size: 2rem; font-weight: 700; }
+    .rating-box .label { font-size: 0.85rem; color: #657482; margin-top: 4px; }
+    .mood-color { color: #0369a1; }
+    .progress-color { color: #15803d; }
+
+    .attachment-link {
+        display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+        background: #edf8f8; color: #2d6a6f; border-radius: 10px; font-weight: 600;
+        text-decoration: none; font-size: 0.9rem; margin-top: 8px;
+    }
+    .attachment-link:hover { background: #d5eeef; }
+
+    .private-section {
+        background: #fef2f2; border: 1px solid #fecaca; border-radius: 16px;
+        padding: 24px; margin-bottom: 16px;
+    }
+    .private-section .section-title { border-bottom-color: #fecaca; color: #991b1b; }
+
+    .btn-row { display: flex; gap: 12px; margin-top: 8px; }
+    .btn {
+        padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+        text-decoration: none; transition: all 0.2s;
+    }
+    .btn-back { background: #f0f2f4; color: #374151; }
+    .btn-back:hover { background: #e5e7eb; }
+    .btn-edit { background: #4da3a9; color: white; }
+    .btn-edit:hover { background: #3c8b90; }
+
+    @media (max-width: 640px) {
+        .session-info { grid-template-columns: 1fr; }
+        .ratings-row { flex-direction: column; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-wrap">
+    <div class="hero-card">
+        <h1>Session Report</h1>
+        <p>Clinical documentation for {{ appointment.patient.full_name }}</p>
+    </div>
+
+    <!-- Session Info -->
+    <div class="report-section">
+        <div class="section-title">Session Information</div>
+        <div class="session-info">
+            <div class="info-item"><strong>Patient:</strong> <span>{{ appointment.patient.full_name }}</span></div>
+            <div class="info-item"><strong>Therapist:</strong> <span>{{ appointment.therapist.full_name }}</span></div>
+            <div class="info-item"><strong>Date:</strong> <span>{{ appointment.date_time|date:"F j, Y" }} at {{ appointment.date_time|time:"g:i A" }}</span></div>
+            <div class="info-item"><strong>Duration:</strong> <span>{{ appointment.duration_minutes }} minutes</span></div>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="report-section">
+        <div class="section-title">Session Summary</div>
+        <div class="section-text">{{ report.summary|linebreaksbr }}</div>
+    </div>
+
+    <!-- Clinical Assessment -->
+    {% if report.diagnosis_notes or report.treatment_plan %}
+    <div class="report-section">
+        <div class="section-title">Clinical Assessment</div>
+        {% if report.diagnosis_notes %}
+            <h4 style="margin: 0 0 6px; color: #2c4652; font-size: 0.95rem;">Diagnosis Notes</h4>
+            <div class="section-text" style="margin-bottom: 16px;">{{ report.diagnosis_notes|linebreaksbr }}</div>
+        {% endif %}
+        {% if report.treatment_plan %}
+            <h4 style="margin: 0 0 6px; color: #2c4652; font-size: 0.95rem;">Treatment Plan</h4>
+            <div class="section-text">{{ report.treatment_plan|linebreaksbr }}</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Ratings -->
+    <div class="report-section">
+        <div class="section-title">Patient Ratings</div>
+        <div class="ratings-row">
+            <div class="rating-box">
+                <div class="value mood-color">{{ report.mood_rating }}/10</div>
+                <div class="label">Mood Rating</div>
+            </div>
+            <div class="rating-box">
+                <div class="value progress-color">{{ report.progress_rating }}/10</div>
+                <div class="label">Progress Rating</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Homework -->
+    {% if report.homework %}
+    <div class="report-section">
+        <div class="section-title">Homework / Exercises</div>
+        <div class="section-text">{{ report.homework|linebreaksbr }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Attachment -->
+    {% if report.attachment %}
+    <div class="report-section">
+        <div class="section-title">Attachment</div>
+        <a href="{{ report.attachment.url }}" class="attachment-link" target="_blank">📎 {{ report.attachment.name|truncatechars:40 }}</a>
+    </div>
+    {% endif %}
+
+    <!-- Private Notes (therapist only) -->
+    {% if is_therapist and report.private_notes %}
+    <div class="private-section">
+        <div class="section-title">🔒 Private Notes (Therapist Only)</div>
+        <div class="section-text">{{ report.private_notes|linebreaksbr }}</div>
+    </div>
+    {% endif %}
+
+    <div class="btn-row">
+        <a href="javascript:history.back()" class="btn btn-back">&larr; Back</a>
+        {% if is_therapist %}
+            <a href="{% url 'accounts:edit_session_report' report.pk %}" class="btn btn-edit">Edit Report</a>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

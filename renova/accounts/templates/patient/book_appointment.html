@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block title %}Book Appointment | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .patient-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+    .patient-nav {
+        display: flex; flex-wrap: wrap; gap: 10px; padding: 14px;
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.04); margin-bottom: 18px;
+    }
+    .patient-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .patient-nav a {
+        padding: 9px 14px; border-radius: 999px; border: 1px solid #dce6e8;
+        background: #f7fbfc; color: #2b4e59; font-weight: 600; font-size: 0.92rem;
+        cursor: pointer; transition: all 0.2s ease;
+    }
+    .patient-nav a.active { background: #4da3a9; color: white; border-color: #4da3a9; }
+    .patient-nav a:hover { background: #e8f4f5; border-color: #4da3a9; }
+    .patient-nav a.active:hover { background: #3c8b90; }
+
+    .booking-wrap {
+        width: min(900px, calc(100% - 40px));
+        margin: 0 auto 46px;
+    }
+    .hero-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white; padding: 24px; border-radius: 16px; margin-bottom: 18px;
+        box-shadow: 0 12px 28px rgba(77,163,169,0.25);
+    }
+    .hero-card h1 { margin: 0 0 8px; font-size: 1.65rem; font-weight: 700; }
+    .hero-card p { margin: 0; opacity: 0.95; }
+
+    .booking-form {
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 14px;
+        padding: 28px; box-shadow: 0 10px 24px rgba(0,0,0,0.04);
+    }
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+        display: block; margin-bottom: 6px; font-weight: 600; color: #2c4652; font-size: 0.95rem;
+    }
+    .form-group select, .form-group input, .form-group textarea {
+        width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px;
+        font-size: 0.95rem; font-family: inherit; transition: border-color 0.2s;
+    }
+    .form-group select:focus, .form-group input:focus, .form-group textarea:focus {
+        outline: none; border-color: #4da3a9; box-shadow: 0 0 0 3px rgba(77,163,169,0.15);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .slots-container {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px;
+        margin-top: 8px;
+    }
+    .slot-btn {
+        padding: 10px 8px; border: 2px solid #e7ddd6; border-radius: 8px;
+        background: #f7fbfc; color: #2b4e59; font-weight: 600; font-size: 0.9rem;
+        cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .slot-btn:hover { border-color: #4da3a9; background: #e8f4f5; }
+    .slot-btn.selected { background: #4da3a9; color: white; border-color: #4da3a9; }
+    .slot-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+    .slots-loading { text-align: center; padding: 20px; color: #657482; }
+    .no-slots { text-align: center; padding: 20px; color: #dc3545; font-weight: 600; }
+
+    .therapist-card {
+        border: 2px solid #e7ddd6; border-radius: 12px; padding: 16px;
+        margin-bottom: 10px; cursor: pointer; transition: all 0.2s;
+    }
+    .therapist-card:hover { border-color: #4da3a9; background: #f8fdfd; }
+    .therapist-card.selected { border-color: #4da3a9; background: #e8f4f5; }
+    .therapist-card h4 { margin: 0 0 4px; color: #2c4652; }
+    .therapist-card p { margin: 0; font-size: 0.88rem; color: #627180; }
+
+    .submit-btn {
+        width: 100%; padding: 14px; background: #4da3a9; color: white; border: none;
+        border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer;
+        transition: all 0.2s; margin-top: 8px;
+    }
+    .submit-btn:hover { background: #3c8b90; }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .step-indicator {
+        display: flex; gap: 0; margin-bottom: 24px;
+    }
+    .step {
+        flex: 1; text-align: center; padding: 12px 8px; font-weight: 600;
+        font-size: 0.88rem; color: #8a95a0; background: #f0f2f4;
+        border-bottom: 3px solid #d1d5db; transition: all 0.3s;
+    }
+    .step:first-child { border-radius: 8px 0 0 0; }
+    .step:last-child { border-radius: 0 8px 0 0; }
+    .step.active { color: #4da3a9; border-bottom-color: #4da3a9; background: #e8f4f5; }
+    .step.done { color: #28a745; border-bottom-color: #28a745; background: #d4edda; }
+
+    .booking-step { display: none; }
+    .booking-step.active { display: block; }
+
+    @media (max-width: 640px) {
+        .form-row { grid-template-columns: 1fr; }
+        .slots-container { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="patient-wrap">
+    <nav class="patient-nav" aria-label="Patient Navigation">
+        <div class="patient-nav-row">
+            <div class="nav-links">
+                <a href="{% url 'accounts:patient_dashboard' %}" class="nav-item">Dashboard</a>
+                <a href="{% url 'accounts:find_therapist' %}" class="nav-item">Find Therapist</a>
+                <a href="{% url 'accounts:patient_appointments' %}" class="nav-item active">Appointments</a>
+                <a href="{% url 'accounts:patient_resources' %}" class="nav-item">Resources</a>
+                <a href="{% url 'accounts:ai_chatbot' %}" class="nav-item">AI-Chatbot</a>
+                <a href="{% url 'accounts:patient_profile' %}" class="nav-item">Profile</a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a href="{% url 'accounts:notifications' %}" style="position: relative; padding: 8px 12px; border-radius: 8px; color: #000; text-decoration: none; font-size: 1.2rem;" title="Notifications">
+                    🔔
+                    {% if unread_notifications > 0 %}
+                        <span style="position: absolute; top: -4px; right: -4px; background: #dc3545; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; min-width: 16px; text-align: center;">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </nav>
+</section>
+
+<section class="booking-wrap">
+    <div class="hero-card">
+        <h1>Book an Appointment</h1>
+        <p>Select a therapist, pick a date, and choose a time. You can request any time — the therapist will accept or decline.</p>
+    </div>
+
+    <div class="booking-form">
+        <div class="step-indicator">
+            <div class="step active" id="step-ind-1">1. Choose Therapist</div>
+            <div class="step" id="step-ind-2">2. Select Date & Time</div>
+            <div class="step" id="step-ind-3">3. Confirm Booking</div>
+        </div>
+
+        <form method="post" id="bookingForm">
+            {% csrf_token %}
+            <input type="hidden" name="therapist_id" id="therapistId">
+            <input type="hidden" name="appointment_date" id="appointmentDate">
+            <input type="hidden" name="appointment_time" id="appointmentTime">
+
+            <!-- Step 1: Choose Therapist -->
+            <div class="booking-step active" id="step-1">
+                <div class="form-group">
+                    <label>Select a Therapist</label>
+                    {% for t in therapists %}
+                    <div class="therapist-card" data-id="{{ t.pk }}" onclick="selectTherapist(this, {{ t.pk }})">
+                        <h4>{{ t.full_name }}</h4>
+                        <p>{{ t.get_specialization_display|default:"General Wellness" }} &middot; {{ t.email }}</p>
+                        {% if t.bio %}<p style="margin-top:4px; font-style:italic;">{{ t.bio|truncatechars:80 }}</p>{% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="no-slots">No therapists available at this time.</div>
+                    {% endfor %}
+                </div>
+                <button type="button" class="submit-btn" id="toStep2Btn" disabled onclick="goToStep(2)">Continue &rarr;</button>
+            </div>
+
+            <!-- Step 2: Date & Time -->
+            <div class="booking-step" id="step-2">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="datePicker">Select Date</label>
+                        <input type="date" id="datePicker" onchange="loadSlots()">
+                    </div>
+                    <div class="form-group">
+                        <label>Session Duration</label>
+                        <select name="duration">
+                            <option value="30">30 minutes</option>
+                            <option value="60" selected>60 minutes</option>
+                            <option value="90">90 minutes</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Available Time Slots</label>
+                    <div id="slotsContainer">
+                        <div class="slots-loading">Select a date to see available slots.</div>
+                    </div>
+                </div>
+
+                <div class="form-group" id="customTimeGroup">
+                    <label>Request a Custom Time</label>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <input type="time" id="customTimeInput" style="padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; font-size:0.95rem; font-family:inherit;">
+                        <button type="button" class="submit-btn" style="width:auto; margin:0; padding:10px 20px;" onclick="applyCustomTime()">Use This Time</button>
+                    </div>
+                    <div id="availRangesInfo" style="margin-top:8px; font-size:0.85rem; color:#627180;"></div>
+                    <div id="customTimeNote" style="margin-top:6px; font-size:0.85rem; color:#627180; background:#f0f8ff; padding:8px 12px; border-radius:8px; display:none;">
+                        💡 <strong>Tip:</strong> You can request any time. If it's outside the therapist's available hours, they will review and accept or decline your request.
+                    </div>
+                    <div id="customTimeError" style="margin-top:6px; font-size:0.88rem; color:#dc3545; font-weight:600; display:none;"></div>
+                </div>
+
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="submit-btn" style="background:#6c757d;" onclick="goToStep(1)">&larr; Back</button>
+                    <button type="button" class="submit-btn" id="toStep3Btn" disabled onclick="goToStep(3)">Continue &rarr;</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Confirm -->
+            <div class="booking-step" id="step-3">
+                <div style="background: #f8fdfd; border: 1px solid #b2e0e3; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                    <h3 style="margin:0 0 12px; color: #2c4652;">Booking Summary</h3>
+                    <div style="display:grid; gap: 8px; font-size:0.95rem; color:#4a5568;">
+                        <div><strong>Therapist:</strong> <span id="summaryTherapist"></span></div>
+                        <div><strong>Date:</strong> <span id="summaryDate"></span></div>
+                        <div><strong>Time:</strong> <span id="summaryTime"></span></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="patientNotes">Notes for the therapist (optional)</label>
+                    <textarea name="patient_notes" id="patientNotes" rows="3" placeholder="Describe what you'd like to discuss..."></textarea>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="submit-btn" style="background:#6c757d;" onclick="goToStep(2)">&larr; Back</button>
+                    <button type="submit" class="submit-btn">Confirm Booking</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<script>
+const allAvail = JSON.parse('{{ all_avail_json|escapejs }}');
+const allBooked = JSON.parse('{{ all_booked_json|escapejs }}');
+const preselectedId = '{{ preselected_therapist_id }}';
+
+let selectedTherapistId = null;
+let selectedTherapistName = '';
+let selectedTime = null;
+let availRanges = [];
+let bookedTimes = [];
+
+// Set min date to today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('datePicker').setAttribute('min', today);
+
+// Auto-select therapist if coming from Find Therapist / profile page
+if (preselectedId) {
+    const card = document.querySelector(`.therapist-card[data-id="${preselectedId}"]`);
+    if (card) {
+        selectTherapist(card, parseInt(preselectedId));
+        goToStep(2);
+    }
+}
+
+function selectTherapist(el, id) {
+    document.querySelectorAll('.therapist-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedTherapistId = String(id);
+    selectedTherapistName = el.querySelector('h4').textContent;
+    document.getElementById('therapistId').value = id;
+    document.getElementById('toStep2Btn').disabled = false;
+}
+
+function goToStep(step) {
+    document.querySelectorAll('.booking-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-' + step).classList.add('active');
+    for (let i = 1; i <= 3; i++) {
+        const ind = document.getElementById('step-ind-' + i);
+        ind.classList.remove('active', 'done');
+        if (i < step) ind.classList.add('done');
+        else if (i === step) ind.classList.add('active');
+    }
+    if (step === 3) {
+        document.getElementById('summaryTherapist').textContent = selectedTherapistName;
+        const d = document.getElementById('datePicker').value;
+        document.getElementById('summaryDate').textContent = d ? new Date(d + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '';
+        document.getElementById('summaryTime').textContent = selectedTime || '';
+    }
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function formatTime12(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const dh = h % 12 || 12;
+    return `${pad2(dh)}:${pad2(m)} ${ampm}`;
+}
+
+function loadSlots() {
+    const dateVal = document.getElementById('datePicker').value;
+    const container = document.getElementById('slotsContainer');
+    const customGroup = document.getElementById('customTimeGroup');
+    const rangesInfo = document.getElementById('availRangesInfo');
+    const customNote = document.getElementById('customTimeNote');
+    if (!dateVal || !selectedTherapistId) {
+        container.innerHTML = '<div class="slots-loading">Please select a therapist and date.</div>';
+        rangesInfo.textContent = '';
+        customNote.style.display = 'none';
+        return;
+    }
+    document.getElementById('appointmentDate').value = dateVal;
+    selectedTime = null;
+    document.getElementById('toStep3Btn').disabled = true;
+    document.getElementById('customTimeError').style.display = 'none';
+
+    // Get day of week (JS: 0=Sun, Python: 0=Mon)
+    const dt = new Date(dateVal + 'T00:00');
+    const jsDay = dt.getDay();
+    const pyDay = jsDay === 0 ? 6 : jsDay - 1;
+
+    const therapistAvail = allAvail[selectedTherapistId] || {};
+    const dayBlocks = therapistAvail[String(pyDay)] || [];
+    const therapistBooked = allBooked[selectedTherapistId] || {};
+    const dayBooked = therapistBooked[dateVal] || [];
+    bookedTimes = dayBooked;
+
+    availRanges = dayBlocks;
+
+    // Always show custom time note
+    customNote.style.display = '';
+
+    if (dayBlocks.length === 0) {
+        container.innerHTML = '<div class="no-slots">No preset slots for this date — but you can still request a custom time below!</div>';
+        rangesInfo.textContent = 'No availability set for this day.';
+        return;
+    }
+
+    // Generate hourly slots
+    let slots = [];
+    dayBlocks.forEach(block => {
+        let [sh, sm] = block.start.split(':').map(Number);
+        const [eh, em] = block.end.split(':').map(Number);
+        let cur = sh * 60 + sm;
+        const endMin = eh * 60 + em;
+        while (cur < endMin) {
+            const t = pad2(Math.floor(cur / 60)) + ':' + pad2(cur % 60);
+            const booked = dayBooked.includes(t);
+            slots.push({ time: t, display: formatTime12(t), booked });
+            cur += 60;
+        }
+    });
+
+    if (slots.filter(s => !s.booked).length === 0) {
+        container.innerHTML = '<div class="no-slots">All preset slots are booked — but you can still request a custom time below!</div>';
+    } else {
+        let html = '<div class="slots-container">';
+        slots.forEach(s => {
+            if (s.booked) {
+                html += `<div class="slot-btn disabled">${s.display}</div>`;
+            } else {
+                html += `<div class="slot-btn" onclick="selectSlot(this, '${s.time}', '${s.display}')">${s.display}</div>`;
+            }
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    // Show available ranges
+    let rangeText = 'Therapist\'s available hours: ';
+    rangeText += dayBlocks.map(r => `${r.display_start} – ${r.display_end}`).join(', ');
+    rangesInfo.textContent = rangeText;
+}
+
+function selectSlot(el, timeVal, display) {
+    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedTime = display;
+    document.getElementById('appointmentTime').value = timeVal;
+    document.getElementById('toStep3Btn').disabled = false;
+    document.getElementById('customTimeInput').value = '';
+    document.getElementById('customTimeError').style.display = 'none';
+}
+
+function applyCustomTime() {
+    const input = document.getElementById('customTimeInput');
+    const errorEl = document.getElementById('customTimeError');
+    const timeVal = input.value;
+
+    if (!timeVal) {
+        errorEl.textContent = 'Please enter a time.';
+        errorEl.style.display = '';
+        return;
+    }
+
+    if (bookedTimes.includes(timeVal)) {
+        errorEl.textContent = 'This exact time is already booked. Please choose a different time.';
+        errorEl.style.display = '';
+        return;
+    }
+
+    // Check if time is within available ranges
+    let inRange = false;
+    for (const range of availRanges) {
+        if (timeVal >= range.start && timeVal < range.end) {
+            inRange = true;
+            break;
+        }
+    }
+
+    errorEl.style.display = 'none';
+    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+
+    if (inRange) {
+        selectedTime = formatTime12(timeVal);
+    } else {
+        selectedTime = formatTime12(timeVal) + ' (custom request)';
+    }
+    document.getElementById('appointmentTime').value = timeVal;
+    document.getElementById('toStep3Btn').disabled = false;
+}
+</script>
+{% endblock %}

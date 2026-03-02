@@ -1,0 +1,468 @@
+{% extends 'base.html' %}
+
+{% block title %}Therapist Appointments - ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .doctor-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+
+    .doctor-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+        margin-bottom: 18px;
+    }
+
+    .doctor-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .doctor-nav a {
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dce6e8;
+        background: #f7fbfc;
+        color: #2b4e59;
+        font-weight: 600;
+        font-size: 0.92rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .doctor-nav a.active { background: #4da3a9; color: white; border-color: #4da3a9; }
+    .doctor-nav a:hover { background: #e8f4f5; border-color: #4da3a9; }
+    .doctor-nav a.active:hover { background: #3c8b90; }
+
+    .hero-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white;
+        padding: 24px;
+        border-radius: 16px;
+        margin-bottom: 22px;
+        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
+    }
+
+    .hero-card h1 { margin: 0 0 6px; font-size: 1.55rem; font-weight: 700; }
+    .hero-card p { margin: 0; opacity: 0.92; }
+
+    .stats-bar {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .stat-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 16px;
+        padding: 18px;
+        text-align: center;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+    }
+
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #4da3a9;
+        margin-bottom: 4px;
+    }
+
+    .stat-label {
+        color: #8a95a0;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .tabs-container {
+        display: flex;
+        gap: 4px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        padding: 6px;
+        border-radius: 14px;
+        margin-bottom: 18px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+        overflow-x: auto;
+    }
+
+    .tab-button {
+        flex: 1;
+        padding: 10px 18px;
+        background: transparent;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        color: #627180;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        min-width: 130px;
+        font-family: inherit;
+    }
+
+    .tab-button.active {
+        background: #4da3a9;
+        color: white;
+        box-shadow: 0 2px 8px rgba(77, 163, 169, 0.3);
+    }
+
+    .tab-button:not(.active):hover { background: #f0f7f7; color: #2c4652; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .appointments-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+
+    .appointment-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+        border-left: 4px solid #4da3a9;
+        transition: all 0.2s ease;
+    }
+
+    .appointment-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .appointment-card.requested {
+        border-left-color: #fbbf24;
+        background: #fffdf5;
+    }
+
+    .appointment-card.confirmed { border-left-color: #10b981; }
+    .appointment-card.completed { border-left-color: #8a95a0; opacity: 0.85; }
+    .appointment-card.missed { border-left-color: #ef4444; background: #fefafa; }
+
+    .appointment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+
+    .patient-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #2c4652;
+        margin: 0;
+    }
+
+    .appointment-status {
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-requested { background: #fef3c7; color: #92400e; }
+    .status-confirmed { background: #d1fae5; color: #065f46; }
+    .status-completed { background: #f0f2f4; color: #374151; }
+    .status-missed { background: #fee2e2; color: #991b1b; }
+
+    .appointment-details {
+        color: #627180;
+        font-size: 0.9rem;
+        margin-bottom: 14px;
+    }
+
+    .appointment-details div {
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .appointment-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 7px 14px;
+        border-radius: 10px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        font-size: 0.84rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-family: inherit;
+    }
+
+    .btn-primary { background: #4da3a9; color: white; }
+    .btn-primary:hover { background: #3c8b90; }
+    .btn-success { background: #10b981; color: white; }
+    .btn-success:hover { background: #059669; }
+    .btn-warning { background: #f59e0b; color: white; }
+    .btn-warning:hover { background: #d97706; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-secondary { background: #f0f2f4; color: #374151; }
+    .btn-secondary:hover { background: #e5e7eb; }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #8a95a0;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        opacity: 0.4;
+    }
+
+    .empty-state h3 { color: #2c4652; }
+
+    @media (max-width: 768px) {
+        .stats-bar { grid-template-columns: repeat(2, 1fr); }
+        .appointments-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="doctor-wrap">
+    <nav class="doctor-nav" aria-label="Doctor Navigation">
+        <div class="doctor-nav-row">
+            <div class="nav-links">
+                <a href="{% url 'accounts:doctor_dashboard' %}" class="nav-item">Dashboard</a>
+                <a href="{% url 'accounts:client_list' %}" class="nav-item">Patients</a>
+                <a href="{% url 'accounts:therapist_appointments' %}" class="nav-item active">Appointments</a>
+                <a href="{% url 'accounts:manage_availability' %}" class="nav-item">Availability</a>
+                <a href="{% url 'accounts:therapist_profile' %}" class="nav-item">Profile</a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a href="{% url 'accounts:notifications' %}" style="position: relative; padding: 8px 12px; border-radius: 8px; color: #000; text-decoration: none; font-size: 1.2rem; transition: all 0.2s ease;" title="Notifications">
+                    🔔
+                    {% if unread_notifications > 0 %}
+                        <span style="position: absolute; top: -4px; right: -4px; background: #dc3545; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; min-width: 16px; text-align: center;">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero-card">
+        <h1>Appointment Management</h1>
+        <p>Manage patient appointments and session schedules with ease.</p>
+    </div>
+
+    <!-- Statistics Bar -->
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-number">{{ upcoming_appointments|length }}</div>
+            <div class="stat-label">Upcoming</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ requested_appointments|length }}</div>
+            <div class="stat-label">Pending Requests</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ past_appointments|length }}</div>
+            <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ missed_appointments|length }}</div>
+            <div class="stat-label">Missed</div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-container">
+        <button class="tab-button active" onclick="showTab('upcoming')">
+            📅 Upcoming Sessions
+        </button>
+        <button class="tab-button" onclick="showTab('requests')">
+            ⏱️ Pending Requests
+        </button>
+        <button class="tab-button" onclick="showTab('past')">
+            ✅ Completed
+        </button>
+        <button class="tab-button" onclick="showTab('missed')">
+            ❌ Missed
+        </button>
+    </div>
+
+    <!-- Upcoming Appointments Tab -->
+    <div id="upcoming-tab" class="tab-content active">
+        {% if upcoming_appointments %}
+            <div class="appointments-grid">
+                {% for appointment in upcoming_appointments %}
+                <div class="appointment-card {{ appointment.status }}">
+                    <div class="appointment-header">
+                        <h3 class="patient-name">{{ appointment.patient.full_name|default:appointment.patient.email }}</h3>
+                        <span class="appointment-status status-{{ appointment.status }}">{{ appointment.get_status_display }}</span>
+                    </div>
+                    <div class="appointment-details">
+                        <div>📅 {{ appointment.date_time|date:"M d, Y" }}</div>
+                        <div>🕐 {{ appointment.date_time|time:"g:i A" }}</div>
+                        <div>⏱️ {{ appointment.duration_minutes }} min</div>
+                        <div>📧 {{ appointment.patient.email }}</div>
+                        {% if appointment.patient_notes %}
+                            <div>📝 {{ appointment.patient_notes|truncatechars:50 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="appointment-actions">
+                        {% if appointment.status == 'requested' %}
+                            <a href="{% url 'accounts:confirm_appointment' appointment.pk %}" class="btn btn-success">✓ Confirm</a>
+                            <a href="{% url 'accounts:reject_appointment' appointment.pk %}" class="btn btn-warning">✗ Decline</a>
+                        {% endif %}
+                        <a href="{% url 'accounts:complete_appointment' appointment.pk %}" class="btn btn-primary">Complete</a>
+                        <a href="{% url 'accounts:cancel_appointment' appointment.pk %}" class="btn btn-danger">Cancel</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📅</div>
+                <h3>No upcoming appointments</h3>
+                <p>You don't have any appointments scheduled in the near future.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Pending Requests Tab -->
+    <div id="requests-tab" class="tab-content">
+        {% if requested_appointments %}
+            <div class="appointments-grid">
+                {% for appointment in requested_appointments %}
+                <div class="appointment-card requested">
+                    <div class="appointment-header">
+                        <h3 class="patient-name">{{ appointment.patient.full_name|default:appointment.patient.email }}</h3>
+                        <span class="appointment-status status-requested">Pending</span>
+                    </div>
+                    <div class="appointment-details">
+                        <div>📅 {{ appointment.date_time|date:"M d, Y" }}</div>
+                        <div>🕐 {{ appointment.date_time|time:"g:i A" }}</div>
+                        <div>⏱️ {{ appointment.duration_minutes }} min</div>
+                        <div>📧 {{ appointment.patient.email }}</div>
+                        {% if appointment.patient_notes %}
+                            <div>📝 {{ appointment.patient_notes|truncatechars:50 }}</div>
+                        {% endif %}
+                        <div style="color: #92400e; font-weight: 600;">⏰ Requested {{ appointment.created_at|timesince }} ago</div>
+                    </div>
+                    <div class="appointment-actions">
+                        <a href="{% url 'accounts:confirm_appointment' appointment.pk %}" class="btn btn-success">✓ Accept</a>
+                        <a href="{% url 'accounts:reject_appointment' appointment.pk %}" class="btn btn-warning">✗ Decline</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">⏱️</div>
+                <h3>No pending requests</h3>
+                <p>You don't have any appointment requests waiting for your response.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Past Appointments Tab -->
+    <div id="past-tab" class="tab-content">
+        {% if past_appointments %}
+            <div class="appointments-grid">
+                {% for appointment in past_appointments %}
+                <div class="appointment-card completed">
+                    <div class="appointment-header">
+                        <h3 class="patient-name">{{ appointment.patient.full_name|default:appointment.patient.email }}</h3>
+                        <span class="appointment-status status-completed">Completed</span>
+                    </div>
+                    <div class="appointment-details">
+                        <div>📅 {{ appointment.date_time|date:"M d, Y" }}</div>
+                        <div>🕐 {{ appointment.date_time|time:"g:i A" }}</div>
+                        <div>📧 {{ appointment.patient.email }}</div>
+                        {% if appointment.notes %}
+                            <div>📝 {{ appointment.notes|truncatechars:50 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="appointment-actions">
+                        <a href="{% url 'accounts:create_session_report' appointment.pk %}" class="btn btn-primary">Create Report</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">✅</div>
+                <h3>No completed sessions</h3>
+                <p>Your completed appointment history will appear here.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Missed Appointments Tab -->
+    <div id="missed-tab" class="tab-content">
+        {% if missed_appointments %}
+            <div class="appointments-grid">
+                {% for appointment in missed_appointments %}
+                <div class="appointment-card missed">
+                    <div class="appointment-header">
+                        <h3 class="patient-name">{{ appointment.patient.full_name|default:appointment.patient.email }}</h3>
+                        <span class="appointment-status status-missed">Missed</span>
+                    </div>
+                    <div class="appointment-details">
+                        <div>📅 {{ appointment.date_time|date:"M d, Y" }}</div>
+                        <div>🕐 {{ appointment.date_time|time:"g:i A" }}</div>
+                        <div>📧 {{ appointment.patient.email }}</div>
+                        {% if appointment.notes %}
+                            <div>📝 {{ appointment.notes|truncatechars:50 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="appointment-actions">
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">❌</div>
+                <h3>No missed appointments</h3>
+                <p>Great! You don't have any missed appointments.</p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<script>
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabName + '-tab').classList.add('active');
+    event.target.classList.add('active');
+}
+</script>
+{% endblock %}

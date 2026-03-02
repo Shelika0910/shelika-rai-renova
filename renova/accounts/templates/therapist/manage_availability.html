@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Availability | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .doctor-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+    .doctor-nav {
+        display: flex; flex-wrap: wrap; gap: 10px; padding: 14px;
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.04); margin-bottom: 18px;
+    }
+    .doctor-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
+    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .doctor-nav a {
+        padding: 9px 14px; border-radius: 999px; border: 1px solid #dce6e8;
+        background: #f7fbfc; color: #2b4e59; font-weight: 600; font-size: 0.92rem;
+        cursor: pointer; transition: all 0.2s ease; text-decoration: none;
+    }
+    .doctor-nav a.active { background: #4da3a9; color: white; border-color: #4da3a9; }
+    .doctor-nav a:hover { background: #e8f4f5; border-color: #4da3a9; }
+    .doctor-nav a.active:hover { background: #3c8b90; }
+
+    .avail-wrap {
+        width: min(1000px, calc(100% - 40px));
+        margin: 0 auto 46px;
+    }
+    .hero-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white; padding: 24px; border-radius: 16px; margin-bottom: 22px;
+        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
+    }
+    .hero-card h1 { margin: 0 0 6px; font-size: 1.55rem; font-weight: 700; }
+    .hero-card p { margin: 0; opacity: 0.92; }
+
+    .grid-layout {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+    }
+    @media (max-width: 768px) { .grid-layout { grid-template-columns: 1fr; } }
+
+    .card {
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 16px;
+        padding: 24px; box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+    }
+    .card h3 { margin: 0 0 16px; font-size: 1.05rem; color: #2c4652; display: flex; align-items: center; gap: 8px; }
+    .card-full { grid-column: 1 / -1; }
+
+    .current-slots { margin-bottom: 16px; }
+    .day-group { margin-bottom: 12px; }
+    .day-group-title { font-weight: 700; color: #2c4652; font-size: 0.95rem; margin-bottom: 6px; }
+    .slot-tag {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 14px; background: #edf8f8; color: #2d6a6f; border-radius: 10px;
+        font-size: 0.88rem; font-weight: 600; margin: 0 6px 8px 0;
+    }
+
+    .slot-row {
+        display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+        background: #f9fcfd; border: 1px solid #e7eef0; border-radius: 10px;
+        margin-bottom: 8px; flex-wrap: wrap;
+    }
+    .slot-row select, .slot-row input[type="time"] {
+        padding: 8px 12px; border: 1px solid #dce6e8; border-radius: 10px;
+        font-size: 0.95rem; font-family: inherit; background: #fff;
+    }
+    .slot-row select:focus, .slot-row input:focus {
+        outline: none; border-color: #4da3a9; box-shadow: 0 0 0 3px rgba(77,163,169,0.12);
+    }
+    .time-sep { color: #8a95a0; font-weight: 600; }
+
+    .remove-slot-btn {
+        width: 32px; height: 32px; border: none; border-radius: 50%;
+        background: #fbeaea; color: #dc3545; font-size: 1.1rem; font-weight: 700;
+        cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
+        justify-content: center; flex-shrink: 0;
+    }
+    .remove-slot-btn:hover { background: #dc3545; color: white; }
+
+    .add-slot-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 10px 20px; background: #e8f4f5; color: #2d6a6f;
+        border: 2px dashed #4da3a9; border-radius: 10px; font-weight: 700;
+        font-size: 0.92rem; cursor: pointer; transition: all 0.2s; margin-bottom: 12px;
+    }
+    .add-slot-btn:hover { background: #d0eff1; }
+
+    .submit-btn {
+        width: 100%; padding: 14px; background: #4da3a9; color: white; border: none;
+        border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer;
+        transition: all 0.2s; margin-top: 8px;
+    }
+    .submit-btn:hover { background: #3c8b90; }
+
+    .empty-state { text-align: center; padding: 20px; color: #8a95a0; font-size: 0.95rem; }
+
+    /* Days Off Section */
+    .day-off-item {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 16px; background: #fff9f0; border: 1px solid #f5e6d8;
+        border-radius: 10px; margin-bottom: 8px;
+    }
+    .day-off-info { display: flex; flex-direction: column; gap: 2px; }
+    .day-off-date { font-weight: 700; color: #8b5a2b; font-size: 0.95rem; }
+    .day-off-reason { font-size: 0.85rem; color: #a67c4e; }
+    .day-off-remove {
+        padding: 6px 12px; background: #fbeaea; color: #dc3545; border: none;
+        border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+        transition: all 0.2s;
+    }
+    .day-off-remove:hover { background: #dc3545; color: white; }
+
+    .add-day-off-form {
+        display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;
+        padding: 14px; background: #fafbfc; border: 1px solid #e7eef0;
+        border-radius: 10px; margin-top: 12px;
+    }
+    .add-day-off-form .field { display: flex; flex-direction: column; gap: 4px; }
+    .add-day-off-form label { font-size: 0.82rem; font-weight: 600; color: #627180; }
+    .add-day-off-form input[type="date"],
+    .add-day-off-form input[type="text"] {
+        padding: 8px 12px; border: 1px solid #dce6e8; border-radius: 8px;
+        font-size: 0.92rem; font-family: inherit;
+    }
+    .add-day-off-form input:focus {
+        outline: none; border-color: #4da3a9; box-shadow: 0 0 0 3px rgba(77,163,169,0.12);
+    }
+    .add-day-off-btn {
+        padding: 10px 18px; background: #e8a33c; color: white; border: none;
+        border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+        transition: all 0.2s;
+    }
+    .add-day-off-btn:hover { background: #d18c2a; }
+
+    @media (max-width: 640px) {
+        .slot-row { flex-direction: column; align-items: stretch; }
+        .add-day-off-form { flex-direction: column; }
+        .add-day-off-form .field { width: 100%; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="doctor-wrap">
+    <nav class="doctor-nav" aria-label="Doctor Navigation">
+        <div class="doctor-nav-row">
+            <div class="nav-links">
+                <a href="{% url 'accounts:doctor_dashboard' %}" class="nav-item">Dashboard</a>
+                <a href="{% url 'accounts:client_list' %}" class="nav-item">Patients</a>
+                <a href="{% url 'accounts:therapist_appointments' %}" class="nav-item">Appointments</a>
+                <a href="{% url 'accounts:manage_availability' %}" class="nav-item active">Availability</a>
+                <a href="{% url 'accounts:therapist_profile' %}" class="nav-item">Profile</a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a href="{% url 'accounts:notifications' %}" style="position: relative; padding: 8px 12px; border-radius: 8px; color: #000; text-decoration: none; font-size: 1.2rem;" title="Notifications">
+                    🔔
+                    {% if unread_notifications > 0 %}
+                        <span style="position: absolute; top: -4px; right: -4px; background: #dc3545; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; min-width: 16px; text-align: center;">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </nav>
+</section>
+
+<section class="avail-wrap">
+    <div class="hero-card">
+        <h1>Manage Availability</h1>
+        <p>Set your weekly time slots and mark specific days off. Patients can still request custom times which you can accept or decline.</p>
+    </div>
+
+    <div class="grid-layout">
+        <!-- Current Weekly Summary -->
+        {% if slots %}
+        <div class="card">
+            <h3>📅 Current Weekly Slots</h3>
+            <div class="current-slots">
+                {% for val, label in day_choices %}
+                    {% if val in grouped_slots %}
+                    <div class="day-group">
+                        <div class="day-group-title">{{ label }}</div>
+                        {% for s in slots %}
+                            {% if s.day_of_week == val %}
+                            <span class="slot-tag">{{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Days Off Card -->
+        <div class="card">
+            <h3>🚫 Days Off</h3>
+            {% if days_off %}
+                {% for day_off in days_off %}
+                <div class="day-off-item">
+                    <div class="day-off-info">
+                        <span class="day-off-date">{{ day_off.date|date:"l, F j, Y" }}</span>
+                        {% if day_off.reason %}
+                        <span class="day-off-reason">{{ day_off.reason }}</span>
+                        {% endif %}
+                    </div>
+                    <form method="post" style="margin: 0;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="remove_day_off">
+                        <input type="hidden" name="day_off_id" value="{{ day_off.pk }}">
+                        <button type="submit" class="day-off-remove">Remove</button>
+                    </form>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state" style="padding: 12px;">No days off scheduled.</div>
+            {% endif %}
+
+            <form method="post" class="add-day-off-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_day_off">
+                <div class="field">
+                    <label>Date</label>
+                    <input type="date" name="day_off_date" required>
+                </div>
+                <div class="field" style="flex: 1;">
+                    <label>Reason (optional)</label>
+                    <input type="text" name="day_off_reason" placeholder="e.g., Personal leave">
+                </div>
+                <button type="submit" class="add-day-off-btn">+ Add Day Off</button>
+            </form>
+        </div>
+
+        <!-- Set Weekly Slots Form -->
+        <div class="card card-full">
+            <h3>⏰ Set Weekly Time Slots</h3>
+            <p style="color: #627180; font-size: 0.9rem; margin: -8px 0 16px;">Add as many time slots per day as you need. These repeat weekly.</p>
+
+            <form method="post" id="availForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_slots">
+
+                <div id="slotsContainer">
+                    {% for s in slots %}
+                    <div class="slot-row" data-index="{{ forloop.counter0 }}">
+                        <select name="slot_day_{{ forloop.counter0 }}">
+                            {% for val, label in day_choices %}
+                            <option value="{{ val }}" {% if s.day_of_week == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="time" name="slot_start_{{ forloop.counter0 }}" value="{{ s.start_time|time:'H:i' }}" required>
+                        <span class="time-sep">to</span>
+                        <input type="time" name="slot_end_{{ forloop.counter0 }}" value="{{ s.end_time|time:'H:i' }}" required>
+                        <button type="button" class="remove-slot-btn" onclick="removeSlot(this)" title="Remove slot">&times;</button>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div id="emptyMsg" class="empty-state" {% if slots %}style="display:none"{% endif %}>
+                    No slots added yet. Click the button below to add availability.
+                </div>
+
+                <button type="button" class="add-slot-btn" onclick="addSlot()">+ Add Time Slot</button>
+
+                <button type="submit" class="submit-btn">Save Weekly Availability</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<script>
+const dayOptions = [
+    {% for val, label in day_choices %}
+    { value: {{ val }}, label: "{{ label }}" }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+let slotIndex = {{ slots|length|default:"0" }};
+
+function addSlot() {
+    const container = document.getElementById('slotsContainer');
+    const row = document.createElement('div');
+    row.className = 'slot-row';
+    row.dataset.index = slotIndex;
+
+    let daySelect = `<select name="slot_day_${slotIndex}">`;
+    dayOptions.forEach(d => { daySelect += `<option value="${d.value}">${d.label}</option>`; });
+    daySelect += '</select>';
+
+    row.innerHTML = `
+        ${daySelect}
+        <input type="time" name="slot_start_${slotIndex}" value="09:00" required>
+        <span class="time-sep">to</span>
+        <input type="time" name="slot_end_${slotIndex}" value="17:00" required>
+        <button type="button" class="remove-slot-btn" onclick="removeSlot(this)" title="Remove slot">&times;</button>
+    `;
+    container.appendChild(row);
+    slotIndex++;
+    document.getElementById('emptyMsg').style.display = 'none';
+}
+
+function removeSlot(btn) {
+    btn.closest('.slot-row').remove();
+    reindexSlots();
+    if (document.querySelectorAll('.slot-row').length === 0) {
+        document.getElementById('emptyMsg').style.display = '';
+    }
+}
+
+function reindexSlots() {
+    const rows = document.querySelectorAll('#slotsContainer .slot-row');
+    slotIndex = 0;
+    rows.forEach((row, i) => {
+        row.dataset.index = i;
+        const sel = row.querySelector('select');
+        sel.name = `slot_day_${i}`;
+        const inputs = row.querySelectorAll('input[type="time"]');
+        inputs[0].name = `slot_start_${i}`;
+        inputs[1].name = `slot_end_${i}`;
+        slotIndex = i + 1;
+    });
+}
+
+// Set min date for day off to today
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.querySelector('input[name="day_off_date"]');
+    if (dateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.setAttribute('min', today);
+    }
+});
+</script>
+{% endblock %}

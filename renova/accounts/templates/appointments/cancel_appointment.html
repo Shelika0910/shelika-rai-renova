@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Cancel Appointment | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-wrap {
+        width: min(700px, calc(100% - 40px));
+        margin: 40px auto 60px;
+    }
+    .hero-card {
+        background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+        color: white; padding: 24px; border-radius: 16px; margin-bottom: 18px;
+        box-shadow: 0 12px 28px rgba(239,68,68,0.25);
+    }
+    .hero-card h1 { margin: 0 0 8px; font-size: 1.65rem; font-weight: 700; }
+    .hero-card p { margin: 0; opacity: 0.95; }
+
+    .card {
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 14px;
+        padding: 24px; box-shadow: 0 10px 24px rgba(0,0,0,0.04);
+    }
+    .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f2f4; font-size: 0.95rem; }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { font-weight: 600; color: #2c4652; }
+    .detail-value { color: #627180; }
+
+    .form-group { margin-top: 20px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #2c4652; }
+    .form-group textarea {
+        width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px;
+        font-size: 0.95rem; font-family: inherit; resize: vertical;
+    }
+    .form-group textarea:focus { outline: none; border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+
+    .btn-row { display: flex; gap: 12px; margin-top: 20px; }
+    .btn {
+        flex: 1; padding: 12px; border: none; border-radius: 10px; font-size: 0.95rem;
+        font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; transition: all 0.2s;
+    }
+    .btn-cancel { background: #ef4444; color: white; }
+    .btn-cancel:hover { background: #dc2626; }
+    .btn-back { background: #f0f2f4; color: #374151; }
+    .btn-back:hover { background: #e5e7eb; }
+
+    .warning-box {
+        background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px;
+        color: #991b1b; font-size: 0.9rem; margin-top: 16px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-wrap">
+    <div class="hero-card">
+        <h1>Cancel Appointment</h1>
+        <p>Please review the details and confirm the cancellation.</p>
+    </div>
+
+    <div class="card">
+        <h3 style="margin: 0 0 16px; color: #2c4652;">Appointment Details</h3>
+        <div class="detail-row">
+            <span class="detail-label">Patient</span>
+            <span class="detail-value">{{ appointment.patient.full_name }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Therapist</span>
+            <span class="detail-value">{{ appointment.therapist.full_name }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Date &amp; Time</span>
+            <span class="detail-value">{{ appointment.date_time|date:"F j, Y" }} at {{ appointment.date_time|time:"g:i A" }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Duration</span>
+            <span class="detail-value">{{ appointment.duration_minutes }} minutes</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Status</span>
+            <span class="detail-value">{{ appointment.get_status_display }}</span>
+        </div>
+
+        <div class="warning-box">
+            ⚠️ This action cannot be undone. The other party will be notified about the cancellation.
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="reason">Reason for cancellation (optional)</label>
+                <textarea name="cancellation_reason" id="reason" rows="3" placeholder="Let the other party know why you're cancelling..."></textarea>
+            </div>
+            <div class="btn-row">
+                <a href="javascript:history.back()" class="btn btn-back">Go Back</a>
+                <button type="submit" class="btn btn-cancel">Confirm Cancellation</button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

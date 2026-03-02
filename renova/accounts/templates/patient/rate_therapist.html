@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Rate Your Session | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rate-wrap {
+        width: min(600px, calc(100% - 40px));
+        margin: 28px auto 46px;
+    }
+
+    .hero-card {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white;
+        padding: 24px;
+        border-radius: 16px;
+        margin-bottom: 18px;
+        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
+    }
+
+    .hero-card h1 {
+        margin: 0 0 8px;
+        font-size: 1.65rem;
+        font-weight: 700;
+    }
+
+    .rate-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+    }
+
+    .session-info {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 24px;
+    }
+
+    .session-info h3 {
+        margin: 0 0 8px;
+        color: #2d6a6f;
+        font-size: 1.1rem;
+    }
+
+    .session-info p {
+        margin: 0;
+        color: #627180;
+        font-size: 0.92rem;
+    }
+
+    .rating-section {
+        text-align: center;
+        margin-bottom: 24px;
+    }
+
+    .rating-section label {
+        display: block;
+        font-weight: 600;
+        color: #2c4652;
+        margin-bottom: 12px;
+        font-size: 1.05rem;
+    }
+
+    .star-rating {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        direction: rtl;
+    }
+
+    .star-rating input {
+        display: none;
+    }
+
+    .star-rating label {
+        font-size: 2.5rem;
+        color: #ddd;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .star-rating label:hover,
+    .star-rating label:hover ~ label,
+    .star-rating input:checked ~ label {
+        color: #f4c542;
+        transform: scale(1.1);
+    }
+
+    .review-section {
+        margin-bottom: 24px;
+    }
+
+    .review-section label {
+        display: block;
+        font-weight: 600;
+        color: #2c4652;
+        margin-bottom: 8px;
+    }
+
+    .review-section textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 14px;
+        border: 1px solid #d8d2cc;
+        border-radius: 10px;
+        font: inherit;
+        resize: vertical;
+        transition: border-color 0.2s;
+    }
+
+    .review-section textarea:focus {
+        outline: none;
+        border-color: #4da3a9;
+    }
+
+    .btn-row {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        font-size: 0.95rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(77, 163, 169, 0.35);
+    }
+
+    .btn-secondary {
+        background: #f7f7f7;
+        color: #627180;
+        border: 1px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+        background: #eee;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding: 20px 40px;">
+    <a href="{% url 'accounts:patient_appointments' %}" style="display: inline-flex; align-items: center; gap: 8px; color: #4da3a9; text-decoration: none; font-weight: 600;">
+        <span style="font-size: 1.4rem;">←</span> Back to Appointments
+    </a>
+</div>
+
+<section class="rate-wrap">
+    <div class="hero-card">
+        <h1>⭐ Rate Your Session</h1>
+        <p>Your feedback helps us improve our services and helps other patients.</p>
+    </div>
+
+    <div class="rate-card">
+        <div class="session-info">
+            <h3>Session with Dr. {{ appointment.therapist.full_name }}</h3>
+            <p>{{ appointment.date_time|date:"F j, Y" }} at {{ appointment.date_time|time:"g:i A" }}</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="rating-section">
+                <label>How would you rate this session?</label>
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="rating" value="5" checked>
+                    <label for="star5" title="5 stars">★</label>
+                    <input type="radio" id="star4" name="rating" value="4">
+                    <label for="star4" title="4 stars">★</label>
+                    <input type="radio" id="star3" name="rating" value="3">
+                    <label for="star3" title="3 stars">★</label>
+                    <input type="radio" id="star2" name="rating" value="2">
+                    <label for="star2" title="2 stars">★</label>
+                    <input type="radio" id="star1" name="rating" value="1">
+                    <label for="star1" title="1 star">★</label>
+                </div>
+            </div>
+
+            <div class="review-section">
+                <label for="review">Write a review (optional)</label>
+                <textarea name="review" id="review" placeholder="Share your experience with this therapist..."></textarea>
+            </div>
+
+            <div class="btn-row">
+                <a href="{% url 'accounts:patient_appointments' %}" class="btn btn-secondary">Skip</a>
+                <button type="submit" class="btn btn-primary">Submit Rating</button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

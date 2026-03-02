@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Reschedule Appointment | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-wrap {
+        width: min(700px, calc(100% - 40px));
+        margin: 40px auto 60px;
+    }
+    .hero-card {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white; padding: 24px; border-radius: 16px; margin-bottom: 18px;
+        box-shadow: 0 12px 28px rgba(245,158,11,0.25);
+    }
+    .hero-card h1 { margin: 0 0 8px; font-size: 1.65rem; font-weight: 700; }
+    .hero-card p { margin: 0; opacity: 0.95; }
+
+    .card {
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 14px;
+        padding: 24px; box-shadow: 0 10px 24px rgba(0,0,0,0.04); margin-bottom: 16px;
+    }
+    .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f2f4; font-size: 0.95rem; }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { font-weight: 600; color: #2c4652; }
+    .detail-value { color: #627180; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #2c4652; }
+    .form-group input, .form-group select {
+        width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px;
+        font-size: 0.95rem; font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus {
+        outline: none; border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .slots-container {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 8px;
+    }
+    .slot-btn {
+        padding: 10px 8px; border: 2px solid #e7ddd6; border-radius: 8px;
+        background: #f7fbfc; color: #2b4e59; font-weight: 600; font-size: 0.9rem;
+        cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .slot-btn:hover { border-color: #f59e0b; background: #fffbeb; }
+    .slot-btn.selected { background: #f59e0b; color: white; border-color: #f59e0b; }
+
+    .slots-loading { text-align: center; padding: 20px; color: #657482; }
+    .no-slots { text-align: center; padding: 20px; color: #dc3545; font-weight: 600; }
+
+    .btn-row { display: flex; gap: 12px; margin-top: 20px; }
+    .btn {
+        flex: 1; padding: 12px; border: none; border-radius: 10px; font-size: 0.95rem;
+        font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; transition: all 0.2s;
+    }
+    .btn-reschedule { background: #f59e0b; color: white; }
+    .btn-reschedule:hover { background: #d97706; }
+    .btn-reschedule:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-back { background: #f0f2f4; color: #374151; }
+    .btn-back:hover { background: #e5e7eb; }
+
+    @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-wrap">
+    <div class="hero-card">
+        <h1>Reschedule Appointment</h1>
+        <p>Choose a new date and time for this session.</p>
+    </div>
+
+    <div class="card">
+        <h3 style="margin: 0 0 12px; color: #2c4652;">Current Appointment</h3>
+        <div class="detail-row">
+            <span class="detail-label">Patient</span>
+            <span class="detail-value">{{ appointment.patient.full_name }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Therapist</span>
+            <span class="detail-value">{{ appointment.therapist.full_name }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Original Date &amp; Time</span>
+            <span class="detail-value">{{ appointment.date_time|date:"F j, Y" }} at {{ appointment.date_time|time:"g:i A" }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Duration</span>
+            <span class="detail-value">{{ appointment.duration_minutes }} minutes</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin: 0 0 16px; color: #2c4652;">Select New Date &amp; Time</h3>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="appointment_time" id="appointmentTime">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="datePicker">New Date</label>
+                    <input type="date" name="appointment_date" id="datePicker" required onchange="loadSlots()">
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <div style="padding: 10px 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; font-size: 0.9rem; color: #92400e;">
+                        The old appointment will be marked as rescheduled.
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Available Time Slots</label>
+                <div id="slotsContainer">
+                    <div class="slots-loading">Select a date to see available slots.</div>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <a href="javascript:history.back()" class="btn btn-back">Go Back</a>
+                <button type="submit" class="btn btn-reschedule" id="submitBtn" disabled>Reschedule Appointment</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<script>
+const availData = JSON.parse('{{ avail_json|escapejs }}');
+const bookedData = JSON.parse('{{ booked_json|escapejs }}');
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('datePicker').setAttribute('min', today);
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function formatTime12(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const dh = h % 12 || 12;
+    return `${pad2(dh)}:${pad2(m)} ${ampm}`;
+}
+
+function loadSlots() {
+    const dateVal = document.getElementById('datePicker').value;
+    const container = document.getElementById('slotsContainer');
+    if (!dateVal) return;
+    document.getElementById('submitBtn').disabled = true;
+
+    const dt = new Date(dateVal + 'T00:00');
+    const jsDay = dt.getDay();
+    const pyDay = jsDay === 0 ? 6 : jsDay - 1;
+
+    const dayBlocks = availData[String(pyDay)] || [];
+    const dayBooked = bookedData[dateVal] || [];
+
+    if (dayBlocks.length === 0) {
+        container.innerHTML = '<div class="no-slots">No available slots for this date.</div>';
+        return;
+    }
+
+    let slots = [];
+    dayBlocks.forEach(block => {
+        let [sh, sm] = block.start.split(':').map(Number);
+        const [eh, em] = block.end.split(':').map(Number);
+        let cur = sh * 60 + sm;
+        const endMin = eh * 60 + em;
+        while (cur < endMin) {
+            const t = pad2(Math.floor(cur / 60)) + ':' + pad2(cur % 60);
+            const booked = dayBooked.includes(t);
+            slots.push({ time: t, display: formatTime12(t), booked });
+            cur += 60;
+        }
+    });
+
+    if (slots.filter(s => !s.booked).length === 0) {
+        container.innerHTML = '<div class="no-slots">All slots are booked for this date.</div>';
+        return;
+    }
+
+    let html = '<div class="slots-container">';
+    slots.forEach(s => {
+        if (s.booked) {
+            html += `<div class="slot-btn" style="opacity:0.4;cursor:not-allowed;pointer-events:none;">${s.display}</div>`;
+        } else {
+            html += `<div class="slot-btn" onclick="selectSlot(this, '${s.time}')">${s.display}</div>`;
+        }
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function selectSlot(el, timeVal) {
+    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('appointmentTime').value = timeVal;
+    document.getElementById('submitBtn').disabled = false;
+}
+</script>
+{% endblock %}

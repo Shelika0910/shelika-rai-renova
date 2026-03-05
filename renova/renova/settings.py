@@ -65,7 +65,13 @@ ROOT_URLCONF = 'renova.urls'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'reply@renova.com'
 
-YOUTUBE_API_KEY = config("YOUTUBE_API_KEY")
+YOUTUBE_API_KEY = config("YOUTUBE_API_KEY", default="")
+# Force read from .env file (override any stale OS environment variable)
+import decouple as _decouple
+_env_file = Path(__file__).resolve().parent.parent / '.env'
+if _env_file.exists():
+    _repo = _decouple.RepositoryEnv(str(_env_file))
+    YOUTUBE_API_KEY = _repo.data.get("YOUTUBE_API_KEY", YOUTUBE_API_KEY)
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -137,11 +143,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [
-    BASE_DIR / 'accounts' / 'static',
-]
-
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = 'media/'
 

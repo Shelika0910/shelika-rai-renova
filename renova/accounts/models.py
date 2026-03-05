@@ -281,7 +281,7 @@ class Notification(models.Model):
 
 
 class Resource(models.Model):
-	"""Motivational videos and resource recommendations for patients."""
+	"""YouTube videos for therapeutic exercises and wellness content."""
 
 	CATEGORY_CHOICES = [
 		("anxiety", "Anxiety"),
@@ -291,19 +291,11 @@ class Resource(models.Model):
 		("general", "General Wellness"),
 	]
 
-	TYPE_CHOICES = [
-		("video", "Motivational Video"),
-		("exercise", "Guided Exercise"),
-		("relaxation", "Relaxation Technique"),
-		("article", "Article / Reading"),
-	]
-
 	title = models.CharField(max_length=255)
 	description = models.TextField()
 	category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default="general")
-	resource_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default="video")
 	video_url = models.URLField(
-		blank=True, help_text="YouTube embed URL, e.g. https://www.youtube.com/embed/VIDEO_ID"
+		help_text="YouTube embed URL, e.g. https://www.youtube.com/embed/VIDEO_ID"
 	)
 	thumbnail = models.URLField(
 		blank=True, help_text="Thumbnail image URL (optional; auto-generated for YouTube)"
@@ -318,7 +310,7 @@ class Resource(models.Model):
 		verbose_name = "Resource"
 
 	def __str__(self):
-		return f"{self.title} ({self.get_resource_type_display()} — {self.get_category_display()})"
+		return f"{self.title} ({self.get_category_display()})"
 
 	@property
 	def youtube_thumbnail(self):

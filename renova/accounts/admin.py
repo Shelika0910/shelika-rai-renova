@@ -71,8 +71,8 @@ class NotificationAdmin(admin.ModelAdmin):
 
 @admin.register(Resource)
 class ResourceAdmin(admin.ModelAdmin):
-	list_display = ("title", "category", "resource_type", "is_featured", "order", "created_at")
-	list_filter = ("category", "resource_type", "is_featured")
+	list_display = ("title", "category", "is_featured", "order", "created_at")
+	list_filter = ("category", "is_featured")
 	search_fields = ("title", "description")
 	list_editable = ("is_featured", "order")
 

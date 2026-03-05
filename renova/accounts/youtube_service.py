@@ -1,14 +1,17 @@
 import requests
+import random
+from datetime import datetime, timedelta
 from django.conf import settings
 
 
-def get_youtube_videos(query="motivational videos", max_results=6):
+def get_youtube_videos(query="motivational videos", max_results=6, randomize=False):
     """
     Fetch YouTube videos using the YouTube Data API v3.
     
     Args:
         query: Search query string
         max_results: Maximum number of videos to return
+        randomize: If True, randomize order and time range for varied results
         
     Returns:
         List of video dictionaries with title, description, video_id, thumbnail
@@ -33,6 +36,15 @@ def get_youtube_videos(query="motivational videos", max_results=6):
             "videoEmbeddable": "true",
             "videoSyndicated": "true",
         }
+
+        if randomize:
+            # Random ordering for variety (avoid "date" which can return 0 results)
+            order_options = ["rating", "relevance", "viewCount"]
+            params["order"] = random.choice(order_options)
+            # Random published-after window (6 months to 3 years back)
+            days_back = random.randint(180, 1095)
+            random_start = datetime.now() - timedelta(days=days_back)
+            params["publishedAfter"] = random_start.strftime("%Y-%m-%dT00:00:00Z")
 
         response = requests.get(url, params=params, timeout=15)
         
@@ -77,6 +89,10 @@ def get_youtube_videos(query="motivational videos", max_results=6):
             except KeyError as e:
                 print(f"YouTube API: Skipping video due to missing field: {e}")
                 continue
+
+        # Shuffle results when randomize is enabled for extra variety
+        if randomize and videos:
+            random.shuffle(videos)
 
         return videos
 

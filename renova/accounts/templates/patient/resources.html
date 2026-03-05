@@ -14,34 +14,6 @@
         margin: 32px auto 60px;
     }
 
-    .page-header {
-        text-align: center;
-        margin: 0 0 40px;
-        padding: 40px 20px;
-        background: linear-gradient(135deg, #f8fbfc 0%, #e8f4f5 100%);
-        border-radius: 20px;
-        border: 1px solid rgba(77, 163, 169, 0.1);
-    }
-
-    .page-header h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #2c4652 0%, #4da3a9 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin: 0 0 12px;
-    }
-
-    .page-header p {
-        color: #627180;
-        font-size: 1.1rem;
-        margin: 0;
-        max-width: 600px;
-        margin: 0 auto;
-        line-height: 1.6;
-    }
-
     /* General Improvements */
     body {
         background: #fafbfc;
@@ -936,11 +908,7 @@
 
 <section class="patient-wrap" style="margin-top:0;">
 
-    <!-- Page Header -->
-    <div class="page-header">
-        <h1>🌿 Wellness Resources Hub</h1>
-        <p>Discover curated meditation, yoga, and wellness content designed to support your mental health journey. Learn, practice, and thrive with expert guidance.</p>
-    </div>
+    {% csrf_token %}
 
     <!-- Enhanced Hero -->
     <div class="hero-card">
@@ -955,98 +923,32 @@
                 </div>
             </div>
             <div style="flex-shrink: 0; margin-left: 20px;">
-                <div style="font-size: 4rem; opacity: 0.3;">🧘‍♀️</div>
+                <div style="font-size: 4rem; opacity: 0.3;"></div>
             </div>
         </div>
     </div>
 
-    <!-- Search Bar -->
-    <div class="search-section" style="margin: 24px 0;">
-        <form method="GET" class="search-form" style="display: flex; gap: 12px; align-items: center; background: white; padding: 16px; border-radius: 16px; border: 1px solid #e7ddd6; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-            {% csrf_token %}
-            <div style="flex: 1; position: relative;">
-                <input type="text" name="search" placeholder="🔍 Search videos (e.g., anxiety relief, morning meditation, yoga poses...)" 
-                       value="{{ search_query|default:'' }}" 
-                       style="width: 100%; padding: 12px 16px; border: 1px solid #dce6e8; border-radius: 12px; font-size: 1rem; background: #f8fafb;">
-            </div>
-            <button type="submit" style="padding: 12px 24px; background: #4da3a9; color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
-                Search
-            </button>
-            {% if search_query %}
-                <a href="{% url 'accounts:patient_resources' %}" style="padding: 12px 16px; background: #f1f5f9; color: #6b7280; text-decoration: none; border-radius: 12px; font-weight: 500;">Clear</a>
-            {% endif %}
-        </form>
-    </div>
-
-    <!-- Filters -->
+    <!-- Type Filter Bar -->
     <div class="filter-bar">
         <div class="filter-group">
-            <label>Category:</label>
-            <a href="?cat=recommended&type={{ active_type }}" class="filter-btn {% if active_category == 'recommended' %}active{% endif %}">🎯 For You</a>
-            <a href="?cat=all&type={{ active_type }}" class="filter-btn {% if active_category == 'all' %}active{% endif %}">All</a>
-            {% for val, display in categories %}
-                <a href="?cat={{ val }}&type={{ active_type }}" class="filter-btn {% if active_category == val %}active{% endif %}">{{ display }}</a>
-            {% endfor %}
-        </div>
-    </div>
-    <div class="filter-bar" style="margin-top:-10px;">
-        <div class="filter-group">
             <label>Type:</label>
-            <a href="?cat={{ active_category }}&type=all" class="filter-btn {% if active_type == 'all' %}active{% endif %}">All Types</a>
-            {% for val, display in resource_types %}
-                <a href="?cat={{ active_category }}&type={{ val }}" class="filter-btn {% if active_type == val %}active{% endif %}">{{ display }}</a>
-            {% endfor %}
+            <a href="?type=all" class="filter-btn {% if active_type == 'all' %}active{% endif %}">📋 All</a>
+            <a href="?type=positive" class="filter-btn {% if active_type == 'positive' %}active{% endif %}">✨ Positive & Motivational</a>
+            <a href="?type=meditation" class="filter-btn {% if active_type == 'meditation' %}active{% endif %}">🧘‍♀️ Meditation</a>
+            <a href="?type=yoga" class="filter-btn {% if active_type == 'yoga' %}active{% endif %}">🧘‍♂️ Yoga</a>
+            <a href="?type=breathing" class="filter-btn {% if active_type == 'breathing' %}active{% endif %}">🌬️ Breathing</a>
+            <a href="?type=sleep" class="filter-btn {% if active_type == 'sleep' %}active{% endif %}">🌙 Sleep</a>
+            <a href="?type=meditation_tutorial" class="filter-btn {% if active_type == 'meditation_tutorial' %}active{% endif %}">🎓 Meditation Tutorial</a>
+            <a href="?type=yoga_tutorial" class="filter-btn {% if active_type == 'yoga_tutorial' %}active{% endif %}">🎯 Yoga Tutorial</a>
+            <a href="?type=mindfulness" class="filter-btn {% if active_type == 'mindfulness' %}active{% endif %}">🌱 Mindfulness</a>
+            <a href="?type=stress_relief" class="filter-btn {% if active_type == 'stress_relief' %}active{% endif %}">🛡️ Stress Relief</a>
+            <a href="?type=anxiety_help" class="filter-btn {% if active_type == 'anxiety_help' %}active{% endif %}">🤝 Anxiety Help</a>
+            <a href="?type=self_care" class="filter-btn {% if active_type == 'self_care' %}active{% endif %}">💝 Self Care</a>
         </div>
     </div>
-
-    <!-- Featured Section -->
-    {% if featured and active_type == 'all' and active_category == 'recommended' %}
-    <h2 class="section-title"><span class="icon">⭐</span> Featured for You</h2>
-    <div class="featured-row">
-        {% for res in featured %}
-        <div class="featured-card" {% if res.video_url %}onclick="window.open('{{ res.youtube_watch_url }}', '_blank');"{% endif %}>
-            <img class="featured-thumb" src="{{ res.youtube_thumbnail }}" alt="{{ res.title }}" >
-            <span class="featured-tag">{{ res.get_resource_type_display }}</span>
-            {% if res.duration %}
-                <span class="featured-duration">{{ res.duration }}</span>
-            {% endif %}
-            <div class="featured-body">
-                <h4>{{ res.title }}</h4>
-                <p>{{ res.description }}</p>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Search Results -->
-    {% if search_query and search_results %}
-    <div class="wellness-section" style="background: linear-gradient(135deg, #fff7e6 0%, #ffe7b8 100%); border: 1px solid rgba(251, 191, 36, 0.2);">
-        <div class="wellness-header">
-            <span class="wellness-icon">🔍</span>
-            <h2 class="wellness-title" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Search Results for "{{ search_query }}"</h2>
-            <p class="wellness-subtitle">Found {{ search_results|length }} videos matching your search</p>
-        </div>
-        <div class="wellness-grid">
-            {% for vid in search_results %}
-            <div class="wellness-card">
-                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id }}', '{{ vid.title|escapejs }}', 'search');">
-                    <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn" style="background: rgba(251, 191, 36, 0.95) !important; color: white !important;">▶</div>
-                </div>
-                <div class="wellness-content">
-                    <h4>{{ vid.title|truncatechars:55 }}</h4>
-                    <p>{{ vid.description|truncatechars:90 }}</p>
-                    <span class="wellness-tag" style="background: rgba(251, 191, 36, 0.15); color: #f59e0b;">Search Result</span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
 
     <!-- Personalized Recommendations -->
-    {% if personalized_recommendations and not search_query %}
+    {% if personalized_recommendations and active_type == 'all' %}
     <div class="wellness-section" style="background: linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%); border: 1px solid rgba(59, 130, 246, 0.15);">
         <div class="wellness-header">
             <span class="wellness-icon">🎯</span>
@@ -1072,7 +974,7 @@
     {% endif %}
 
     <!-- Recommended YouTube Videos Section -->
-    {% if youtube_recommended %}
+    {% if youtube_recommended and active_type == 'all' %}
     <div class="wellness-section" style="background: linear-gradient(135deg, #f0f4ff 0%, #e0ebff 100%); border: 1px solid rgba(74, 144, 226, 0.15);">
         <div class="wellness-header">
             <span class="wellness-icon">🎯</span>
@@ -1098,6 +1000,7 @@
     {% endif %}
 
     <!-- Positive & Motivational Videos -->
+    {% if active_type == 'all' or active_type == 'positive' %}
     {% if youtube_positive %}
     <div class="wellness-section" style="background: linear-gradient(135deg, #fff8f0 0%, #ffecdb 100%); border: 1px solid rgba(230, 126, 34, 0.15);">
         <div class="wellness-header">
@@ -1122,8 +1025,10 @@
         </div>
     </div>
     {% endif %}
+    {% endif %}
 
     <!-- Meditation Section -->
+    {% if active_type == 'all' or active_type == 'meditation' %}
     {% if youtube_meditation %}
     <div class="wellness-section meditation-section">
         <div class="wellness-header">
@@ -1148,8 +1053,10 @@
         </div>
     </div>
     {% endif %}
+    {% endif %}
 
     <!-- Meditation Learning Center -->
+    {% if active_type == 'all' or active_type == 'meditation_tutorial' %}
     {% if youtube_meditation_tutorial %}
     <div class="wellness-section learning-section meditation-learning">
         <div class="wellness-header">
@@ -1187,8 +1094,10 @@
         </div>
     </div>
     {% endif %}
+    {% endif %}
 
     <!-- Yoga Section -->
+    {% if active_type == 'all' or active_type == 'yoga' %}
     {% if youtube_yoga %}
     <div class="wellness-section yoga-section">
         <div class="wellness-header">
@@ -1213,8 +1122,10 @@
         </div>
     </div>
     {% endif %}
+    {% endif %}
 
     <!-- Yoga Learning Center -->
+    {% if active_type == 'all' or active_type == 'yoga_tutorial' %}
     {% if youtube_yoga_tutorial %}
     <div class="wellness-section learning-section yoga-learning">
         <div class="wellness-header">
@@ -1252,8 +1163,10 @@
         </div>
     </div>
     {% endif %}
+    {% endif %}
 
     <!-- Breathing Exercises -->
+    {% if active_type == 'all' or active_type == 'breathing' %}
     {% if youtube_breathing %}
     <div class="wellness-section" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 1px solid rgba(33, 150, 243, 0.15);">
         <div class="wellness-header">
@@ -1278,8 +1191,10 @@
         </div>
     </div>
     {% endif %}
+    {% endif %}
 
     <!-- Sleep & Relaxation -->
+    {% if active_type == 'all' or active_type == 'sleep' %}
     {% if youtube_sleep %}
     <div class="wellness-section" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); border: 1px solid rgba(156, 39, 176, 0.15);">
         <div class="wellness-header">
@@ -1304,8 +1219,10 @@
         </div>
     </div>
     {% endif %}
+    {% endif %}
 
     <!-- Mindfulness Section -->
+    {% if active_type == 'all' or active_type == 'mindfulness' %}
     {% if youtube_mindfulness %}
     <div class="wellness-section" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid rgba(34, 197, 94, 0.15);">
         <div class="wellness-header">
@@ -1330,8 +1247,10 @@
         </div>
     </div>
     {% endif %}
+    {% endif %}
 
     <!-- Stress Relief Section -->
+    {% if active_type == 'all' or active_type == 'stress_relief' %}
     {% if youtube_stress_relief %}
     <div class="wellness-section" style="background: linear-gradient(135deg, #fef3f2 0%, #fecaca 100%); border: 1px solid rgba(239, 68, 68, 0.15);">
         <div class="wellness-header">
@@ -1356,8 +1275,10 @@
         </div>
     </div>
     {% endif %}
+    {% endif %}
 
     <!-- Anxiety Help Section -->
+    {% if active_type == 'all' or active_type == 'anxiety_help' %}
     {% if youtube_anxiety_help %}
     <div class="wellness-section" style="background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%); border: 1px solid rgba(99, 102, 241, 0.15);">
         <div class="wellness-header">
@@ -1382,8 +1303,10 @@
         </div>
     </div>
     {% endif %}
+    {% endif %}
 
     <!-- Self-Care Section -->
+    {% if active_type == 'all' or active_type == 'self_care' %}
     {% if youtube_self_care %}
     <div class="wellness-section" style="background: linear-gradient(135deg, #fdf2f8 0%, #fbcfe8 100%); border: 1px solid rgba(236, 72, 153, 0.15);">
         <div class="wellness-header">
@@ -1408,33 +1331,6 @@
         </div>
     </div>
     {% endif %}
-
-    <!-- Videos Section -->
-    {% if videos %}
-    <h2 class="section-title"><span class="icon">🎬</span> Motivational Videos</h2>
-    <div class="video-grid">
-        {% for vid in videos %}
-        <div class="video-card">
-            {% if vid.video_url %}
-            <div class="video-thumb-overlay" onclick="window.open('{{ vid.youtube_watch_url }}', '_blank');">
-                <img src="{{ vid.youtube_thumbnail }}" alt="{{ vid.title }}" >
-                <div class="play-btn">▶</div>
-            </div>
-            {% endif %}
-            <div class="video-info">
-                <h4>{{ vid.title }}</h4>
-                <p>{{ vid.description }}</p>
-                <div class="video-meta">
-                    <span class="meta-tag video">Video</span>
-                    <span class="meta-tag" style="background:#e8f4f5;color:#4da3a9;">{{ vid.get_category_display }}</span>
-                    {% if vid.duration %}
-                        <span class="meta-tag duration">{{ vid.duration }}</span>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
     {% endif %}
 
     <!-- Guided Exercises -->
@@ -1485,18 +1381,17 @@
     {% endif %}
 
     <!-- Empty state -->
-    {% if not videos and not exercises and not relaxation_resources and not youtube_recommended and not youtube_positive and not youtube_meditation and not youtube_yoga %}
+    {% if not youtube_recommended and not youtube_positive and not youtube_meditation and not youtube_yoga and not youtube_breathing and not youtube_sleep and not youtube_meditation_tutorial and not youtube_yoga_tutorial and not youtube_mindfulness and not youtube_stress_relief and not youtube_anxiety_help and not youtube_self_care and not videos and not exercises %}
     <div class="empty-state" style="margin-top:20px;">
         <span class="icon">📚</span>
         <h3>No Resources Found</h3>
-        <p>Try adjusting your filters or check back soon — new content is added regularly.</p>
+        <p>Try selecting a different type or check back soon — new content is added regularly.</p>
     </div>
     {% endif %}
 </section>
 
 
 
-<script>
 <script>
 // Video tracking function for personalized recommendations
 function trackAndOpenVideo(videoId, videoTitle, category) {

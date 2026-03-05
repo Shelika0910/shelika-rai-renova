@@ -660,22 +660,8 @@ def patient_resources(request):
 	patient_category = mcq.category if mcq else "general"
 	category_display = dict(PatientMCQResult.CATEGORY_CHOICES).get(patient_category, "General Wellness")
 
-	# Handle search functionality
-	search_query = request.GET.get("search", "").strip()
-	search_results = []
+	# Personalized recommendations
 	personalized_recommendations = []
-	
-	if search_query:
-		# Track search history
-		from .models import SearchHistory
-		search_results = get_youtube_videos(query=search_query, max_results=20)
-		
-		# Save search to history
-		SearchHistory.objects.create(
-			user=request.user,
-			query=search_query,
-			results_count=len(search_results)
-		)
 	
 	# Get personalized recommendations based on watch history
 	from .models import VideoWatchHistory, SearchHistory
@@ -709,8 +695,7 @@ def patient_resources(request):
 	else:
 		resources_qs = Resource.objects.filter(category=active_category)
 
-	if active_type != "all":
-		resources_qs = resources_qs.filter(resource_type=active_type)
+	# All resources are now videos, no type filtering needed
 
 	# Featured resources (always from patient's category or general)
 	featured = Resource.objects.filter(
@@ -725,9 +710,8 @@ def patient_resources(request):
 	else:
 		exercises_qs = GuidedExercise.objects.filter(category=active_category)
 
-	# Videos, exercises, relaxation separated for template sections
-	videos = resources_qs.filter(resource_type="video")
-	relaxation_resources = resources_qs.filter(resource_type="relaxation")
+	# All resources are now YouTube videos
+	videos = resources_qs
 
 	# Fetch YouTube videos - multiple categories
 	youtube_queries = {
@@ -746,24 +730,171 @@ def patient_resources(request):
 	else:
 		yt_category = active_category
 	
-	# Fetch different video sections with increased counts
+	# Fetch different video sections - only fetch what's needed based on active_type
+	# "Recommended for You" is MCQ-based; all other sections use randomized generic queries
 	yt_query = youtube_queries.get(yt_category, youtube_queries["general"])
-	youtube_recommended = get_youtube_videos(query=yt_query, max_results=20)
-	youtube_positive = get_youtube_videos(query="positive thinking motivation inspirational self improvement", max_results=16)
-	youtube_meditation = get_youtube_videos(query="guided meditation mindfulness breathing relaxation", max_results=25)
-	youtube_yoga = get_youtube_videos(query="yoga for beginners hatha vinyasa yin restorative", max_results=25)
-	youtube_breathing = get_youtube_videos(query="breathing exercises pranayama deep breathing anxiety", max_results=12)
-	youtube_sleep = get_youtube_videos(query="sleep meditation bedtime stories deep sleep music", max_results=12)
 	
-	# Teaching content for meditation and yoga
-	youtube_meditation_tutorial = get_youtube_videos(query="how to meditate for beginners meditation tutorial", max_results=10)
-	youtube_yoga_tutorial = get_youtube_videos(query="yoga tutorial basic poses beginner instructions", max_results=10)
+	# Varied query pools per section so each load shows different videos
+	import random
+	query_pools = {
+		"positive": [
+			"positive thinking motivation inspirational self improvement",
+			"motivational speeches uplifting energy positive vibes",
+			"daily motivation confidence boost happy mindset",
+			"inspiring stories success mindset positivity",
+			"self improvement tips personal growth motivation",
+		],
+		"meditation": [
+			"guided meditation mindfulness breathing relaxation",
+			"deep meditation calming music inner peace",
+			"morning meditation guided visualization calm",
+			"body scan meditation progressive relaxation",
+			"meditation for focus clarity concentration",
+		],
+		"yoga": [
+			"yoga for beginners hatha vinyasa yin restorative",
+			"gentle yoga flow stretching flexibility",
+			"morning yoga routine energy boost",
+			"yoga for relaxation evening wind down",
+			"power yoga strength building practice",
+		],
+		"breathing": [
+			"breathing exercises pranayama deep breathing anxiety",
+			"box breathing technique calm nervous system",
+			"4 7 8 breathing method relaxation",
+			"diaphragmatic breathing stress relief exercises",
+			"breathing techniques for sleep relaxation",
+		],
+		"sleep": [
+			"sleep meditation bedtime stories deep sleep music",
+			"relaxing music for sleep insomnia relief",
+			"guided sleep meditation deep rest",
+			"sleep hypnosis calming bedtime relaxation",
+			"nature sounds rain sleep relaxation",
+		],
+		"meditation_tutorial": [
+			"how to meditate for beginners meditation tutorial",
+			"meditation basics step by step guide",
+			"learn meditation techniques beginner friendly",
+			"meditation posture breathing tutorial basics",
+			"starting meditation practice tips for beginners",
+		],
+		"yoga_tutorial": [
+			"yoga tutorial basic poses beginner instructions",
+			"learn yoga fundamentals alignment tips",
+			"yoga basics sun salutation tutorial",
+			"beginner yoga poses proper form guide",
+			"yoga foundations flexibility strength tutorial",
+		],
+		"mindfulness": [
+			"mindfulness exercises daily mindfulness practice",
+			"mindful living present moment awareness",
+			"mindfulness meditation body awareness grounding",
+			"daily mindfulness routine stress reduction",
+			"mindful breathing awareness exercises practice",
+		],
+		"stress_relief": [
+			"stress relief techniques stress management",
+			"instant stress relief calming exercises",
+			"stress reduction methods coping strategies",
+			"relaxation techniques tension release calm",
+			"managing stress daily life wellness tips",
+		],
+		"anxiety_help": [
+			"anxiety relief techniques coping with anxiety",
+			"overcoming anxiety calming strategies help",
+			"anxiety management grounding techniques",
+			"reduce anxiety naturally relaxation methods",
+			"anxiety coping skills therapy techniques",
+		],
+		"self_care": [
+			"self care routines mental health self care",
+			"daily self care habits wellness routine",
+			"self love practices emotional wellbeing",
+			"self care ideas for mental health",
+			"nurturing yourself self care tips wellness",
+		],
+	}
 	
-	# Additional categories for more content
-	youtube_mindfulness = get_youtube_videos(query="mindfulness exercises daily mindfulness practice", max_results=15)
-	youtube_stress_relief = get_youtube_videos(query="stress relief techniques stress management", max_results=12)
-	youtube_anxiety_help = get_youtube_videos(query="anxiety relief techniques coping with anxiety", max_results=15)
-	youtube_self_care = get_youtube_videos(query="self care routines mental health self care", max_results=12)
+	youtube_recommended = []
+	youtube_positive = []
+	youtube_meditation = []
+	youtube_yoga = []
+	youtube_breathing = []
+	youtube_sleep = []
+	youtube_meditation_tutorial = []
+	youtube_yoga_tutorial = []
+	youtube_mindfulness = []
+	youtube_stress_relief = []
+	youtube_anxiety_help = []
+	youtube_self_care = []
+	
+	def _random_query(section_key):
+		return random.choice(query_pools[section_key])
+	
+	if active_type == "all":
+		# Fetch all sections in PARALLEL so the page loads fast
+		from concurrent.futures import ThreadPoolExecutor, as_completed
+		tasks = {
+			"recommended": (yt_query, 6, False),
+			"positive": (_random_query("positive"), 6, True),
+			"meditation": (_random_query("meditation"), 6, True),
+			"yoga": (_random_query("yoga"), 6, True),
+			"breathing": (_random_query("breathing"), 6, True),
+			"sleep": (_random_query("sleep"), 6, True),
+			"meditation_tutorial": (_random_query("meditation_tutorial"), 6, True),
+			"yoga_tutorial": (_random_query("yoga_tutorial"), 6, True),
+			"mindfulness": (_random_query("mindfulness"), 6, True),
+			"stress_relief": (_random_query("stress_relief"), 6, True),
+			"anxiety_help": (_random_query("anxiety_help"), 6, True),
+			"self_care": (_random_query("self_care"), 6, True),
+		}
+		results = {}
+		with ThreadPoolExecutor(max_workers=6) as executor:
+			future_map = {
+				executor.submit(get_youtube_videos, query=q, max_results=n, randomize=r): key
+				for key, (q, n, r) in tasks.items()
+			}
+			for future in as_completed(future_map):
+				key = future_map[future]
+				try:
+					results[key] = future.result()
+				except Exception:
+					results[key] = []
+		youtube_recommended = results.get("recommended", [])
+		youtube_positive = results.get("positive", [])
+		youtube_meditation = results.get("meditation", [])
+		youtube_yoga = results.get("yoga", [])
+		youtube_breathing = results.get("breathing", [])
+		youtube_sleep = results.get("sleep", [])
+		youtube_meditation_tutorial = results.get("meditation_tutorial", [])
+		youtube_yoga_tutorial = results.get("yoga_tutorial", [])
+		youtube_mindfulness = results.get("mindfulness", [])
+		youtube_stress_relief = results.get("stress_relief", [])
+		youtube_anxiety_help = results.get("anxiety_help", [])
+		youtube_self_care = results.get("self_care", [])
+	elif active_type == "positive":
+		youtube_positive = get_youtube_videos(query=_random_query("positive"), max_results=30, randomize=True)
+	elif active_type == "meditation":
+		youtube_meditation = get_youtube_videos(query=_random_query("meditation"), max_results=30, randomize=True)
+	elif active_type == "yoga":
+		youtube_yoga = get_youtube_videos(query=_random_query("yoga"), max_results=30, randomize=True)
+	elif active_type == "breathing":
+		youtube_breathing = get_youtube_videos(query=_random_query("breathing"), max_results=30, randomize=True)
+	elif active_type == "sleep":
+		youtube_sleep = get_youtube_videos(query=_random_query("sleep"), max_results=30, randomize=True)
+	elif active_type == "meditation_tutorial":
+		youtube_meditation_tutorial = get_youtube_videos(query=_random_query("meditation_tutorial"), max_results=30, randomize=True)
+	elif active_type == "yoga_tutorial":
+		youtube_yoga_tutorial = get_youtube_videos(query=_random_query("yoga_tutorial"), max_results=30, randomize=True)
+	elif active_type == "mindfulness":
+		youtube_mindfulness = get_youtube_videos(query=_random_query("mindfulness"), max_results=30, randomize=True)
+	elif active_type == "stress_relief":
+		youtube_stress_relief = get_youtube_videos(query=_random_query("stress_relief"), max_results=30, randomize=True)
+	elif active_type == "anxiety_help":
+		youtube_anxiety_help = get_youtube_videos(query=_random_query("anxiety_help"), max_results=30, randomize=True)
+	elif active_type == "self_care":
+		youtube_self_care = get_youtube_videos(query=_random_query("self_care"), max_results=30, randomize=True)
 
 	context = {
 		"patient_category": patient_category,
@@ -772,7 +903,6 @@ def patient_resources(request):
 		"active_category": active_category,
 		"featured": featured,
 		"videos": videos,
-		"relaxation_resources": relaxation_resources,
 		"exercises": exercises_qs,
 		"resources": resources_qs,
 		"youtube_recommended": youtube_recommended,
@@ -787,11 +917,9 @@ def patient_resources(request):
 		"youtube_stress_relief": youtube_stress_relief,
 		"youtube_anxiety_help": youtube_anxiety_help,
 		"youtube_self_care": youtube_self_care,
-		"search_query": search_query,
-		"search_results": search_results,
 		"personalized_recommendations": personalized_recommendations,
 		"categories": PatientMCQResult.CATEGORY_CHOICES,
-		"resource_types": Resource.TYPE_CHOICES,
+		# All resources are videos now
 		"unread_notifications": _unread(request.user),
 		"unread_messages": _unread_msgs(request.user),
 	}

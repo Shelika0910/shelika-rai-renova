@@ -6,6 +6,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
+from django.core.mail import EmailMessage
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from django.conf import settings as django_settings
 from django.http import JsonResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
@@ -42,6 +46,47 @@ def _notify(user, ntype, title, msg, appointment=None, redirect_url=""):
 # ─── auth ───────────────────────────────────────────────────────────────────
 def home(request):
 	return render(request, "base.html")
+
+
+def contact_us(request):
+	if request.method == "POST":
+		name = request.POST.get("name", "").strip()
+		email = request.POST.get("email", "").strip()
+		subject_choice = request.POST.get("subject", "General Inquiry").strip()
+		message_body = request.POST.get("message", "").strip()
+
+		if not name or not email or not message_body:
+			return JsonResponse({"ok": False, "error": "Please fill in all required fields."}, status=400)
+
+		try:
+			validate_email(email)
+		except ValidationError:
+			return JsonResponse({"ok": False, "error": "Please enter a valid email address."}, status=400)
+
+		email_subject = f"[ReNova Contact] {subject_choice} — from {name}"
+		email_body = (
+			f"New contact message from the ReNova website.\n\n"
+			f"Name:    {name}\n"
+			f"Email:   {email}\n"
+			f"Subject: {subject_choice}\n\n"
+			f"Message:\n{message_body}\n"
+		)
+
+		try:
+			msg = EmailMessage(
+				subject=email_subject,
+				body=email_body,
+				from_email=django_settings.DEFAULT_FROM_EMAIL,
+				to=[django_settings.CONTACT_EMAIL],
+				reply_to=[f"{name} <{email}>"],
+			)
+			msg.send(fail_silently=False)
+		except Exception:
+			return JsonResponse({"ok": False, "error": "Failed to send message. Please try again later."}, status=500)
+
+		return JsonResponse({"ok": True})
+
+	return redirect("accounts:home")
 
 
 def login_view(request):

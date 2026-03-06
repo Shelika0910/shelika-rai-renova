@@ -203,12 +203,313 @@
             color: var(--muted);
         }
 
-        main {
-            min-height: 70vh;
+        /* ---- Stats ---- */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin: 0 auto 44px;
             width: min(1120px, calc(100% - 40px));
-            margin: 0 auto 24px;
         }
 
+        .stat-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 16px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03);
+        }
+
+        .stat-card .stat-num {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.88rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* ---- About ---- */
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .about-img {
+            width: 100%;
+            border-radius: 20px;
+            object-fit: cover;
+            height: 340px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.08);
+        }
+
+        .about-text h2 {
+            font-size: 1.8rem;
+            margin: 0 0 14px;
+        }
+
+        .about-text p {
+            color: var(--muted);
+            margin: 0 0 14px;
+            font-size: 0.97rem;
+        }
+
+        .about-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px;
+        }
+
+        .about-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .about-list li:last-child { border-bottom: none; }
+
+        .about-list li::before {
+            content: '✓';
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        /* ---- How It Works ---- */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .step-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 20px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03);
+            position: relative;
+        }
+
+        .step-num {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), #6bb8bd);
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+        }
+
+        .step-card h3 {
+            font-size: 1rem;
+            margin: 0 0 8px;
+        }
+
+        .step-card p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin: 0;
+        }
+
+        /* ---- Testimonials ---- */
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .testimonial-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 26px 22px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03);
+        }
+
+        .testimonial-stars {
+            color: #f5a623;
+            font-size: 1rem;
+            margin-bottom: 12px;
+        }
+
+        .testimonial-card blockquote {
+            margin: 0 0 16px;
+            font-size: 0.95rem;
+            color: var(--text);
+            font-style: italic;
+            line-height: 1.6;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .testimonial-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .testimonial-name {
+            font-weight: 600;
+            font-size: 0.92rem;
+        }
+
+        .testimonial-role {
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        /* ---- Contact ---- */
+        .contact-wrap {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .contact-info h2 {
+            font-size: 1.8rem;
+            margin: 0 0 12px;
+        }
+
+        .contact-info p {
+            color: var(--muted);
+            margin: 0 0 24px;
+            font-size: 0.97rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .contact-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #e8f4f5, #d0eaec);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .contact-item-text strong {
+            display: block;
+            font-size: 0.92rem;
+            margin-bottom: 2px;
+        }
+
+        .contact-item-text span {
+            font-size: 0.88rem;
+            color: var(--muted);
+        }
+
+        .contact-form {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px 28px;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.04);
+        }
+
+        .contact-form h3 {
+            font-size: 1.15rem;
+            margin: 0 0 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.92rem;
+            background: var(--bg);
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: var(--primary);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            font-size: 0.97rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-submit:hover { background: var(--primary-dark); }
+
+        /* ---- Footer ---- */
         footer {
             text-align: center;
             padding: 20px;
@@ -217,9 +518,55 @@
             border-top: 1px solid var(--border);
         }
 
+        /* ---- Navbar landing links ---- */
+        .nav-anchor {
+            font-size: 0.9rem;
+            color: var(--muted);
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-anchor:hover { color: var(--primary); }
+
+        /* ---- Section label ---- */
+        .section-tag {
+            display: inline-block;
+            background: #e8f4f5;
+            color: var(--primary);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 5px 14px;
+            border-radius: 999px;
+            margin-bottom: 10px;
+        }
+
+        main {
+            min-height: 70vh;
+            width: min(1120px, calc(100% - 40px));
+            margin: 0 auto 24px;
+        }
+
         @media (max-width: 900px) {
-            .features-grid {
+            .features-grid,
+            .steps-grid,
+            .testimonials-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .about-grid,
+            .contact-wrap,
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
             }
 
             .hero {
@@ -228,6 +575,15 @@
 
             .navbar {
                 padding: 14px 0;
+            }
+
+            .nav-anchor { display: none; }
+        }
+
+        @media (max-width: 560px) {
+            .stats-bar,
+            .footer-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -238,12 +594,16 @@
 
 <nav class="navbar">
     <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
-        <div class="logo">RENOVA</div>
+        <a href="{% url 'accounts:home' %}" class="logo">RENOVA</a>
 
         <ul class="nav-links">
             {% if user.is_authenticated %}
                 <li><a href="{% url 'accounts:logout' %}">Logout</a></li>
             {% else %}
+                {% if request.resolver_match.url_name == 'home' %}
+                    <li><a href="#about" class="nav-anchor">About</a></li>
+                    <li><a href="#contact" class="nav-anchor">Contact</a></li>
+                {% endif %}
                 <li><a href="{% url 'accounts:login' %}">Login</a></li>
                 <li><a href="{% url 'accounts:register' %}" class="btn">Get Started</a></li>
             {% endif %}
@@ -252,43 +612,64 @@
 </nav>
 
 {% if not user.is_authenticated and request.resolver_match.url_name == 'home' %}
+
 <!-- ================= HERO ================= -->
 <section class="hero">
-    <h1>Your Mental Health Matters</h1>
+    <span class="section-tag">Mental Wellness Platform</span>
+    <h1>Your Mental Health<br>Matters — We're Here</h1>
     <p>
         ReNova connects patients with certified therapists,
-        offering professional care and secure appointments.
+        offering professional care, AI-powered support, and secure appointments — all in one place.
     </p>
-
     <div class="hero-actions">
         <a href="{% url 'accounts:register' %}" class="btn-primary">Create Account</a>
-        <a href="{% url 'accounts:login' %}" class="btn-secondary">Login</a>
+        <a href="#how-it-works" class="btn-secondary">See How It Works</a>
     </div>
 </section>
+
+<!-- ================= STATS ================= -->
+<div class="stats-bar">
+    <div class="stat-card">
+        <span class="stat-num">1,500+</span>
+        <span class="stat-label">Patients Supported</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-num">200+</span>
+        <span class="stat-label">Certified Therapists</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-num">2,000+</span>
+        <span class="stat-label">Sessions Completed</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-num">4.7 ★</span>
+        <span class="stat-label">Average Rating</span>
+    </div>
+</div>
+
 <!-- ================= PATIENT SECTION ================= -->
 <section>
     <div class="section-title">
-        <h2>For Patients</h2>
-        <p>Personalized care, support & growth</p>
+        <span class="section-tag">For Patients</span>
+        <h2>Personalized Care, Support &amp; Growth</h2>
+        <p>Everything you need to take control of your mental wellness journey.</p>
     </div>
 
     <div class="features-grid">
         <div class="feature-card">
-            <img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773">
+            <img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&auto=format&fit=crop" alt="Therapy Sessions">
             <h3>Book Therapy Sessions</h3>
-            <p>Schedule sessions with trusted therapists at your convenience.</p>
+            <p>Schedule sessions with trusted therapists at your convenience — any time, any place.</p>
         </div>
-
         <div class="feature-card">
-            <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4">
+            <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop" alt="AI Assistant">
             <h3>AI Mental Health Assistant</h3>
-            <p>Chat anytime for guidance, coping techniques, and support.</p>
+            <p>Chat anytime for guidance, coping techniques, and emotional support between sessions.</p>
         </div>
-
         <div class="feature-card">
-            <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf">
+            <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600&auto=format&fit=crop" alt="Self-Help">
             <h3>Self‑Help Resources</h3>
-            <p>Access videos, exercises, and wellness content.</p>
+            <p>Access curated videos, guided exercises, and evidence-based wellness content.</p>
         </div>
     </div>
 </section>
@@ -296,37 +677,262 @@
 <!-- ================= THERAPIST SECTION ================= -->
 <section>
     <div class="section-title">
-        <h2>For Therapists</h2>
-        <p>Manage clients, sessions & availability</p>
+        <span class="section-tag">For Therapists</span>
+        <h2>Manage Clients, Sessions &amp; Availability</h2>
+        <p>A complete digital toolkit built for mental health professionals.</p>
     </div>
 
     <div class="features-grid">
         <div class="feature-card">
-            <img src="https://images.unsplash.com/photo-1607746882042-944635dfe10e">
+            <img src="https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=600&auto=format&fit=crop" alt="Dashboard">
             <h3>Therapist Dashboard</h3>
-            <p>View appointments, manage schedules, and track clients.</p>
+            <p>View appointments, manage schedules, and track client progress all from one screen.</p>
         </div>
-
         <div class="feature-card">
-            <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216">
+            <img src="https://images.unsplash.com/photo-1521791136064-7986c2920216?w=600&auto=format&fit=crop" alt="Session Management">
             <h3>Session Management</h3>
-            <p>Approve, reschedule, and document therapy sessions.</p>
+            <p>Approve, reschedule, and document therapy sessions with ease and precision.</p>
+        </div>
+        <div class="feature-card">
+            <img src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=600&auto=format&fit=crop" alt="Growth">
+            <h3>Professional Growth</h3>
+            <p>Expand your practice and reach more clients on a trusted mental wellness platform.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section id="how-it-works">
+    <div class="section-title">
+        <span class="section-tag">No Awkward Steps</span>
+        <h2>It's Easier Than You Think </h2>
+        <p>Seriously, you'll be up and running before your next coffee refill.</p>
+    </div>
+
+    <div class="steps-grid">
+        <div class="step-card">
+            <div class="step-num">1</div>
+            <h3>Sign Up in 2 Minutes </h3>
+            <p>Create your free account — no credit card, no life story, just you and a password.</p>
+        </div>
+        <div class="step-card">
+            <div class="step-num">2</div>
+            <h3>Explore &amp; Discover </h3>
+            <p>Browse therapists, read about specializations, and get a feel for who clicks with you. Zero pressure.</p>
+        </div>
+        <div class="step-card">
+            <div class="step-num">3</div>
+            <h3>Use Tools at Your Pace </h3>
+            <p>Chat with the AI assistant, try guided exercises, or browse resources — whenever you feel like it.</p>
+        </div>
+        <div class="step-card">
+            <div class="step-num">4</div>
+            <h3>Grow, Your Way </h3>
+            <p>Whether it's small daily wins or big breakthroughs — ReNova is here for every step of the ride.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ================= ABOUT US ================= -->
+<section id="about">
+    <div class="about-grid">
+        <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=700&auto=format&fit=crop" alt="About ReNova" class="about-img">
+        <div class="about-text">
+            <span class="section-tag">About Us</span>
+            <h2>We Believe Mental Health is a Right, Not a Privilege</h2>
+            <p>
+                ReNova was founded with a simple mission: make quality mental health care accessible to everyone.
+                We bridge the gap between patients seeking help and certified professionals ready to provide it.
+            </p>
+            <p>
+                Our platform combines human compassion with modern technology — including AI assistance,
+                resource libraries, and seamless scheduling — to deliver a holistic wellness experience.
+            </p>
+            <ul class="about-list">
+                <li>Verified &amp; certified mental health professionals</li>
+                <li>Secure, private, and HIPAA-aligned practices</li>
+                <li>AI-powered support available 24/7</li>
+                <li>Flexible scheduling — session at your pace</li>
+                <li>Evidence-based therapy methods and resources</li>
+            </ul>
+            <a href="{% url 'accounts:register' %}" class="btn-primary" style="display:inline-block; padding:12px 26px; border-radius:999px; font-weight:600;">
+                Join ReNova Today
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ================= TESTIMONIALS ================= -->
+<section>
+    <div class="section-title">
+        <span class="section-tag">Testimonials</span>
+        <h2>Trusted by Patients &amp; Therapists</h2>
+        <p>Real stories from people whose lives have been positively impacted by ReNova.</p>
+    </div>
+
+    <div class="testimonials-grid">
+        <div class="testimonial-card">
+            <div class="testimonial-stars">★★★★★</div>
+            <blockquote>"ReNova completely changed how I approach my mental health. Booking sessions is effortless and my therapist is incredible. I finally feel heard."</blockquote>
+            <div class="testimonial-author">
+                <div>
+                    <div class="testimonial-name">Shelika Rai</div>
+                    <div class="testimonial-role">Patient — Anxiety &amp; Stress</div>
+                </div>
+            </div>
+        </div>
+        <div class="testimonial-card">
+            <div class="testimonial-stars">★★★★★</div>
+            <blockquote>"As a therapist, ReNova has streamlined my entire practice. The dashboard is intuitive, and I can focus more on my clients instead of paperwork."</blockquote>
+            <div class="testimonial-author">
+                <div>
+                    <div class="testimonial-name">Dr. Hita Rai</div>
+                    <div class="testimonial-role">Licensed Therapist — CBT Specialist</div>
+                </div>
+            </div>
+        </div>
+        <div class="testimonial-card">
+            <div class="testimonial-stars">★★★★★</div>
+            <blockquote>"The AI assistant helped me through some really tough nights when I couldn't reach my therapist. Having that support available anytime is priceless."</blockquote>
+            <div class="testimonial-author">
+                <div>
+                    <div class="testimonial-name">Amar Basnet</div>
+                    <div class="testimonial-role">Patient — Depression Recovery</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section id="contact">
+    <div class="contact-wrap">
+        <div class="contact-info">
+            <span class="section-tag">Contact Us</span>
+            <h2>We'd Love to Hear From You</h2>
+            <p>
+                Have a question, need support, or want to partner with us?
+                Reach out and our team will get back to you within 24 hours.
+            </p>
+
+            <div class="contact-item">
+                <div class="contact-icon">📧</div>
+                <div class="contact-item-text">
+                    <strong>Email Us</strong>
+                    <span>support@renova.com</span>
+                </div>
+            </div>
+            <div class="contact-item">
+                <div class="contact-icon">📞</div>
+                <div class="contact-item-text">
+                    <strong>Call Us</strong>
+                    <span>+977 9810419632 · Mon–Fri, 9am–6pm</span>
+                </div>
+            </div>
+
+            <div class="contact-item">
+                <div class="contact-icon">🕐</div>
+                <div class="contact-item-text">
+                    <strong>Response Time</strong>
+                    <span>We reply to all inquiries within 24 hours</span>
+                </div>
+            </div>
         </div>
 
-        <div class="feature-card">
-            <img src="https://images.unsplash.com/photo-1551836022-d5d88e9218df">
-            <h3>Professional Growth</h3>
-            <p>Expand your practice with a digital mental wellness platform.</p>
+        <div class="contact-form">
+            <h3>Send Us a Message</h3>
+            <form id="contact-form" method="post" action="{% url 'accounts:contact_us' %}">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="c-name">Full Name</label>
+                        <input type="text" id="c-name" name="name" placeholder="Jane Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="c-email">Email Address</label>
+                        <input type="email" id="c-email" name="email" placeholder="jane@example.com" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="c-subject">Subject</label>
+                    <select id="c-subject" name="subject">
+                        <option value="">Select a topic…</option>
+                        <option>General Inquiry</option>
+                        <option>Technical Support</option>
+                        <option>Therapist Partnership</option>
+                        <option>Billing &amp; Payments</option>
+                        <option>Privacy &amp; Data</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="c-message">Message</label>
+                    <textarea id="c-message" name="message" placeholder="Tell us how we can help you…" required></textarea>
+                </div>
+                <div id="contact-feedback" style="display:none; margin-bottom:12px; padding:10px 14px; border-radius:10px; font-size:0.9rem; font-weight:600;"></div>
+                <button class="btn-submit" type="submit" id="contact-submit-btn">Send Message</button>
+            </form>
         </div>
     </div>
 </section>
 
 <!-- ================= CTA ================= -->
-<section class="cta">
-    <h2>Start Your Journey With ReNova</h2>
-    <p>Whether you're seeking help or providing care — ReNova supports you.</p>
-    <a href="{% url 'accounts:register' %}" class="btn-secondary">Join Now</a>
+<section>
+    <div class="cta">
+        <span class="section-tag">Get Started</span>
+        <h2>Start Your Journey With ReNova</h2>
+        <p>Whether you're seeking help or providing care — ReNova supports you every step of the way.</p>
+        <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:4px;">
+            <a href="{% url 'accounts:register' %}" class="btn-primary" style="border-radius:999px; padding:12px 28px; font-weight:600; display:inline-block;">Create Free Account</a>
+            <a href="{% url 'accounts:login' %}" class="btn-secondary" style="border-radius:999px; padding:12px 28px; font-weight:600; display:inline-block;">Sign In</a>
+        </div>
+    </div>
 </section>
+
+<script>
+(function () {
+    const form = document.getElementById('contact-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const btn = document.getElementById('contact-submit-btn');
+        const feedback = document.getElementById('contact-feedback');
+
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+        feedback.style.display = 'none';
+
+        try {
+            const resp = await fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                feedback.style.background = '#d4edda';
+                feedback.style.color = '#155724';
+                feedback.textContent = '✓ Your message has been sent! We\'ll get back to you within 24 hours.';
+                form.reset();
+            } else {
+                feedback.style.background = '#f8d7da';
+                feedback.style.color = '#721c24';
+                feedback.textContent = data.error || 'Something went wrong. Please try again.';
+            }
+        } catch (err) {
+            feedback.style.background = '#f8d7da';
+            feedback.style.color = '#721c24';
+            feedback.textContent = 'Network error. Please try again.';
+        }
+
+        feedback.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Send Message';
+    });
+})();
+</script>
+
 {% endif %}
 
 <!-- ================= PAGE CONTENT ================= -->

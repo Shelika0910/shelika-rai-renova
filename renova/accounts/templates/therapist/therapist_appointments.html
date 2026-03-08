@@ -331,11 +331,17 @@
                         <div>🕐 {{ appointment.date_time|time:"g:i A" }}</div>
                         <div>⏱️ {{ appointment.duration_minutes }} min</div>
                         <div>📧 {{ appointment.patient.email }}</div>
+                        <div>{% if appointment.session_type == 'video_call' %}🎥 Video Call{% elif appointment.session_type == 'audio_call' %}🎙 Audio Call{% else %}💬 Text Chat{% endif %}</div>
                         {% if appointment.patient_notes %}
                             <div>📝 {{ appointment.patient_notes|truncatechars:50 }}</div>
                         {% endif %}
                     </div>
                     <div class="appointment-actions">
+                        {% if appointment.status == 'confirmed' %}
+                            <a href="{% url 'accounts:session_room' appointment.pk %}" class="btn btn-primary">
+                                {% if appointment.session_type == 'video_call' %}🎥{% elif appointment.session_type == 'audio_call' %}🎙{% else %}💬{% endif %} Join Session
+                            </a>
+                        {% endif %}
                         {% if appointment.status == 'requested' %}
                             <a href="{% url 'accounts:confirm_appointment' appointment.pk %}" class="btn btn-success">✓ Confirm</a>
                             <a href="{% url 'accounts:reject_appointment' appointment.pk %}" class="btn btn-warning">✗ Decline</a>

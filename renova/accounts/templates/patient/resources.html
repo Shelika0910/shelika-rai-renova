@@ -3,881 +3,141 @@
 {% block title %}Resources & Recommendations | ReNova{% endblock %}
 
 {% block extra_css %}
-<!-- Force complete cache clear to eliminate any cached JavaScript errors -->
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<meta name="robots" content="noindex, nofollow">
 <style>
     .patient-wrap {
         width: min(1200px, calc(100% - 40px));
         margin: 32px auto 60px;
     }
 
-    /* General Improvements */
-    body {
-        background: #fafbfc;
-    }
+    body { background: #fafbfc; }
 
     .patient-nav {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
         padding: 16px;
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(255,255,255,0.95);
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(231, 221, 214, 0.5);
+        border: 1px solid rgba(231,221,214,0.5);
         border-radius: 16px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.04);
         margin-bottom: 20px;
     }
-
-    .patient-nav-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        flex-wrap: wrap;
-        width: 100%;
-    }
-
-    .nav-links {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .patient-nav a {
-        padding: 9px 14px;
-        border-radius: 999px;
-        border: 1px solid #dce6e8;
-        background: #f7fbfc;
-        color: #2b4e59;
-        font-weight: 600;
-        font-size: 0.92rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        text-decoration: none;
-    }
-
-    .patient-nav a.active {
-        background: #4da3a9;
-        color: white;
-        border-color: #4da3a9;
-    }
-
-    .patient-nav a:hover {
-        background: #e8f4f5;
-        border-color: #4da3a9;
-    }
-
-    .patient-nav a.active:hover {
-        background: #3c8b90;
-    }
-
-    /* Hero */
-    .hero-card {
-        background: linear-gradient(135deg, #4da3a9 0%, #3d8a8f 50%, #2d6a6f 100%);
-        color: white;
-        padding: 28px;
-        border-radius: 16px;
-        margin-bottom: 22px;
-        box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
-    }
-
-    .hero-card h1 {
-        margin: 0 0 8px;
-        font-size: 1.65rem;
-        font-weight: 700;
-    }
-
-    .hero-card p {
-        margin: 0;
-        opacity: 0.95;
-        font-size: 1rem;
-    }
-
-    .hero-badge {
-        display: inline-block;
-        margin-top: 10px;
-        padding: 5px 14px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 999px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        backdrop-filter: blur(4px);
-    }
-
-    /* Filters */
-    .filter-bar {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-bottom: 18px;
-        padding: 12px 16px;
-        background: #fff;
-        border: 1px solid #e7ddd6;
-        border-radius: 12px;
-    }
-
-    .filter-bar .filter-group {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-
-    .filter-bar label {
-        font-weight: 700;
-        font-size: 0.82rem;
-        color: #5a6a7a;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-right: 4px;
-    }
-
-    .filter-btn {
-        padding: 6px 14px;
-        border: 1px solid #dce6e8;
-        background: #f7fbfc;
-        color: #3a4f5c;
-        border-radius: 999px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-        transition: all 0.2s ease;
-    }
-
-    .filter-btn.active {
-        background: #4da3a9;
-        color: white;
-        border-color: #4da3a9;
-    }
-
-    .filter-btn:hover {
-        background: #e8f4f5;
-        border-color: #4da3a9;
-    }
-
-    .filter-btn.active:hover {
-        background: #3c8b90;
-    }
-
-    /* Section headings */
-    .section-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #2c4652;
-        margin: 26px 0 14px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .section-title .icon {
-        font-size: 1.3rem;
-    }
-
-    /* Featured carousel */
-    .featured-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
-    }
-
-    .featured-card {
-        position: relative;
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        cursor: pointer;
-        background: #fff;
-    }
-
-    .featured-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
-    }
-
-    .featured-thumb {
-        width: 100%;
-        height: 150px;
-        object-fit: cover;
-        background: linear-gradient(135deg, #dfe6e9, #b2bec3);
-    }
-
-    .featured-body {
-        padding: 14px 16px;
-    }
-
-    .featured-body h4 {
-        margin: 0 0 6px;
-        font-size: 1rem;
-        color: #2c4652;
-    }
-
-    .featured-body p {
-        margin: 0;
-        font-size: 0.85rem;
-        color: #627180;
-        line-height: 1.4;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .featured-tag {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        background: #4da3a9;
-        color: white;
-        font-size: 0.7rem;
-        font-weight: 700;
-        padding: 3px 10px;
-        border-radius: 999px;
-        text-transform: uppercase;
-    }
-
-    .featured-duration {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: rgba(0,0,0,0.6);
-        color: white;
-        font-size: 0.72rem;
-        font-weight: 600;
-        padding: 3px 8px;
-        border-radius: 6px;
-    }
-
-    /* Video grid */
-    .video-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 18px;
-        margin-bottom: 28px;
-    }
-
-    .video-card {
-        background: #fff;
-        border: 1px solid #e7ddd6;
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-        transition: all 0.2s ease;
-    }
-
-    /* Error-free image handling */
-    img {
-        background: #f0f0f0;
-        border-radius: 8px;
-    }
-
-    .video-thumb-overlay img,
-    .wellness-thumb img,
-    .featured-thumb {
-        transition: opacity 0.3s ease;
-    }
-
-    .video-thumb-overlay img:not([src]),
-    .wellness-thumb img:not([src]),
-    .featured-thumb:not([src]) {
-        opacity: 0.3;
-        background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
-    }
-
-    /* Enhanced Meditation & Yoga Sections */
-    .wellness-section {
-        margin: 40px 0;
-        padding: 32px;
-        border-radius: 20px;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .meditation-section {
-        background: linear-gradient(135deg, #e8f8f5 0%, #d4f3ea 100%);
-        border: 1px solid rgba(39, 174, 96, 0.1);
-    }
-
-    .yoga-section {
-        background: linear-gradient(135deg, #fef7f0 0%, #fde8d7 100%);
-        border: 1px solid rgba(233, 30, 99, 0.1);
-    }
-
-    .wellness-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 100px;
-        height: 100px;
-        background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
-        border-radius: 50%;
-        transform: translate(30%, -30%);
-    }
-
-    .wellness-header {
-        text-align: center;
-        margin-bottom: 32px;
-        position: relative;
-        z-index: 1;
-    }
-
-    .wellness-icon {
-        font-size: 3rem;
-        margin-bottom: 12px;
-        display: block;
-        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.1));
-    }
-
-    .wellness-title {
-        font-size: 1.75rem;
-        font-weight: 700;
-        margin: 0 0 8px;
-        background: linear-gradient(135deg, #2c4652 0%, #4da3a9 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-
-    .meditation-section .wellness-title {
-        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .yoga-section .wellness-title {
-        background: linear-gradient(135deg, #e91e63 0%, #f39c12 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .wellness-subtitle {
-        color: #627180;
-        font-size: 1rem;
-        margin: 0;
-        max-width: 500px;
-        margin: 0 auto;
-        line-height: 1.5;
-    }
-
-    .wellness-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 24px;
-        position: relative;
-        z-index: 1;
-    }
-
-    .wellness-card {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(10px);
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-    }
-
-    .wellness-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #4da3a9, #2ecc71);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .meditation-section .wellness-card::before {
-        background: linear-gradient(90deg, #27ae60, #2ecc71, #1fb359);
-    }
-
-    .yoga-section .wellness-card::before {
-        background: linear-gradient(90deg, #e91e63, #f39c12, #ff6b6b);
-    }
-
-    .wellness-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-    }
-
-    .wellness-card:hover::before {
-        opacity: 1;
-    }
-
-    .wellness-thumb {
-        position: relative;
-        width: 100%;
-        height: 200px;
-        overflow: hidden;
-        cursor: pointer;
-    }
-
-    .wellness-thumb img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.3s ease;
-    }
-
-    .wellness-card:hover .wellness-thumb img {
-        transform: scale(1.05);
-    }
-
-    .wellness-play-btn {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 64px;
-        height: 64px;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #4da3a9;
-        font-size: 1.5rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .meditation-section .wellness-play-btn {
-        color: #27ae60;
-    }
-
-    .yoga-section .wellness-play-btn {
-        color: #e91e63;
-    }
-
-    .wellness-card:hover .wellness-play-btn {
-        transform: translate(-50%, -50%) scale(1.1);
-        background: rgba(255, 255, 255, 1);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    }
-
-    .wellness-content {
-        padding: 20px;
-    }
-
-    .wellness-content h4 {
-        margin: 0 0 8px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #2c4652;
-        line-height: 1.3;
-    }
-
-    .wellness-content p {
-        margin: 0 0 12px;
-        color: #627180;
-        font-size: 0.9rem;
-        line-height: 1.4;
-    }
-
-    .wellness-tag {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .meditation-tag {
-        background: rgba(39, 174, 96, 0.15);
-        color: #27ae60;
-    }
-
-    .yoga-tag {
-        background: rgba(233, 30, 99, 0.15);
-        color: #e91e63;
-    }
-
-    /* Learning Sections */
-    .learning-section {
-        background: linear-gradient(135deg, #f8f9ff 0%, #e6edff 100%);
-        border: 1px solid rgba(74, 144, 226, 0.1);
-    }
-
-    .meditation-learning {
-        background: linear-gradient(135deg, #f0f8f0 0%, #e0f2e0 100%);
-        border: 1px solid rgba(39, 174, 96, 0.15);
-    }
-
-    .yoga-learning {
-        background: linear-gradient(135deg, #fff8f0 0%, #ffe8d0 100%);
-        border: 1px solid rgba(233, 30, 99, 0.15);
-    }
-
-    .learning-intro {
-        background: rgba(255, 255, 255, 0.8);
-        border-radius: 16px;
-        padding: 24px;
-        margin: 24px 0 32px;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-
-    .tip-box h4 {
-        margin: 0 0 16px;
-        font-size: 1.1rem;
-        color: #2c4652;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .tip-box ul {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-    }
-
-    .tip-box li {
-        margin: 0 0 8px;
-        padding: 8px 0;
-        color: #4a5568;
-        font-size: 0.95rem;
-        line-height: 1.5;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    }
-
-    .tip-box li:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-    }
-
-    .tip-box strong {
-        color: #2c4652;
-        font-weight: 600;
-    }
-
-    .tutorial-card {
-        position: relative;
-    }
-
-    .tutorial-badge {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        background: rgba(74, 144, 226, 0.95);
-        color: white;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        z-index: 2;
-    }
-
-    .meditation-learning .tutorial-badge {
-        background: rgba(39, 174, 96, 0.95);
-    }
-
-    .yoga-learning .tutorial-badge {
-        background: rgba(233, 30, 99, 0.95);
-    }
-
-    .tutorial-btn {
-        background: rgba(74, 144, 226, 0.95) !important;
-        color: white !important;
-    }
-
-    .meditation-learning .tutorial-btn {
-        background: rgba(39, 174, 96, 0.95) !important;
-    }
-
-    .yoga-learning .tutorial-btn {
-        background: rgba(233, 30, 99, 0.95) !important;
-    }
-
-    .learning-tag {
-        background: rgba(74, 144, 226, 0.15);
-        color: #4a90e2;
-    }
-
-    .meditation-learning .learning-tag {
-        background: rgba(39, 174, 96, 0.15);
-        color: #27ae60;
-    }
-
-    .yoga-learning .learning-tag {
-        background: rgba(233, 30, 99, 0.15);
-        color: #e91e63;
-    }
-
-    @media (max-width: 768px) {
-        .wellness-section {
-            margin: 24px 0;
-            padding: 20px;
-            border-radius: 16px;
-        }
-
-        .wellness-grid {
-            grid-template-columns: 1fr;
-            gap: 16px;
-        }
-
-        .wellness-icon {
-            font-size: 2.5rem;
-        }
-
-        .wellness-title {
-            font-size: 1.5rem;
-        }
-    }
-
-    .video-thumb-overlay {
-        position: relative;
-        width: 100%;
-        height: 180px;
-        overflow: hidden;
-        cursor: pointer;
-    }
-
-    .video-thumb-overlay img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .play-btn {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 56px;
-        height: 56px;
-        background: rgba(77, 163, 169, 0.9);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.4rem;
-        transition: transform 0.2s ease, background 0.2s ease;
-    }
-
-    .video-thumb-overlay:hover .play-btn {
-        transform: translate(-50%, -50%) scale(1.1);
-        background: rgba(77, 163, 169, 1);
-    }
-
-    .video-info {
-        padding: 14px 16px;
-    }
-
-    .video-info h4 {
-        margin: 0 0 6px;
-        font-size: 1rem;
-        color: #2c4652;
-    }
-
-    .video-info p {
-        margin: 0 0 8px;
-        font-size: 0.85rem;
-        color: #627180;
-        line-height: 1.4;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .video-meta {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
-
-    .meta-tag {
-        padding: 3px 10px;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-transform: uppercase;
-    }
-
-    .meta-tag.video { background: #dfe6fd; color: #4a3db5; }
-    .meta-tag.exercise { background: #d5f5e3; color: #1e8449; }
-    .meta-tag.relaxation { background: #fdebd0; color: #b7950b; }
-    .meta-tag.article { background: #fadbd8; color: #922b21; }
-    .meta-tag.duration { background: #f0f2f4; color: #5a6a7a; font-weight: 600; }
-
-    /* Exercise cards */
-    .exercise-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 16px;
-        margin-bottom: 28px;
-    }
-
-    .exercise-card {
-        background: #fff;
-        border: 1px solid #e7ddd6;
-        border-radius: 14px;
-        padding: 20px;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-        transition: all 0.2s ease;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .exercise-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.1);
-    }
-
-    .exercise-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        margin-bottom: 12px;
-    }
-
-    .exercise-icon.breathing { background: #dfe6fd; }
-    .exercise-icon.meditation { background: #d5f5e3; }
-    .exercise-icon.relaxation { background: #fdebd0; }
-    .exercise-icon.journaling { background: #fadbd8; }
-    .exercise-icon.grounding { background: #d6eaf8; }
-    .exercise-icon.mindfulness { background: #e8daef; }
-
-    .exercise-card h4 {
-        margin: 0 0 6px;
-        font-size: 1rem;
-        color: #2c4652;
-    }
-
-    .exercise-card p {
-        margin: 0 0 12px;
-        font-size: 0.85rem;
-        color: #627180;
-        line-height: 1.4;
-        flex: 1;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    .exercise-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .exercise-meta {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-
-    .exercise-meta span {
-        font-size: 0.72rem;
-        font-weight: 600;
-        padding: 3px 8px;
-        border-radius: 6px;
-        background: #f0f2f4;
-        color: #5a6a7a;
-    }
-
-    .start-btn {
-        padding: 7px 16px;
-        background: #4da3a9;
-        color: white;
-        border-radius: 8px;
-        font-size: 0.82rem;
-        font-weight: 700;
-        text-decoration: none;
-        transition: background 0.2s ease;
-        white-space: nowrap;
-    }
-
-    .start-btn:hover {
-        background: #3d8a8f;
-        color: white;
-    }
-
-    /* Relaxation section */
-    .relax-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 16px;
-        margin-bottom: 28px;
-    }
-
-    .relax-card {
-        background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
-        border: 1px solid #e3e8f0;
-        border-radius: 14px;
-        padding: 20px;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-        transition: all 0.2s ease;
-    }
-
-    .relax-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 22px rgba(108, 92, 231, 0.12);
-    }
-
-    .relax-card h4 {
-        margin: 0 0 8px;
-        font-size: 1rem;
-        color: #2c4652;
-    }
-
-    .relax-card p {
-        margin: 0 0 10px;
-        font-size: 0.85rem;
-        color: #627180;
-        line-height: 1.5;
-    }
-
-    .relax-card .meta-row {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-
-    /* Empty state */
-    .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: #657482;
-        background: #fff;
-        border: 1px solid #e7ddd6;
-        border-radius: 14px;
-    }
-
-    .empty-state .icon { font-size: 3rem; display: block; margin-bottom: 10px; opacity: 0.3; }
-    .empty-state h3 { margin: 0 0 6px; color: #3a4f5c; }
-    .empty-state p { margin: 0; }
-
-    @media (max-width: 600px) {
-        .video-grid, .exercise-grid, .relax-grid, .featured-row {
-            grid-template-columns: 1fr;
-        }
-        .filter-bar {
-            flex-direction: column;
-        }
+    .patient-nav-row { display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;width:100%; }
+    .nav-links { display:flex;gap:10px;flex-wrap:wrap; }
+    .patient-nav a { padding:9px 14px;border-radius:999px;border:1px solid #dce6e8;background:#f7fbfc;color:#2b4e59;font-weight:600;font-size:0.92rem;cursor:pointer;transition:all 0.2s ease;text-decoration:none; }
+    .patient-nav a.active { background:#4da3a9;color:white;border-color:#4da3a9; }
+    .patient-nav a:hover { background:#e8f4f5;border-color:#4da3a9; }
+    .patient-nav a.active:hover { background:#3c8b90; }
+
+    .hero-card { background:linear-gradient(135deg,#4da3a9 0%,#3d8a8f 50%,#2d6a6f 100%);color:white;padding:28px;border-radius:16px;margin-bottom:22px;box-shadow:0 12px 28px rgba(77,163,169,0.25); }
+    .hero-card h1 { margin:0 0 8px;font-size:1.65rem;font-weight:700; }
+    .hero-card p  { margin:0;opacity:0.95;font-size:1rem; }
+    .hero-badge { display:inline-block;margin-top:10px;padding:5px 14px;background:rgba(255,255,255,0.2);border-radius:999px;font-size:0.85rem;font-weight:600;backdrop-filter:blur(4px); }
+
+    .filter-bar { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;padding:12px 16px;background:#fff;border:1px solid #e7ddd6;border-radius:12px; }
+    .filter-group { display:flex;gap:6px;flex-wrap:wrap;align-items:center; }
+    .filter-bar label { font-weight:700;font-size:0.82rem;color:#5a6a7a;text-transform:uppercase;letter-spacing:0.5px;margin-right:4px; }
+    .filter-btn { padding:6px 14px;border:1px solid #dce6e8;background:#f7fbfc;color:#3a4f5c;border-radius:999px;font-size:0.82rem;font-weight:600;cursor:pointer;text-decoration:none;transition:all 0.2s ease; }
+    .filter-btn.active { background:#4da3a9;color:white;border-color:#4da3a9; }
+    .filter-btn:hover { background:#e8f4f5;border-color:#4da3a9; }
+    .filter-btn.active:hover { background:#3c8b90; }
+
+    .section-title { font-size:1.25rem;font-weight:700;color:#2c4652;margin:26px 0 14px;display:flex;align-items:center;gap:8px; }
+
+    .wellness-section { margin:40px 0;padding:32px;border-radius:20px;position:relative;overflow:hidden; }
+    .meditation-section { background:linear-gradient(135deg,#e8f8f5 0%,#d4f3ea 100%);border:1px solid rgba(39,174,96,0.1); }
+    .yoga-section { background:linear-gradient(135deg,#fef7f0 0%,#fde8d7 100%);border:1px solid rgba(233,30,99,0.1); }
+    .wellness-section::before { content:'';position:absolute;top:0;right:0;width:100px;height:100px;background:radial-gradient(circle,rgba(255,255,255,0.3) 0%,transparent 70%);border-radius:50%;transform:translate(30%,-30%); }
+    .wellness-header { text-align:center;margin-bottom:32px;position:relative;z-index:1; }
+    .wellness-icon { font-size:3rem;margin-bottom:12px;display:block;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.1)); }
+    .wellness-title { font-size:1.75rem;font-weight:700;margin:0 0 8px;background:linear-gradient(135deg,#2c4652 0%,#4da3a9 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+    .meditation-section .wellness-title { background:linear-gradient(135deg,#27ae60 0%,#2ecc71 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent; }
+    .yoga-section .wellness-title { background:linear-gradient(135deg,#e91e63 0%,#f39c12 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent; }
+    .wellness-subtitle { color:#627180;font-size:1rem;margin:0 auto;line-height:1.5;max-width:500px; }
+
+    .wellness-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;position:relative;z-index:1; }
+    .wellness-card { background:rgba(255,255,255,0.9);backdrop-filter:blur(10px);border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.08);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);position:relative; }
+    .wellness-card::before { content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#4da3a9,#2ecc71);opacity:0;transition:opacity 0.3s ease; }
+    .meditation-section .wellness-card::before { background:linear-gradient(90deg,#27ae60,#2ecc71,#1fb359); }
+    .yoga-section .wellness-card::before { background:linear-gradient(90deg,#e91e63,#f39c12,#ff6b6b); }
+    .wellness-card:hover { transform:translateY(-8px);box-shadow:0 20px 40px rgba(0,0,0,0.15); }
+    .wellness-card:hover::before { opacity:1; }
+
+    .wellness-thumb { position:relative;width:100%;height:200px;overflow:hidden;cursor:pointer; }
+    .wellness-thumb img { width:100%;height:100%;object-fit:cover;transition:transform 0.3s ease; }
+    .wellness-card:hover .wellness-thumb img { transform:scale(1.05); }
+    .wellness-play-btn { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#4da3a9;font-size:1.5rem;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);box-shadow:0 4px 20px rgba(0,0,0,0.1); }
+    .meditation-section .wellness-play-btn { color:#27ae60; }
+    .yoga-section .wellness-play-btn { color:#e91e63; }
+    .wellness-card:hover .wellness-play-btn { transform:translate(-50%,-50%) scale(1.1);box-shadow:0 8px 32px rgba(0,0,0,0.2); }
+    .wellness-content { padding:20px; }
+    .wellness-content h4 { margin:0 0 8px;font-size:1.1rem;font-weight:600;color:#2c4652;line-height:1.3; }
+    .wellness-content p  { margin:0 0 12px;color:#627180;font-size:0.9rem;line-height:1.4; }
+    .wellness-tag { display:inline-block;padding:6px 12px;border-radius:20px;font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px; }
+    .meditation-tag { background:rgba(39,174,96,0.15);color:#27ae60; }
+    .yoga-tag { background:rgba(233,30,99,0.15);color:#e91e63; }
+
+    .learning-section { background:linear-gradient(135deg,#f8f9ff 0%,#e6edff 100%);border:1px solid rgba(74,144,226,0.1); }
+    .meditation-learning { background:linear-gradient(135deg,#f0f8f0 0%,#e0f2e0 100%);border:1px solid rgba(39,174,96,0.15); }
+    .yoga-learning { background:linear-gradient(135deg,#fff8f0 0%,#ffe8d0 100%);border:1px solid rgba(233,30,99,0.15); }
+    .learning-intro { background:rgba(255,255,255,0.8);border-radius:16px;padding:24px;margin:24px 0 32px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.3); }
+    .tip-box h4 { margin:0 0 16px;font-size:1.1rem;color:#2c4652;display:flex;align-items:center;gap:8px; }
+    .tip-box ul { margin:0;padding:0;list-style:none; }
+    .tip-box li { margin:0 0 8px;padding:8px 0;color:#4a5568;font-size:0.95rem;line-height:1.5;border-bottom:1px solid rgba(0,0,0,0.05); }
+    .tip-box li:last-child { border-bottom:none;margin-bottom:0; }
+    .tip-box strong { color:#2c4652;font-weight:600; }
+
+    .tutorial-card { position:relative; }
+    .tutorial-badge { position:absolute;top:12px;right:12px;background:rgba(74,144,226,0.95);color:white;padding:4px 12px;border-radius:12px;font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;z-index:2; }
+    .meditation-learning .tutorial-badge { background:rgba(39,174,96,0.95); }
+    .yoga-learning .tutorial-badge { background:rgba(233,30,99,0.95); }
+    .learning-tag { background:rgba(74,144,226,0.15);color:#4a90e2; }
+    .meditation-learning .learning-tag { background:rgba(39,174,96,0.15);color:#27ae60; }
+    .yoga-learning .learning-tag { background:rgba(233,30,99,0.15);color:#e91e63; }
+
+    .exercise-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:28px; }
+    .exercise-card { background:#fff;border:1px solid #e7ddd6;border-radius:14px;padding:20px;box-shadow:0 4px 14px rgba(0,0,0,0.04);transition:all 0.2s ease;display:flex;flex-direction:column; }
+    .exercise-card:hover { transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,0.1); }
+    .exercise-icon { width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:12px; }
+    .exercise-icon.breathing { background:#dfe6fd; }
+    .exercise-icon.meditation { background:#d5f5e3; }
+    .exercise-icon.relaxation { background:#fdebd0; }
+    .exercise-icon.journaling { background:#fadbd8; }
+    .exercise-icon.grounding  { background:#d6eaf8; }
+    .exercise-icon.mindfulness{ background:#e8daef; }
+    .exercise-card h4 { margin:0 0 6px;font-size:1rem;color:#2c4652; }
+    .exercise-card p  { margin:0 0 12px;font-size:0.85rem;color:#627180;line-height:1.4;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden; }
+    .exercise-footer { display:flex;justify-content:space-between;align-items:center;gap:8px; }
+    .exercise-meta { display:flex;gap:6px;flex-wrap:wrap; }
+    .exercise-meta span { font-size:0.72rem;font-weight:600;padding:3px 8px;border-radius:6px;background:#f0f2f4;color:#5a6a7a; }
+    .start-btn { padding:7px 16px;background:#4da3a9;color:white;border-radius:8px;font-size:0.82rem;font-weight:700;text-decoration:none;transition:background 0.2s ease;white-space:nowrap; }
+    .start-btn:hover { background:#3d8a8f;color:white; }
+
+    .relax-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:28px; }
+    .relax-card { background:linear-gradient(135deg,#f8f9ff 0%,#f0f4ff 100%);border:1px solid #e3e8f0;border-radius:14px;padding:20px;box-shadow:0 4px 14px rgba(0,0,0,0.04);transition:all 0.2s ease; }
+    .relax-card:hover { transform:translateY(-3px);box-shadow:0 8px 22px rgba(108,92,231,0.12); }
+    .relax-card h4 { margin:0 0 8px;font-size:1rem;color:#2c4652; }
+    .relax-card p  { margin:0 0 10px;font-size:0.85rem;color:#627180;line-height:1.5; }
+    .meta-row { display:flex;gap:6px;flex-wrap:wrap; }
+    .meta-tag { padding:3px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;text-transform:uppercase; }
+    .meta-tag.relaxation { background:#fdebd0;color:#b7950b; }
+    .meta-tag.duration { background:#f0f2f4;color:#5a6a7a;font-weight:600; }
+
+    .empty-state { text-align:center;padding:40px 20px;color:#657482;background:#fff;border:1px solid #e7ddd6;border-radius:14px; }
+    .empty-state .icon { font-size:3rem;display:block;margin-bottom:10px;opacity:0.3; }
+    .empty-state h3 { margin:0 0 6px;color:#3a4f5c; }
+    .empty-state p { margin:0; }
+
+    @media (max-width:768px) {
+        .wellness-section { margin:24px 0;padding:20px;border-radius:16px; }
+        .wellness-grid { grid-template-columns:1fr;gap:16px; }
+        .wellness-icon { font-size:2.5rem; }
+        .wellness-title { font-size:1.5rem; }
+    }
+    @media (max-width:600px) {
+        .exercise-grid,.relax-grid { grid-template-columns:1fr; }
+        .filter-bar { flex-direction:column; }
     }
 </style>
 {% endblock %}
@@ -894,11 +154,11 @@
                 <a href="{% url 'accounts:ai_chatbot' %}" class="nav-item">AI-Chatbot</a>
                 <a href="{% url 'accounts:patient_profile' %}" class="nav-item">Profile</a>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <a href="{% url 'accounts:notifications' %}" style="position: relative; padding: 8px 12px; border-radius: 8px; color: #000; text-decoration: none; font-size: 1.2rem;" title="Notifications">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <a href="{% url 'accounts:notifications' %}" style="position:relative;padding:8px 12px;border-radius:8px;color:#000;text-decoration:none;font-size:1.2rem;" title="Notifications">
                     🔔
                     {% if unread_notifications > 0 %}
-                        <span style="position: absolute; top: -4px; right: -4px; background: #dc3545; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; min-width: 16px; text-align: center;">{{ unread_notifications }}</span>
+                        <span style="position:absolute;top:-4px;right:-4px;background:#dc3545;color:white;font-size:0.7rem;font-weight:700;padding:2px 6px;border-radius:999px;min-width:16px;text-align:center;">{{ unread_notifications }}</span>
                     {% endif %}
                 </a>
             </div>
@@ -907,23 +167,19 @@
 </section>
 
 <section class="patient-wrap" style="margin-top:0;">
-
     {% csrf_token %}
 
-    <!-- Enhanced Hero -->
+    <!-- Hero -->
     <div class="hero-card">
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 280px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+            <div style="flex:1;min-width:280px;">
                 <h1>🎯 Personalized Wellness Journey</h1>
                 <p>Explore meditation techniques, yoga practices, breathing exercises, and mindfulness resources tailored to support your unique mental health needs.</p>
-                <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+                <div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;">
                     <span class="hero-badge">✨ {{ category_display }} Focus</span>
                     <span class="hero-badge">📚 100+ Resources</span>
-                    <span class="hero-badge">🎓 Learn & Practice</span>
+                    <span class="hero-badge">🎓 Learn &amp; Practice</span>
                 </div>
-            </div>
-            <div style="flex-shrink: 0; margin-left: 20px;">
-                <div style="font-size: 4rem; opacity: 0.3;"></div>
             </div>
         </div>
     </div>
@@ -932,40 +188,40 @@
     <div class="filter-bar">
         <div class="filter-group">
             <label>Type:</label>
-            <a href="?type=all" class="filter-btn {% if active_type == 'all' %}active{% endif %}">📋 All</a>
-            <a href="?type=positive" class="filter-btn {% if active_type == 'positive' %}active{% endif %}">✨ Positive & Motivational</a>
-            <a href="?type=meditation" class="filter-btn {% if active_type == 'meditation' %}active{% endif %}">🧘‍♀️ Meditation</a>
-            <a href="?type=yoga" class="filter-btn {% if active_type == 'yoga' %}active{% endif %}">🧘‍♂️ Yoga</a>
-            <a href="?type=breathing" class="filter-btn {% if active_type == 'breathing' %}active{% endif %}">🌬️ Breathing</a>
-            <a href="?type=sleep" class="filter-btn {% if active_type == 'sleep' %}active{% endif %}">🌙 Sleep</a>
-            <a href="?type=meditation_tutorial" class="filter-btn {% if active_type == 'meditation_tutorial' %}active{% endif %}">🎓 Meditation Tutorial</a>
-            <a href="?type=yoga_tutorial" class="filter-btn {% if active_type == 'yoga_tutorial' %}active{% endif %}">🎯 Yoga Tutorial</a>
-            <a href="?type=mindfulness" class="filter-btn {% if active_type == 'mindfulness' %}active{% endif %}">🌱 Mindfulness</a>
-            <a href="?type=stress_relief" class="filter-btn {% if active_type == 'stress_relief' %}active{% endif %}">🛡️ Stress Relief</a>
-            <a href="?type=anxiety_help" class="filter-btn {% if active_type == 'anxiety_help' %}active{% endif %}">🤝 Anxiety Help</a>
-            <a href="?type=self_care" class="filter-btn {% if active_type == 'self_care' %}active{% endif %}">💝 Self Care</a>
+            <a href="?type=all"                  class="filter-btn {% if active_type == 'all' %}active{% endif %}">📋 All</a>
+            <a href="?type=positive"             class="filter-btn {% if active_type == 'positive' %}active{% endif %}">✨ Positive &amp; Motivational</a>
+            <a href="?type=meditation"           class="filter-btn {% if active_type == 'meditation' %}active{% endif %}">🧘‍♀️ Meditation</a>
+            <a href="?type=yoga"                 class="filter-btn {% if active_type == 'yoga' %}active{% endif %}">🧘‍♂️ Yoga</a>
+            <a href="?type=breathing"            class="filter-btn {% if active_type == 'breathing' %}active{% endif %}">🌬️ Breathing</a>
+            <a href="?type=sleep"                class="filter-btn {% if active_type == 'sleep' %}active{% endif %}">🌙 Sleep</a>
+            <a href="?type=meditation_tutorial"  class="filter-btn {% if active_type == 'meditation_tutorial' %}active{% endif %}">🎓 Meditation Tutorial</a>
+            <a href="?type=yoga_tutorial"        class="filter-btn {% if active_type == 'yoga_tutorial' %}active{% endif %}">🎯 Yoga Tutorial</a>
+            <a href="?type=mindfulness"          class="filter-btn {% if active_type == 'mindfulness' %}active{% endif %}">🌱 Mindfulness</a>
+            <a href="?type=stress_relief"        class="filter-btn {% if active_type == 'stress_relief' %}active{% endif %}">🛡️ Stress Relief</a>
+            <a href="?type=anxiety_help"         class="filter-btn {% if active_type == 'anxiety_help' %}active{% endif %}">🤝 Anxiety Help</a>
+            <a href="?type=self_care"            class="filter-btn {% if active_type == 'self_care' %}active{% endif %}">💝 Self Care</a>
         </div>
     </div>
 
-    <!-- Personalized Recommendations -->
+    <!-- Personalised recommendations (shown only on "all") -->
     {% if personalized_recommendations and active_type == 'all' %}
-    <div class="wellness-section" style="background: linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%); border: 1px solid rgba(59, 130, 246, 0.15);">
+    <div class="wellness-section" style="background:linear-gradient(135deg,#f0f9ff 0%,#dbeafe 100%);border:1px solid rgba(59,130,246,0.15);">
         <div class="wellness-header">
             <span class="wellness-icon">🎯</span>
-            <h2 class="wellness-title" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Based on Your Activity</h2>
-            <p class="wellness-subtitle">Personalized recommendations based on your watching and search history</p>
+            <h2 class="wellness-title" style="background:linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Based on Your Activity</h2>
+            <p class="wellness-subtitle">Personalised recommendations based on your watching and search history</p>
         </div>
         <div class="wellness-grid">
             {% for vid in personalized_recommendations %}
             <div class="wellness-card">
-                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id }}', '{{ vid.title|escapejs }}', 'personalized');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','personalized');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn" style="background: rgba(59, 130, 246, 0.95) !important; color: white !important;">▶</div>
+                    <div class="wellness-play-btn" style="background:rgba(59,130,246,0.95)!important;color:white!important;">▶</div>
                 </div>
                 <div class="wellness-content">
                     <h4>{{ vid.title|truncatechars:55 }}</h4>
                     <p>{{ vid.description|truncatechars:90 }}</p>
-                    <span class="wellness-tag" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">For You</span>
+                    <span class="wellness-tag" style="background:rgba(59,130,246,0.15);color:#3b82f6;">For You</span>
                 </div>
             </div>
             {% endfor %}
@@ -973,25 +229,25 @@
     </div>
     {% endif %}
 
-    <!-- Recommended YouTube Videos Section -->
+    <!-- Recommended for You -->
     {% if youtube_recommended and active_type == 'all' %}
-    <div class="wellness-section" style="background: linear-gradient(135deg, #f0f4ff 0%, #e0ebff 100%); border: 1px solid rgba(74, 144, 226, 0.15);">
+    <div class="wellness-section" style="background:linear-gradient(135deg,#f0f4ff 0%,#e0ebff 100%);border:1px solid rgba(74,144,226,0.15);">
         <div class="wellness-header">
             <span class="wellness-icon">🎯</span>
-            <h2 class="wellness-title" style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Recommended for You</h2>
-            <p class="wellness-subtitle">Personalized videos based on your wellness profile and {{ category_display|lower }} focus areas</p>
+            <h2 class="wellness-title" style="background:linear-gradient(135deg,#4a90e2 0%,#357abd 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Recommended for You</h2>
+            <p class="wellness-subtitle">Personalised videos based on your wellness profile and {{ category_display|lower }} focus areas</p>
         </div>
         <div class="wellness-grid">
             {% for vid in youtube_recommended %}
             <div class="wellness-card">
-                <div class="wellness-thumb" onclick="window.open('https://www.youtube.com/watch?v={{ vid.video_id }}', '_blank');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','recommended');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn" style="background: rgba(74, 144, 226, 0.95) !important; color: white !important;">▶</div>
+                    <div class="wellness-play-btn" style="background:rgba(74,144,226,0.95)!important;color:white!important;">▶</div>
                 </div>
                 <div class="wellness-content">
                     <h4>{{ vid.title|truncatechars:55 }}</h4>
                     <p>{{ vid.description|truncatechars:90 }}</p>
-                    <span class="wellness-tag" style="background: rgba(74, 144, 226, 0.15); color: #4a90e2;">Recommended</span>
+                    <span class="wellness-tag" style="background:rgba(74,144,226,0.15);color:#4a90e2;">Recommended</span>
                 </div>
             </div>
             {% endfor %}
@@ -999,26 +255,26 @@
     </div>
     {% endif %}
 
-    <!-- Positive & Motivational Videos -->
-    {% if active_type == 'all' or active_type == 'positive' %}
+    <!-- Positive & Motivational -->
     {% if youtube_positive %}
-    <div class="wellness-section" style="background: linear-gradient(135deg, #fff8f0 0%, #ffecdb 100%); border: 1px solid rgba(230, 126, 34, 0.15);">
+    {% if active_type == 'all' or active_type == 'positive' %}
+    <div class="wellness-section" style="background:linear-gradient(135deg,#fff8f0 0%,#ffecdb 100%);border:1px solid rgba(230,126,34,0.15);">
         <div class="wellness-header">
             <span class="wellness-icon">✨</span>
-            <h2 class="wellness-title" style="background: linear-gradient(135deg, #e67e22 0%, #d68910 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Positive & Motivational</h2>
-            <p class="wellness-subtitle">Uplifting content to boost your mood, build confidence, and cultivate a positive mindset for your wellness journey</p>
+            <h2 class="wellness-title" style="background:linear-gradient(135deg,#e67e22 0%,#d68910 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Positive &amp; Motivational</h2>
+            <p class="wellness-subtitle">Uplifting content to boost your mood, build confidence, and cultivate a positive mindset</p>
         </div>
         <div class="wellness-grid">
             {% for vid in youtube_positive %}
             <div class="wellness-card">
-                <div class="wellness-thumb" onclick="window.open('https://www.youtube.com/watch?v={{ vid.video_id }}', '_blank');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','positive');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn" style="background: rgba(230, 126, 34, 0.95) !important; color: white !important;">▶</div>
+                    <div class="wellness-play-btn" style="background:rgba(230,126,34,0.95)!important;color:white!important;">▶</div>
                 </div>
                 <div class="wellness-content">
                     <h4>{{ vid.title|truncatechars:55 }}</h4>
                     <p>{{ vid.description|truncatechars:90 }}</p>
-                    <span class="wellness-tag" style="background: rgba(230, 126, 34, 0.15); color: #e67e22;">Motivation</span>
+                    <span class="wellness-tag" style="background:rgba(230,126,34,0.15);color:#e67e22;">Motivation</span>
                 </div>
             </div>
             {% endfor %}
@@ -1027,19 +283,19 @@
     {% endif %}
     {% endif %}
 
-    <!-- Meditation Section -->
-    {% if active_type == 'all' or active_type == 'meditation' %}
+    <!-- Guided Meditation -->
     {% if youtube_meditation %}
+    {% if active_type == 'all' or active_type == 'meditation' %}
     <div class="wellness-section meditation-section">
         <div class="wellness-header">
             <span class="wellness-icon">🧘‍♀️</span>
             <h2 class="wellness-title">Guided Meditation</h2>
-            <p class="wellness-subtitle">Find peace and clarity through mindful meditation practices. Reduce stress, improve focus, and cultivate inner calm with these carefully curated sessions.</p>
+            <p class="wellness-subtitle">Find peace and clarity through mindful meditation practices. Reduce stress, improve focus, and cultivate inner calm.</p>
         </div>
         <div class="wellness-grid">
             {% for vid in youtube_meditation %}
             <div class="wellness-card">
-                <div class="wellness-thumb" onclick="window.open('https://www.youtube.com/watch?v={{ vid.video_id }}', '_blank');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','meditation');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
                     <div class="wellness-play-btn">▶</div>
                 </div>
@@ -1055,14 +311,14 @@
     {% endif %}
     {% endif %}
 
-    <!-- Meditation Learning Center -->
-    {% if active_type == 'all' or active_type == 'meditation_tutorial' %}
+    <!-- Learn to Meditate -->
     {% if youtube_meditation_tutorial %}
+    {% if active_type == 'all' or active_type == 'meditation_tutorial' %}
     <div class="wellness-section learning-section meditation-learning">
         <div class="wellness-header">
             <span class="wellness-icon">🎓</span>
             <h2 class="wellness-title">Learn to Meditate</h2>
-            <p class="wellness-subtitle">New to meditation? Start here with step-by-step tutorials and foundational practices. Learn proper techniques, breathing methods, and build a sustainable meditation habit.</p>
+            <p class="wellness-subtitle">New to meditation? Start here with step-by-step tutorials and foundational practices.</p>
         </div>
         <div class="learning-intro">
             <div class="tip-box">
@@ -1072,16 +328,16 @@
                     <li><strong>Consistency:</strong> Same time and place each day builds habit</li>
                     <li><strong>Posture:</strong> Sit comfortably with spine straight</li>
                     <li><strong>Focus:</strong> Use breath as your anchor point</li>
-                    <li><strong>Patience:</strong> Wandering mind is normal - gently return to focus</li>
+                    <li><strong>Patience:</strong> Wandering mind is normal — gently return to focus</li>
                 </ul>
             </div>
         </div>
         <div class="wellness-grid">
             {% for vid in youtube_meditation_tutorial %}
             <div class="wellness-card tutorial-card">
-                <div class="wellness-thumb" onclick="window.open('https://www.youtube.com/watch?v={{ vid.video_id }}', '_blank');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','meditation_tutorial');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn tutorial-btn">▶</div>
+                    <div class="wellness-play-btn">▶</div>
                     <div class="tutorial-badge">Tutorial</div>
                 </div>
                 <div class="wellness-content">
@@ -1096,19 +352,19 @@
     {% endif %}
     {% endif %}
 
-    <!-- Yoga Section -->
-    {% if active_type == 'all' or active_type == 'yoga' %}
+    <!-- Yoga & Movement -->
     {% if youtube_yoga %}
+    {% if active_type == 'all' or active_type == 'yoga' %}
     <div class="wellness-section yoga-section">
         <div class="wellness-header">
             <span class="wellness-icon">🧘‍♂️</span>
-            <h2 class="wellness-title">Yoga & Movement</h2>
-            <p class="wellness-subtitle">Gentle yoga practices to strengthen your body and calm your mind. Perfect for all levels and abilities. Discover various yoga styles and find what works for you.</p>
+            <h2 class="wellness-title">Yoga &amp; Movement</h2>
+            <p class="wellness-subtitle">Gentle yoga practices to strengthen your body and calm your mind. Perfect for all levels and abilities.</p>
         </div>
         <div class="wellness-grid">
             {% for vid in youtube_yoga %}
             <div class="wellness-card">
-                <div class="wellness-thumb" onclick="window.open('https://www.youtube.com/watch?v={{ vid.video_id }}', '_blank');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','yoga');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
                     <div class="wellness-play-btn">▶</div>
                 </div>
@@ -1124,14 +380,14 @@
     {% endif %}
     {% endif %}
 
-    <!-- Yoga Learning Center -->
-    {% if active_type == 'all' or active_type == 'yoga_tutorial' %}
+    <!-- Learn Yoga -->
     {% if youtube_yoga_tutorial %}
+    {% if active_type == 'all' or active_type == 'yoga_tutorial' %}
     <div class="wellness-section learning-section yoga-learning">
         <div class="wellness-header">
             <span class="wellness-icon">🎯</span>
             <h2 class="wellness-title">Learn Yoga Fundamentals</h2>
-            <p class="wellness-subtitle">Master the basics of yoga with proper alignment, breathing techniques, and foundational poses. Build strength, flexibility, and mindfulness safely.</p>
+            <p class="wellness-subtitle">Master the basics of yoga with proper alignment, breathing techniques, and foundational poses.</p>
         </div>
         <div class="learning-intro">
             <div class="tip-box">
@@ -1148,9 +404,9 @@
         <div class="wellness-grid">
             {% for vid in youtube_yoga_tutorial %}
             <div class="wellness-card tutorial-card">
-                <div class="wellness-thumb" onclick="window.open('https://www.youtube.com/watch?v={{ vid.video_id }}', '_blank');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','yoga_tutorial');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn tutorial-btn">▶</div>
+                    <div class="wellness-play-btn">▶</div>
                     <div class="tutorial-badge">Tutorial</div>
                 </div>
                 <div class="wellness-content">
@@ -1166,25 +422,25 @@
     {% endif %}
 
     <!-- Breathing Exercises -->
-    {% if active_type == 'all' or active_type == 'breathing' %}
     {% if youtube_breathing %}
-    <div class="wellness-section" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 1px solid rgba(33, 150, 243, 0.15);">
+    {% if active_type == 'all' or active_type == 'breathing' %}
+    <div class="wellness-section" style="background:linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%);border:1px solid rgba(33,150,243,0.15);">
         <div class="wellness-header">
             <span class="wellness-icon">🌬️</span>
-            <h2 class="wellness-title" style="background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Breathing Exercises</h2>
+            <h2 class="wellness-title" style="background:linear-gradient(135deg,#2196f3 0%,#1976d2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Breathing Exercises</h2>
             <p class="wellness-subtitle">Simple yet powerful breathing techniques for instant calm, anxiety relief, and stress management</p>
         </div>
         <div class="wellness-grid">
             {% for vid in youtube_breathing %}
             <div class="wellness-card">
-                <div class="wellness-thumb" onclick="window.open('https://www.youtube.com/watch?v={{ vid.video_id }}', '_blank');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','breathing');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn" style="background: rgba(33, 150, 243, 0.95) !important; color: white !important;">▶</div>
+                    <div class="wellness-play-btn" style="background:rgba(33,150,243,0.95)!important;color:white!important;">▶</div>
                 </div>
                 <div class="wellness-content">
                     <h4>{{ vid.title|truncatechars:55 }}</h4>
                     <p>{{ vid.description|truncatechars:90 }}</p>
-                    <span class="wellness-tag" style="background: rgba(33, 150, 243, 0.15); color: #2196f3;">Breathing</span>
+                    <span class="wellness-tag" style="background:rgba(33,150,243,0.15);color:#2196f3;">Breathing</span>
                 </div>
             </div>
             {% endfor %}
@@ -1194,25 +450,25 @@
     {% endif %}
 
     <!-- Sleep & Relaxation -->
-    {% if active_type == 'all' or active_type == 'sleep' %}
     {% if youtube_sleep %}
-    <div class="wellness-section" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); border: 1px solid rgba(156, 39, 176, 0.15);">
+    {% if active_type == 'all' or active_type == 'sleep' %}
+    <div class="wellness-section" style="background:linear-gradient(135deg,#f3e5f5 0%,#e1bee7 100%);border:1px solid rgba(156,39,176,0.15);">
         <div class="wellness-header">
             <span class="wellness-icon">🌙</span>
-            <h2 class="wellness-title" style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Sleep & Relaxation</h2>
+            <h2 class="wellness-title" style="background:linear-gradient(135deg,#9c27b0 0%,#7b1fa2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Sleep &amp; Relaxation</h2>
             <p class="wellness-subtitle">Soothing content for better sleep quality, deep relaxation, and peaceful rest</p>
         </div>
         <div class="wellness-grid">
             {% for vid in youtube_sleep %}
             <div class="wellness-card">
-                <div class="wellness-thumb" onclick="window.open('https://www.youtube.com/watch?v={{ vid.video_id }}', '_blank');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','sleep');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn" style="background: rgba(156, 39, 176, 0.95) !important; color: white !important;">▶</div>
+                    <div class="wellness-play-btn" style="background:rgba(156,39,176,0.95)!important;color:white!important;">▶</div>
                 </div>
                 <div class="wellness-content">
                     <h4>{{ vid.title|truncatechars:55 }}</h4>
                     <p>{{ vid.description|truncatechars:90 }}</p>
-                    <span class="wellness-tag" style="background: rgba(156, 39, 176, 0.15); color: #9c27b0;">Sleep</span>
+                    <span class="wellness-tag" style="background:rgba(156,39,176,0.15);color:#9c27b0;">Sleep</span>
                 </div>
             </div>
             {% endfor %}
@@ -1221,26 +477,26 @@
     {% endif %}
     {% endif %}
 
-    <!-- Mindfulness Section -->
-    {% if active_type == 'all' or active_type == 'mindfulness' %}
+    <!-- Mindfulness -->
     {% if youtube_mindfulness %}
-    <div class="wellness-section" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid rgba(34, 197, 94, 0.15);">
+    {% if active_type == 'all' or active_type == 'mindfulness' %}
+    <div class="wellness-section" style="background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%);border:1px solid rgba(34,197,94,0.15);">
         <div class="wellness-header">
             <span class="wellness-icon">🌱</span>
-            <h2 class="wellness-title" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Mindfulness Practice</h2>
-            <p class="wellness-subtitle">Daily mindfulness exercises to enhance awareness, presence, and emotional regulation in everyday life</p>
+            <h2 class="wellness-title" style="background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Mindfulness Practice</h2>
+            <p class="wellness-subtitle">Daily mindfulness exercises to enhance awareness, presence, and emotional regulation</p>
         </div>
         <div class="wellness-grid">
             {% for vid in youtube_mindfulness %}
             <div class="wellness-card">
-                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id }}', '{{ vid.title|escapejs }}', 'mindfulness');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','mindfulness');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn" style="background: rgba(34, 197, 94, 0.95) !important; color: white !important;">▶</div>
+                    <div class="wellness-play-btn" style="background:rgba(34,197,94,0.95)!important;color:white!important;">▶</div>
                 </div>
                 <div class="wellness-content">
                     <h4>{{ vid.title|truncatechars:55 }}</h4>
                     <p>{{ vid.description|truncatechars:90 }}</p>
-                    <span class="wellness-tag" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">Mindfulness</span>
+                    <span class="wellness-tag" style="background:rgba(34,197,94,0.15);color:#22c55e;">Mindfulness</span>
                 </div>
             </div>
             {% endfor %}
@@ -1249,26 +505,26 @@
     {% endif %}
     {% endif %}
 
-    <!-- Stress Relief Section -->
-    {% if active_type == 'all' or active_type == 'stress_relief' %}
+    <!-- Stress Relief -->
     {% if youtube_stress_relief %}
-    <div class="wellness-section" style="background: linear-gradient(135deg, #fef3f2 0%, #fecaca 100%); border: 1px solid rgba(239, 68, 68, 0.15);">
+    {% if active_type == 'all' or active_type == 'stress_relief' %}
+    <div class="wellness-section" style="background:linear-gradient(135deg,#fef3f2 0%,#fecaca 100%);border:1px solid rgba(239,68,68,0.15);">
         <div class="wellness-header">
             <span class="wellness-icon">🛡️</span>
-            <h2 class="wellness-title" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Stress Relief</h2>
-            <p class="wellness-subtitle">Effective techniques and strategies to manage daily stress and build resilience for long-term wellbeing</p>
+            <h2 class="wellness-title" style="background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Stress Relief</h2>
+            <p class="wellness-subtitle">Effective techniques and strategies to manage daily stress and build resilience</p>
         </div>
         <div class="wellness-grid">
             {% for vid in youtube_stress_relief %}
             <div class="wellness-card">
-                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id }}', '{{ vid.title|escapejs }}', 'stress_relief');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','stress_relief');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn" style="background: rgba(239, 68, 68, 0.95) !important; color: white !important;">▶</div>
+                    <div class="wellness-play-btn" style="background:rgba(239,68,68,0.95)!important;color:white!important;">▶</div>
                 </div>
                 <div class="wellness-content">
                     <h4>{{ vid.title|truncatechars:55 }}</h4>
                     <p>{{ vid.description|truncatechars:90 }}</p>
-                    <span class="wellness-tag" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">Stress Relief</span>
+                    <span class="wellness-tag" style="background:rgba(239,68,68,0.15);color:#ef4444;">Stress Relief</span>
                 </div>
             </div>
             {% endfor %}
@@ -1277,26 +533,26 @@
     {% endif %}
     {% endif %}
 
-    <!-- Anxiety Help Section -->
-    {% if active_type == 'all' or active_type == 'anxiety_help' %}
+    <!-- Anxiety Support -->
     {% if youtube_anxiety_help %}
-    <div class="wellness-section" style="background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%); border: 1px solid rgba(99, 102, 241, 0.15);">
+    {% if active_type == 'all' or active_type == 'anxiety_help' %}
+    <div class="wellness-section" style="background:linear-gradient(135deg,#f0f4ff 0%,#e0e7ff 100%);border:1px solid rgba(99,102,241,0.15);">
         <div class="wellness-header">
             <span class="wellness-icon">🤝</span>
-            <h2 class="wellness-title" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Anxiety Support</h2>
+            <h2 class="wellness-title" style="background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Anxiety Support</h2>
             <p class="wellness-subtitle">Gentle approaches and proven techniques to understand, manage, and reduce anxiety symptoms</p>
         </div>
         <div class="wellness-grid">
             {% for vid in youtube_anxiety_help %}
             <div class="wellness-card">
-                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id }}', '{{ vid.title|escapejs }}', 'anxiety');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','anxiety');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn" style="background: rgba(99, 102, 241, 0.95) !important; color: white !important;">▶</div>
+                    <div class="wellness-play-btn" style="background:rgba(99,102,241,0.95)!important;color:white!important;">▶</div>
                 </div>
                 <div class="wellness-content">
                     <h4>{{ vid.title|truncatechars:55 }}</h4>
                     <p>{{ vid.description|truncatechars:90 }}</p>
-                    <span class="wellness-tag" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;">Anxiety Help</span>
+                    <span class="wellness-tag" style="background:rgba(99,102,241,0.15);color:#6366f1;">Anxiety Help</span>
                 </div>
             </div>
             {% endfor %}
@@ -1305,26 +561,26 @@
     {% endif %}
     {% endif %}
 
-    <!-- Self-Care Section -->
-    {% if active_type == 'all' or active_type == 'self_care' %}
+    <!-- Self-Care -->
     {% if youtube_self_care %}
-    <div class="wellness-section" style="background: linear-gradient(135deg, #fdf2f8 0%, #fbcfe8 100%); border: 1px solid rgba(236, 72, 153, 0.15);">
+    {% if active_type == 'all' or active_type == 'self_care' %}
+    <div class="wellness-section" style="background:linear-gradient(135deg,#fdf2f8 0%,#fbcfe8 100%);border:1px solid rgba(236,72,153,0.15);">
         <div class="wellness-header">
             <span class="wellness-icon">💝</span>
-            <h2 class="wellness-title" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Self-Care Essentials</h2>
-            <p class="wellness-subtitle">Nurturing practices and routines to prioritize your mental health and overall wellbeing</p>
+            <h2 class="wellness-title" style="background:linear-gradient(135deg,#ec4899 0%,#db2777 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Self-Care Essentials</h2>
+            <p class="wellness-subtitle">Nurturing practices and routines to prioritise your mental health and overall wellbeing</p>
         </div>
         <div class="wellness-grid">
             {% for vid in youtube_self_care %}
             <div class="wellness-card">
-                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id }}', '{{ vid.title|escapejs }}', 'self_care');">
+                <div class="wellness-thumb" onclick="trackAndOpenVideo('{{ vid.video_id|escapejs }}','{{ vid.title|escapejs }}','self_care');">
                     <img src="{{ vid.thumbnail }}" alt="{{ vid.title }}" loading="lazy">
-                    <div class="wellness-play-btn" style="background: rgba(236, 72, 153, 0.95) !important; color: white !important;">▶</div>
+                    <div class="wellness-play-btn" style="background:rgba(236,72,153,0.95)!important;color:white!important;">▶</div>
                 </div>
                 <div class="wellness-content">
                     <h4>{{ vid.title|truncatechars:55 }}</h4>
                     <p>{{ vid.description|truncatechars:90 }}</p>
-                    <span class="wellness-tag" style="background: rgba(236, 72, 153, 0.15); color: #ec4899;">Self Care</span>
+                    <span class="wellness-tag" style="background:rgba(236,72,153,0.15);color:#ec4899;">Self Care</span>
                 </div>
             </div>
             {% endfor %}
@@ -1333,69 +589,83 @@
     {% endif %}
     {% endif %}
 
-    <!-- Guided Exercises -->
+    <!-- ───── Guided Exercises ───── -->
     {% if exercises %}
-    <h2 class="section-title"><span class="icon">🧘</span> Guided Exercises</h2>
-    <div class="exercise-grid">
-        {% for ex in exercises %}
-        <div class="exercise-card">
-            <div class="exercise-icon {{ ex.exercise_type }}">{{ ex.icon }}</div>
-            <h4>{{ ex.title }}</h4>
-            <p>{{ ex.description }}</p>
-            <div class="exercise-footer">
-                <div class="exercise-meta">
-                    <span>{{ ex.get_exercise_type_display }}</span>
-                    <span>{{ ex.duration_minutes }} min</span>
-                    <span>{{ ex.get_difficulty_display }}</span>
-                </div>
-                <a href="{% url 'accounts:exercise_detail' ex.id %}" class="start-btn">Start</a>
-            </div>
+    <div class="wellness-section" style="background:linear-gradient(135deg,#f0fdf4 0%,#bbf7d0 100%);border:1px solid rgba(34,197,94,0.15);">
+        <div class="wellness-header">
+            <span class="wellness-icon">🧘</span>
+            <h2 class="wellness-title" style="background:linear-gradient(135deg,#16a34a 0%,#15803d 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Guided Exercises</h2>
+            <p class="wellness-subtitle">Step-by-step exercises tailored to support your mental wellbeing</p>
         </div>
-        {% endfor %}
+        <div class="exercise-grid">
+            {% for ex in exercises %}
+            <div class="exercise-card">
+                <div class="exercise-icon {{ ex.exercise_type }}">{{ ex.icon }}</div>
+                <h4>{{ ex.title }}</h4>
+                <p>{{ ex.description|truncatechars:100 }}</p>
+                <div class="exercise-footer">
+                    <div class="exercise-meta">
+                        <span>{{ ex.get_exercise_type_display }}</span>
+                        <span>{{ ex.duration_minutes }} min</span>
+                        <span>{{ ex.get_difficulty_display }}</span>
+                    </div>
+                    <a href="{% url 'accounts:exercise_detail' ex.id %}" class="start-btn">Start</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
 
-    <!-- Relaxation Techniques -->
+    <!-- ───── Relaxation Techniques ───── -->
     {% if relaxation_resources %}
-    <h2 class="section-title"><span class="icon">🌿</span> Relaxation Techniques</h2>
-    <div class="relax-grid">
-        {% for res in relaxation_resources %}
-        <div class="relax-card">
-            <h4>{{ res.title }}</h4>
-            <p>{{ res.description }}</p>
-            <div class="meta-row">
-                <span class="meta-tag relaxation">Relaxation</span>
-                <span class="meta-tag" style="background:#e8f4f5;color:#4da3a9;">{{ res.get_category_display }}</span>
-                {% if res.duration %}
-                    <span class="meta-tag duration">{{ res.duration }}</span>
-                {% endif %}
-            </div>
-            {% if res.video_url %}
-                <div style="margin-top:12px;">
-                    <a href="{{ res.youtube_watch_url }}" target="_blank" style="color:#4da3a9;font-weight:600;font-size:0.88rem;">▶ Watch Video</a>
-                </div>
-            {% endif %}
+    <div class="wellness-section" style="background:linear-gradient(135deg,#f0f9ff 0%,#bae6fd 100%);border:1px solid rgba(14,165,233,0.15);">
+        <div class="wellness-header">
+            <span class="wellness-icon">🌿</span>
+            <h2 class="wellness-title" style="background:linear-gradient(135deg,#0284c7 0%,#0369a1 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Relaxation Techniques</h2>
+            <p class="wellness-subtitle">Calming resources to help you unwind and restore your inner balance</p>
         </div>
-        {% endfor %}
+        <div class="relax-grid">
+            {% for res in relaxation_resources %}
+            <div class="relax-card">
+                {% if res.youtube_thumbnail %}
+                <div class="wellness-thumb" style="cursor:default;">
+                    <img src="{{ res.youtube_thumbnail }}" alt="{{ res.title }}" loading="lazy">
+                </div>
+                {% endif %}
+                <div class="wellness-content">
+                    <h4>{{ res.title }}</h4>
+                    <p>{{ res.description|truncatechars:100 }}</p>
+                    <div class="meta-row">
+                        <span class="meta-tag relaxation">Relaxation</span>
+                        <span class="meta-tag" style="background:#e0f2fe;color:#0284c7;">{{ res.get_category_display }}</span>
+                        {% if res.duration %}<span class="meta-tag duration">{{ res.duration }}</span>{% endif %}
+                    </div>
+                    {% if res.video_url %}
+                    <div style="margin-top:12px;">
+                        <a href="{{ res.youtube_watch_url }}" target="_blank" rel="noopener noreferrer" class="start-btn" style="display:inline-block;text-decoration:none;">▶ Watch Video</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
 
-    <!-- Empty state -->
-    {% if not youtube_recommended and not youtube_positive and not youtube_meditation and not youtube_yoga and not youtube_breathing and not youtube_sleep and not youtube_meditation_tutorial and not youtube_yoga_tutorial and not youtube_mindfulness and not youtube_stress_relief and not youtube_anxiety_help and not youtube_self_care and not videos and not exercises %}
-    <div class="empty-state" style="margin-top:20px;">
-        <span class="icon">📚</span>
-        <h3>No Resources Found</h3>
-        <p>Try selecting a different type or check back soon — new content is added regularly.</p>
+    <!-- ───── Empty State ───── -->
+    {% if not youtube_recommended and not youtube_positive and not youtube_meditation and not youtube_meditation_tutorial and not youtube_yoga and not youtube_yoga_tutorial and not youtube_breathing and not youtube_sleep and not youtube_mindfulness and not youtube_stress_relief and not youtube_anxiety_help and not youtube_self_care and not exercises and not relaxation_resources %}
+    <div class="empty-state" style="margin-top:40px;text-align:center;padding:60px 20px;">
+        <span style="font-size:3rem;">📚</span>
+        <h3 style="margin:16px 0 8px;color:#374151;font-size:1.4rem;">No Resources Found</h3>
+        <p style="color:#6b7280;">Try selecting a different category or check back soon.</p>
     </div>
     {% endif %}
+
 </section>
 
-
-
 <script>
-// Video tracking function for personalized recommendations
 function trackAndOpenVideo(videoId, videoTitle, category) {
-    // Track the video watch
     fetch('{% url "accounts:track_video_watch" %}', {
         method: 'POST',
         headers: {
@@ -1408,29 +678,8 @@ function trackAndOpenVideo(videoId, videoTitle, category) {
             category: category,
             video_source: 'youtube'
         })
-    }).then(response => response.json()).then(data => {
-        console.log('Video watch tracked:', data);
-    }).catch(error => {
-        console.log('Tracking error (non-critical):', error);
-    });
-    
-    // Open the video
-    window.open('https://www.youtube.com/watch?v=' + videoId, '_blank');
-}
-
-// Version: 2026-03-01-v4 - Enhanced with search & personalization
-// Clean YouTube redirects with tracking, zero errors  
-console.log('✅ Resources loaded: Enhanced with search, personalized recommendations, and watch tracking');
-
-// Clear any cached functions or error handlers
-['playYouTubeVideo', 'openVideo', 'closeVideo'].forEach(fn => {
-    if (window[fn]) delete window[fn];
-});
-
-// Prevent any potential YouTube API conflicts
-if (window.YT) {
-    console.log('🚫 Removed YouTube API to prevent conflicts');
-    delete window.YT;
+    }).catch(function() {});
+    window.open('https://www.youtube.com/watch?v=' + videoId, '_blank', 'noopener,noreferrer');
 }
 </script>
 {% endblock %}

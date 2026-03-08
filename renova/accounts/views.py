@@ -1,25 +1,30 @@
 from datetime import timedelta, datetime, date
 import json
+import random
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
+from django.core.mail import EmailMessage
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from django.conf import settings as django_settings
 from django.http import JsonResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q, Count, Avg, Sum
 
 from .models import (
 	PatientMCQResult, Appointment, Notification,
 	TherapistAvailability, TherapistDayOff, SessionReport, Message,
 	Resource, GuidedExercise, ActivityLog, TherapistRating,
+	VideoWatchHistory, SearchHistory, TherapySession, SessionMessage,
 )
 from .youtube_service import get_youtube_videos
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
 
 
 User = get_user_model()
@@ -42,6 +47,47 @@ def _notify(user, ntype, title, msg, appointment=None, redirect_url=""):
 # ─── auth ───────────────────────────────────────────────────────────────────
 def home(request):
 	return render(request, "base.html")
+
+
+def contact_us(request):
+	if request.method == "POST":
+		name = request.POST.get("name", "").strip()
+		email = request.POST.get("email", "").strip()
+		subject_choice = request.POST.get("subject", "General Inquiry").strip()
+		message_body = request.POST.get("message", "").strip()
+
+		if not name or not email or not message_body:
+			return JsonResponse({"ok": False, "error": "Please fill in all required fields."}, status=400)
+
+		try:
+			validate_email(email)
+		except ValidationError:
+			return JsonResponse({"ok": False, "error": "Please enter a valid email address."}, status=400)
+
+		email_subject = f"[ReNova Contact] {subject_choice} — from {name}"
+		email_body = (
+			f"New contact message from the ReNova website.\n\n"
+			f"Name:    {name}\n"
+			f"Email:   {email}\n"
+			f"Subject: {subject_choice}\n\n"
+			f"Message:\n{message_body}\n"
+		)
+
+		try:
+			msg = EmailMessage(
+				subject=email_subject,
+				body=email_body,
+				from_email=django_settings.DEFAULT_FROM_EMAIL,
+				to=[django_settings.CONTACT_EMAIL],
+				reply_to=[f"{name} <{email}>"],
+			)
+			msg.send(fail_silently=False)
+		except Exception:
+			return JsonResponse({"ok": False, "error": "Failed to send message. Please try again later."}, status=500)
+
+		return JsonResponse({"ok": True})
+
+	return redirect("accounts:home")
 
 
 def login_view(request):
@@ -465,6 +511,10 @@ def book_appointment(request):
 		time_str = request.POST.get("appointment_time")
 		duration = int(request.POST.get("duration", 60))
 		patient_notes = request.POST.get("patient_notes", "")
+		session_type = request.POST.get("session_type", "text_chat")
+		valid_types = {"text_chat", "audio_call", "video_call"}
+		if session_type not in valid_types:
+			session_type = "text_chat"
 
 		if not all([therapist_id, date_str, time_str]):
 			messages.error(request, "Please fill in all required fields.")
@@ -491,6 +541,7 @@ def book_appointment(request):
 			date_time=dt,
 			duration_minutes=duration,
 			patient_notes=patient_notes,
+			session_type=session_type,
 		)
 		_notify(
 			therapist, "appointment_requested",
@@ -655,205 +706,67 @@ def patient_resources(request):
 	if request.user.groups.filter(name="doctor").exists():
 		return redirect("accounts:doctor_dashboard")
 
-	# Get patient MCQ category for personalization
 	mcq = PatientMCQResult.objects.filter(user=request.user).first()
 	patient_category = mcq.category if mcq else "general"
 	category_display = dict(PatientMCQResult.CATEGORY_CHOICES).get(patient_category, "General Wellness")
 
-	# Personalized recommendations
-	personalized_recommendations = []
-	
-	# Get personalized recommendations based on watch history
-	from .models import VideoWatchHistory, SearchHistory
-	recent_watches = VideoWatchHistory.objects.filter(user=request.user).order_by('-watched_at')[:10]
-	recent_searches = SearchHistory.objects.filter(user=request.user).order_by('-searched_at')[:5]
-	
-	# Build personalized query from history
-	watch_categories = list(set([watch.category for watch in recent_watches if watch.category]))
-	search_terms = [search.query for search in recent_searches if search.query]
-	
-	if watch_categories or search_terms:
-		# Create personalized query combining watch history and search history
-		personal_query_parts = []
-		if watch_categories:
-			personal_query_parts.extend(watch_categories[:3])  # Top 3 categories
-		if search_terms:
-			personal_query_parts.extend(search_terms[:2])  # Top 2 search terms
-		
-		personal_query = " ".join(personal_query_parts)
-		personalized_recommendations = get_youtube_videos(query=personal_query, max_results=15)
-
-	# Filter by type tab (default: all)
 	active_type = request.GET.get("type", "all")
-	active_category = request.GET.get("cat", "recommended")
 
-	# Build resource querysets
-	if active_category == "recommended":
-		resources_qs = Resource.objects.filter(category=patient_category)
-	elif active_category == "all":
-		resources_qs = Resource.objects.all()
-	else:
-		resources_qs = Resource.objects.filter(category=active_category)
-
-	# All resources are now videos, no type filtering needed
-
-	# Featured resources (always from patient's category or general)
-	featured = Resource.objects.filter(
-		is_featured=True, category__in=[patient_category, "general"]
-	)[:4]
-
-	# Guided exercises - personalized
-	if active_category == "recommended":
-		exercises_qs = GuidedExercise.objects.filter(category=patient_category)
-	elif active_category == "all":
-		exercises_qs = GuidedExercise.objects.all()
-	else:
-		exercises_qs = GuidedExercise.objects.filter(category=active_category)
-
-	# All resources are now YouTube videos
-	videos = resources_qs
-
-	# Fetch YouTube videos - multiple categories
-	youtube_queries = {
-		"anxiety": "anxiety relief guided meditation calm",
-		"depression": "depression recovery motivation hope",
-		"stress": "stress relief relaxation techniques",
-		"ptsd": "ptsd healing trauma recovery guided",
-		"general": "mental health wellness positive mindset",
+	category_queries = {
+		"anxiety":    "anxiety relief calm guided mindfulness mental health",
+		"depression": "depression recovery hope positivity mental health",
+		"stress":     "stress relief relaxation techniques wellness calm",
+		"ptsd":       "trauma healing ptsd recovery guided therapy",
+		"general":    "mental health wellness mindfulness positivity self care",
 	}
-	
-	# Determine which category to search for YouTube
-	if active_category == "recommended":
-		yt_category = patient_category
-	elif active_category == "all":
-		yt_category = patient_category
-	else:
-		yt_category = active_category
-	
-	# Fetch different video sections - only fetch what's needed based on active_type
-	# "Recommended for You" is MCQ-based; all other sections use randomized generic queries
-	yt_query = youtube_queries.get(yt_category, youtube_queries["general"])
-	
-	# Varied query pools per section so each load shows different videos
-	import random
-	query_pools = {
-		"positive": [
-			"positive thinking motivation inspirational self improvement",
-			"motivational speeches uplifting energy positive vibes",
-			"daily motivation confidence boost happy mindset",
-			"inspiring stories success mindset positivity",
-			"self improvement tips personal growth motivation",
-		],
-		"meditation": [
-			"guided meditation mindfulness breathing relaxation",
-			"deep meditation calming music inner peace",
-			"morning meditation guided visualization calm",
-			"body scan meditation progressive relaxation",
-			"meditation for focus clarity concentration",
-		],
-		"yoga": [
-			"yoga for beginners hatha vinyasa yin restorative",
-			"gentle yoga flow stretching flexibility",
-			"morning yoga routine energy boost",
-			"yoga for relaxation evening wind down",
-			"power yoga strength building practice",
-		],
-		"breathing": [
-			"breathing exercises pranayama deep breathing anxiety",
-			"box breathing technique calm nervous system",
-			"4 7 8 breathing method relaxation",
-			"diaphragmatic breathing stress relief exercises",
-			"breathing techniques for sleep relaxation",
-		],
-		"sleep": [
-			"sleep meditation bedtime stories deep sleep music",
-			"relaxing music for sleep insomnia relief",
-			"guided sleep meditation deep rest",
-			"sleep hypnosis calming bedtime relaxation",
-			"nature sounds rain sleep relaxation",
-		],
-		"meditation_tutorial": [
-			"how to meditate for beginners meditation tutorial",
-			"meditation basics step by step guide",
-			"learn meditation techniques beginner friendly",
-			"meditation posture breathing tutorial basics",
-			"starting meditation practice tips for beginners",
-		],
-		"yoga_tutorial": [
-			"yoga tutorial basic poses beginner instructions",
-			"learn yoga fundamentals alignment tips",
-			"yoga basics sun salutation tutorial",
-			"beginner yoga poses proper form guide",
-			"yoga foundations flexibility strength tutorial",
-		],
-		"mindfulness": [
-			"mindfulness exercises daily mindfulness practice",
-			"mindful living present moment awareness",
-			"mindfulness meditation body awareness grounding",
-			"daily mindfulness routine stress reduction",
-			"mindful breathing awareness exercises practice",
-		],
-		"stress_relief": [
-			"stress relief techniques stress management",
-			"instant stress relief calming exercises",
-			"stress reduction methods coping strategies",
-			"relaxation techniques tension release calm",
-			"managing stress daily life wellness tips",
-		],
-		"anxiety_help": [
-			"anxiety relief techniques coping with anxiety",
-			"overcoming anxiety calming strategies help",
-			"anxiety management grounding techniques",
-			"reduce anxiety naturally relaxation methods",
-			"anxiety coping skills therapy techniques",
-		],
-		"self_care": [
-			"self care routines mental health self care",
-			"daily self care habits wellness routine",
-			"self love practices emotional wellbeing",
-			"self care ideas for mental health",
-			"nurturing yourself self care tips wellness",
-		],
+	rec_query = category_queries.get(patient_category, category_queries["general"])
+
+	section_queries = {
+		"positive":            "positive thinking motivation inspirational self improvement mental health",
+		"meditation":          "guided meditation mindfulness deep relaxation calm",
+		"meditation_tutorial": "how to meditate beginner meditation tutorial step by step",
+		"yoga":                "yoga for mental health relaxation gentle flow",
+		"yoga_tutorial":       "yoga tutorial beginner poses alignment fundamentals",
+		"breathing":           "breathing exercises anxiety calm pranayama deep breath",
+		"sleep":               "sleep meditation relaxation bedtime calm insomnia relief",
+		"mindfulness":         "mindfulness practice daily awareness present moment",
+		"stress_relief":       "stress relief relaxation techniques stress management calm",
+		"anxiety_help":        "anxiety relief coping techniques calm grounding",
+		"self_care":           "self care mental health routine wellness habits",
 	}
-	
+
+	# Initialise all lists to empty
+	personalized_recommendations = []
 	youtube_recommended = []
 	youtube_positive = []
 	youtube_meditation = []
+	youtube_meditation_tutorial = []
 	youtube_yoga = []
+	youtube_yoga_tutorial = []
 	youtube_breathing = []
 	youtube_sleep = []
-	youtube_meditation_tutorial = []
-	youtube_yoga_tutorial = []
 	youtube_mindfulness = []
 	youtube_stress_relief = []
 	youtube_anxiety_help = []
 	youtube_self_care = []
-	
-	def _random_query(section_key):
-		return random.choice(query_pools[section_key])
-	
+
 	if active_type == "all":
-		# Fetch all sections in PARALLEL so the page loads fast
-		from concurrent.futures import ThreadPoolExecutor, as_completed
-		tasks = {
-			"recommended": (yt_query, 6, False),
-			"positive": (_random_query("positive"), 6, True),
-			"meditation": (_random_query("meditation"), 6, True),
-			"yoga": (_random_query("yoga"), 6, True),
-			"breathing": (_random_query("breathing"), 6, True),
-			"sleep": (_random_query("sleep"), 6, True),
-			"meditation_tutorial": (_random_query("meditation_tutorial"), 6, True),
-			"yoga_tutorial": (_random_query("yoga_tutorial"), 6, True),
-			"mindfulness": (_random_query("mindfulness"), 6, True),
-			"stress_relief": (_random_query("stress_relief"), 6, True),
-			"anxiety_help": (_random_query("anxiety_help"), 6, True),
-			"self_care": (_random_query("self_care"), 6, True),
-		}
+		# Personalised section from watch/search history
+		recent_watches = VideoWatchHistory.objects.filter(user=request.user).order_by("-watched_at")[:10]
+		recent_searches = SearchHistory.objects.filter(user=request.user).order_by("-searched_at")[:5]
+		watch_cats = list({w.category for w in recent_watches if w.category})
+		search_terms = [s.query for s in recent_searches if s.query]
+		if watch_cats or search_terms:
+			personal_query = " ".join(watch_cats[:3] + search_terms[:2])
+			personalized_recommendations = get_youtube_videos(personal_query, max_results=6)
+
+		# Fetch all sections in parallel
+		to_fetch = {"recommended": rec_query, **section_queries}
 		results = {}
 		with ThreadPoolExecutor(max_workers=6) as executor:
 			future_map = {
-				executor.submit(get_youtube_videos, query=q, max_results=n, randomize=r): key
-				for key, (q, n, r) in tasks.items()
+				executor.submit(get_youtube_videos, query, 6): key
+				for key, query in to_fetch.items()
 			}
 			for future in as_completed(future_map):
 				key = future_map[future]
@@ -861,67 +774,65 @@ def patient_resources(request):
 					results[key] = future.result()
 				except Exception:
 					results[key] = []
-		youtube_recommended = results.get("recommended", [])
-		youtube_positive = results.get("positive", [])
-		youtube_meditation = results.get("meditation", [])
-		youtube_yoga = results.get("yoga", [])
-		youtube_breathing = results.get("breathing", [])
-		youtube_sleep = results.get("sleep", [])
+
+		youtube_recommended       = results.get("recommended", [])
+		youtube_positive          = results.get("positive", [])
+		youtube_meditation        = results.get("meditation", [])
 		youtube_meditation_tutorial = results.get("meditation_tutorial", [])
-		youtube_yoga_tutorial = results.get("yoga_tutorial", [])
-		youtube_mindfulness = results.get("mindfulness", [])
-		youtube_stress_relief = results.get("stress_relief", [])
-		youtube_anxiety_help = results.get("anxiety_help", [])
-		youtube_self_care = results.get("self_care", [])
-	elif active_type == "positive":
-		youtube_positive = get_youtube_videos(query=_random_query("positive"), max_results=30, randomize=True)
-	elif active_type == "meditation":
-		youtube_meditation = get_youtube_videos(query=_random_query("meditation"), max_results=30, randomize=True)
-	elif active_type == "yoga":
-		youtube_yoga = get_youtube_videos(query=_random_query("yoga"), max_results=30, randomize=True)
-	elif active_type == "breathing":
-		youtube_breathing = get_youtube_videos(query=_random_query("breathing"), max_results=30, randomize=True)
-	elif active_type == "sleep":
-		youtube_sleep = get_youtube_videos(query=_random_query("sleep"), max_results=30, randomize=True)
-	elif active_type == "meditation_tutorial":
-		youtube_meditation_tutorial = get_youtube_videos(query=_random_query("meditation_tutorial"), max_results=30, randomize=True)
-	elif active_type == "yoga_tutorial":
-		youtube_yoga_tutorial = get_youtube_videos(query=_random_query("yoga_tutorial"), max_results=30, randomize=True)
-	elif active_type == "mindfulness":
-		youtube_mindfulness = get_youtube_videos(query=_random_query("mindfulness"), max_results=30, randomize=True)
-	elif active_type == "stress_relief":
-		youtube_stress_relief = get_youtube_videos(query=_random_query("stress_relief"), max_results=30, randomize=True)
-	elif active_type == "anxiety_help":
-		youtube_anxiety_help = get_youtube_videos(query=_random_query("anxiety_help"), max_results=30, randomize=True)
-	elif active_type == "self_care":
-		youtube_self_care = get_youtube_videos(query=_random_query("self_care"), max_results=30, randomize=True)
+		youtube_yoga              = results.get("yoga", [])
+		youtube_yoga_tutorial     = results.get("yoga_tutorial", [])
+		youtube_breathing         = results.get("breathing", [])
+		youtube_sleep             = results.get("sleep", [])
+		youtube_mindfulness       = results.get("mindfulness", [])
+		youtube_stress_relief     = results.get("stress_relief", [])
+		youtube_anxiety_help      = results.get("anxiety_help", [])
+		youtube_self_care         = results.get("self_care", [])
+
+	elif active_type in section_queries:
+		query = section_queries[active_type]
+		result = get_youtube_videos(query, max_results=12)
+		if active_type == "positive":           youtube_positive = result
+		elif active_type == "meditation":       youtube_meditation = result
+		elif active_type == "meditation_tutorial": youtube_meditation_tutorial = result
+		elif active_type == "yoga":             youtube_yoga = result
+		elif active_type == "yoga_tutorial":    youtube_yoga_tutorial = result
+		elif active_type == "breathing":        youtube_breathing = result
+		elif active_type == "sleep":            youtube_sleep = result
+		elif active_type == "mindfulness":      youtube_mindfulness = result
+		elif active_type == "stress_relief":    youtube_stress_relief = result
+		elif active_type == "anxiety_help":     youtube_anxiety_help = result
+		elif active_type == "self_care":        youtube_self_care = result
+
+	# Guided exercises and DB resources
+	exercises = GuidedExercise.objects.filter(category=patient_category)
+	if not exercises.exists():
+		exercises = GuidedExercise.objects.all()
+
+	relaxation_resources = Resource.objects.filter(category=patient_category)
+	if not relaxation_resources.exists():
+		relaxation_resources = Resource.objects.all()
 
 	context = {
-		"patient_category": patient_category,
-		"category_display": category_display,
-		"active_type": active_type,
-		"active_category": active_category,
-		"featured": featured,
-		"videos": videos,
-		"exercises": exercises_qs,
-		"resources": resources_qs,
-		"youtube_recommended": youtube_recommended,
-		"youtube_positive": youtube_positive,
-		"youtube_meditation": youtube_meditation,
-		"youtube_yoga": youtube_yoga,
-		"youtube_breathing": youtube_breathing,
-		"youtube_sleep": youtube_sleep,
-		"youtube_meditation_tutorial": youtube_meditation_tutorial,
-		"youtube_yoga_tutorial": youtube_yoga_tutorial,
-		"youtube_mindfulness": youtube_mindfulness,
-		"youtube_stress_relief": youtube_stress_relief,
-		"youtube_anxiety_help": youtube_anxiety_help,
-		"youtube_self_care": youtube_self_care,
+		"patient_category":           patient_category,
+		"category_display":           category_display,
+		"active_type":                active_type,
 		"personalized_recommendations": personalized_recommendations,
-		"categories": PatientMCQResult.CATEGORY_CHOICES,
-		# All resources are videos now
-		"unread_notifications": _unread(request.user),
-		"unread_messages": _unread_msgs(request.user),
+		"youtube_recommended":        youtube_recommended,
+		"youtube_positive":           youtube_positive,
+		"youtube_meditation":         youtube_meditation,
+		"youtube_meditation_tutorial": youtube_meditation_tutorial,
+		"youtube_yoga":               youtube_yoga,
+		"youtube_yoga_tutorial":      youtube_yoga_tutorial,
+		"youtube_breathing":          youtube_breathing,
+		"youtube_sleep":              youtube_sleep,
+		"youtube_mindfulness":        youtube_mindfulness,
+		"youtube_stress_relief":      youtube_stress_relief,
+		"youtube_anxiety_help":       youtube_anxiety_help,
+		"youtube_self_care":          youtube_self_care,
+		"exercises":                  exercises[:8],
+		"relaxation_resources":       relaxation_resources[:6],
+		"unread_notifications":       _unread(request.user),
+		"unread_messages":            _unread_msgs(request.user),
 	}
 	return render(request, "patient/resources.html", context)
 
@@ -1586,6 +1497,7 @@ def rate_therapist(request, appointment_id):
 # ─── video tracking ────────────────────────────────────────────────────────
 @login_required
 @csrf_exempt
+@login_required
 def track_video_watch(request):
 	"""Track video watch for personalized recommendations."""
 	if request.method == 'POST':
@@ -1596,7 +1508,6 @@ def track_video_watch(request):
 			category = data.get('category', 'general')
 			video_source = data.get('video_source', 'youtube')
 			
-			from .models import VideoWatchHistory
 			VideoWatchHistory.objects.create(
 				user=request.user,
 				video_id=video_id,
@@ -1610,3 +1521,70 @@ def track_video_watch(request):
 			return JsonResponse({'status': 'error', 'message': str(e)})
 	
 	return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+
+# ─── online therapy session ─────────────────────────────────────────────────
+@login_required
+def session_room(request, appointment_id):
+	"""Join or start an online therapy session room."""
+	apt = get_object_or_404(Appointment, pk=appointment_id)
+
+	if request.user not in (apt.patient, apt.therapist):
+		messages.error(request, "You are not authorised to join this session.")
+		return redirect("accounts:dashboard_redirect")
+
+	if apt.status != "confirmed":
+		messages.error(request, "Session is only available for confirmed appointments.")
+		return redirect("accounts:dashboard_redirect")
+
+	# Get or create the session room
+	session, created = TherapySession.objects.get_or_create(
+		appointment=apt,
+		defaults={"is_active": True, "started_at": timezone.now()},
+	)
+	if not created and not session.is_active:
+		session.is_active = True
+		if not session.started_at:
+			session.started_at = timezone.now()
+		session.save(update_fields=["is_active", "started_at"])
+
+	# Load last 100 chat messages
+	previous_messages = SessionMessage.objects.filter(
+		session=session
+	).select_related("sender").order_by("created_at")[:100]
+
+	other_user = apt.therapist if request.user == apt.patient else apt.patient
+
+	context = {
+		"appointment": apt,
+		"session": session,
+		"previous_messages": previous_messages,
+		"room_code": str(session.room_code),
+		"is_therapist": request.user.role == "therapist",
+		"other_user": other_user,
+		"current_user_id": request.user.id,
+		"unread_notifications": _unread(request.user),
+	}
+	return render(request, "session/session_room.html", context)
+
+
+@login_required
+def end_session(request, appointment_id):
+	"""End an active therapy session."""
+	apt = get_object_or_404(Appointment, pk=appointment_id)
+
+	if request.user not in (apt.patient, apt.therapist):
+		messages.error(request, "Unauthorised.")
+		return redirect("accounts:dashboard_redirect")
+
+	try:
+		session = apt.therapy_session
+		session.is_active = False
+		session.ended_at = timezone.now()
+		session.save(update_fields=["is_active", "ended_at"])
+	except TherapySession.DoesNotExist:
+		pass
+
+	if request.user.role == "therapist":
+		return redirect("accounts:therapist_appointments")
+	return redirect("accounts:patient_appointments")

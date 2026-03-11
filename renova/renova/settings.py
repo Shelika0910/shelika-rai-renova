@@ -34,12 +34,14 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '127.0.0.1:8000']
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'social_django',
     'accounts.apps.AccountsConfig',
 ]
@@ -96,12 +98,6 @@ DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER', default='noreply@renova.com')
 CONTACT_EMAIL = 'raishelika@gmail.com'
 
 YOUTUBE_API_KEY = config("YOUTUBE_API_KEY", default="")
-# Force read from .env file (override any stale OS environment variable)
-import decouple as _decouple
-_env_file = Path(__file__).resolve().parent.parent / '.env'
-if _env_file.exists():
-    _repo = _decouple.RepositoryEnv(str(_env_file))
-    YOUTUBE_API_KEY = _repo.data.get("YOUTUBE_API_KEY", YOUTUBE_API_KEY)
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -127,6 +123,13 @@ TEMPLATES = [
 
 
 WSGI_APPLICATION = 'renova.wsgi.application'
+ASGI_APPLICATION = 'renova.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    }
+}
 
 
 # Database

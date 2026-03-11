@@ -76,6 +76,10 @@ urlpatterns = [
 	# ── notifications ──
 	path("notifications/", views.notifications_view, name="notifications"),
 	
+	# ── online sessions ──
+	path("appointment/<int:appointment_id>/session/", views.session_room, name="session_room"),
+	path("appointment/<int:appointment_id>/end-session/", views.end_session, name="end_session"),
+
 	# ── api endpoints ──
 	path("api/track-video-watch/", views.track_video_watch, name="track_video_watch"),
 ]

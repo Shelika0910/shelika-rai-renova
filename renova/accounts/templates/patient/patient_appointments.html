@@ -290,6 +290,7 @@
                 <div class="appointment-details">
                     <strong>📅 {{ appointment.date_time|date:"F j, Y" }} at {{ appointment.date_time|time:"g:i A" }}</strong><br>
                     ⏱️ Duration: {{ appointment.duration_minutes }} minutes<br>
+                    {% if appointment.session_type == 'video_call' %}🎥 Video Call{% elif appointment.session_type == 'audio_call' %}🎙 Audio Call{% else %}💬 Text Chat{% endif %}<br>
                     📧 Contact: {{ appointment.therapist.email }}<br>
                     🏥 Specialization: {{ appointment.therapist.get_specialization_display|default:"General" }}
                     {% if appointment.notes %}
@@ -297,6 +298,9 @@
                     {% endif %}
                 </div>
                 <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                    <a href="{% url 'accounts:session_room' appointment.id %}" style="padding:6px 14px;background:#4da3a9;color:#fff;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;">
+                        {% if appointment.session_type == 'video_call' %}🎥{% elif appointment.session_type == 'audio_call' %}🎙{% else %}💬{% endif %} Join Session
+                    </a>
                     <a href="{% url 'accounts:reschedule_appointment' appointment.id %}" style="padding:6px 14px;background:#fff3cd;color:#856404;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;">Reschedule</a>
                     <a href="{% url 'accounts:cancel_appointment' appointment.id %}" style="padding:6px 14px;background:#f8d7da;color:#721c24;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;">Cancel</a>
                 </div>

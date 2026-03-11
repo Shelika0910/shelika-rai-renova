@@ -1,0 +1,954 @@
+{% extends "base.html" %}
+
+{% block title %}Session — {{ other_user.full_name }} | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── Layout ──────────────────────────────────────────────────────── */
+    body { background: #0f1923; }
+
+    .session-wrap {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 72px);
+        overflow: hidden;
+    }
+
+    /* ── Top Bar ─────────────────────────────────────────────────────── */
+    .session-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #1a2635;
+        padding: 12px 20px;
+        border-bottom: 1px solid #243040;
+        flex-shrink: 0;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .session-info { display: flex; align-items: center; gap: 12px; }
+    .session-avatar {
+        width: 42px; height: 42px; border-radius: 50%;
+        background: #4da3a9; color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 1rem; flex-shrink: 0;
+    }
+    .session-name { font-weight: 700; color: #e8f4f5; font-size: 1rem; }
+    .session-subtitle { color: #7a9aab; font-size: 0.8rem; }
+    .session-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .badge {
+        padding: 3px 10px; border-radius: 999px;
+        font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    }
+    .badge-type { background: #1d3f5c; color: #7ecff0; }
+    .badge-live { background: #1a3c1a; color: #4ade80; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    .session-timer { color: #7a9aab; font-size: 0.82rem; font-weight: 600; font-family: monospace; }
+
+    /* ── Main Area ───────────────────────────────────────────────────── */
+    .session-main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    /* ── Video Area ──────────────────────────────────────────────────── */
+    .video-area {
+        flex: 1;
+        background: #0a1520;
+        display: none;
+        position: relative;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 16px;
+    }
+    .video-area.visible { display: flex; }
+
+    .video-grid {
+        display: grid;
+        gap: 10px;
+        width: 100%;
+        height: 100%;
+        grid-template-columns: 1fr;
+    }
+    .video-grid.two-up { grid-template-columns: 1fr 1fr; }
+
+    .video-tile {
+        position: relative;
+        background: #1a2635;
+        border-radius: 16px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid transparent;
+        transition: border-color 0.2s;
+    }
+    .video-tile.speaking { border-color: #4da3a9; }
+    .video-tile video {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .video-tile-label {
+        position: absolute;
+        bottom: 10px; left: 10px;
+        background: rgba(0,0,0,0.5);
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+    .video-muted-icon {
+        position: absolute;
+        top: 10px; right: 10px;
+        background: rgba(220,53,69,0.8);
+        color: #fff;
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+    }
+    .video-muted-icon.visible { display: flex; }
+
+    /* Avatar when camera is off */
+    .video-avatar-placeholder {
+        width: 80px; height: 80px;
+        border-radius: 50%;
+        background: #2d4a60;
+        color: #7a9aab;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    /* Incoming call overlay */
+    .call-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(10,21,32,0.92);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        z-index: 50;
+        border-radius: 16px;
+    }
+    .call-overlay.visible { display: flex; }
+    .call-overlay-avatar {
+        width: 90px; height: 90px; border-radius: 50%;
+        background: #4da3a9; color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2.2rem; font-weight: 700;
+        animation: ringPulse 1.5s infinite;
+    }
+    @keyframes ringPulse {
+        0%   { box-shadow: 0 0 0 0 rgba(77,163,169,.6); }
+        70%  { box-shadow: 0 0 0 20px rgba(77,163,169,0); }
+        100% { box-shadow: 0 0 0 0 rgba(77,163,169,0); }
+    }
+    .call-overlay h3 { color: #e8f4f5; font-size: 1.1rem; margin: 0; }
+    .call-overlay p  { color: #7a9aab; font-size: 0.85rem; margin: 0; }
+    .call-overlay-btns { display: flex; gap: 16px; margin-top: 8px; }
+    .call-overlay-btns button {
+        width: 56px; height: 56px; border-radius: 50%;
+        border: none; cursor: pointer;
+        font-size: 1.3rem;
+        display: flex; align-items: center; justify-content: center;
+        transition: transform .15s;
+    }
+    .call-overlay-btns button:active { transform: scale(.9); }
+    .btn-accept-call { background: #22c55e; color: #fff; }
+    .btn-reject-call { background: #ef4444; color: #fff; }
+
+    /* ── Chat Panel ──────────────────────────────────────────────────── */
+    .chat-panel {
+        width: 360px;
+        min-width: 260px;
+        display: flex;
+        flex-direction: column;
+        background: #1a2635;
+        border-left: 1px solid #243040;
+        flex-shrink: 0;
+        transition: width 0.3s ease;
+    }
+    .chat-panel.chat-only { width: 100%; border-left: none; }
+
+    .chat-header {
+        padding: 14px 16px;
+        border-bottom: 1px solid #243040;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+    }
+    .chat-header span { color: #c8dde5; font-weight: 600; font-size: 0.9rem; }
+    .chat-participants { color: #7a9aab; font-size: 0.78rem; }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        scroll-behavior: smooth;
+    }
+    .chat-messages::-webkit-scrollbar { width: 5px; }
+    .chat-messages::-webkit-scrollbar-track { background: transparent; }
+    .chat-messages::-webkit-scrollbar-thumb { background: #2d4055; border-radius: 3px; }
+
+    .msg-bubble {
+        max-width: 80%;
+        padding: 9px 13px;
+        border-radius: 16px;
+        font-size: 0.88rem;
+        line-height: 1.45;
+        word-break: break-word;
+    }
+    .msg-bubble.mine {
+        background: #4da3a9;
+        color: #fff;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+    .msg-bubble.theirs {
+        background: #243040;
+        color: #c8dde5;
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+    }
+    .msg-bubble.system {
+        background: transparent;
+        color: #556b7a;
+        align-self: center;
+        font-size: 0.78rem;
+        font-style: italic;
+        max-width: 100%;
+        text-align: center;
+        padding: 4px 8px;
+    }
+    .msg-sender { font-size: 0.72rem; font-weight: 700; margin-bottom: 3px; color: #7ecff0; }
+    .msg-time   { font-size: 0.68rem; margin-top: 4px; opacity: .65; text-align: right; }
+
+    .chat-footer {
+        padding: 12px;
+        border-top: 1px solid #243040;
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+        background: #1a2635;
+    }
+    .chat-input {
+        flex: 1;
+        background: #243040;
+        border: 1px solid #2d4055;
+        border-radius: 22px;
+        padding: 10px 16px;
+        color: #c8dde5;
+        font-size: 0.88rem;
+        font-family: inherit;
+        outline: none;
+        transition: border-color .2s;
+        resize: none;
+        max-height: 100px;
+        overflow-y: auto;
+    }
+    .chat-input::placeholder { color: #556b7a; }
+    .chat-input:focus { border-color: #4da3a9; }
+    .send-btn {
+        width: 42px; height: 42px;
+        background: #4da3a9; color: #fff;
+        border: none; border-radius: 50%;
+        cursor: pointer; font-size: 1rem;
+        display: flex; align-items: center; justify-content: center;
+        transition: background .2s, transform .1s;
+        flex-shrink: 0;
+        align-self: flex-end;
+    }
+    .send-btn:hover { background: #3c8b90; }
+    .send-btn:active { transform: scale(.9); }
+
+    /* ── Bottom Call Controls ─────────────────────────────────────────── */
+    .call-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 14px 20px;
+        background: #1a2635;
+        border-top: 1px solid #243040;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+    }
+    .ctrl-btn {
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        background: #243040; border: none; border-radius: 14px;
+        padding: 10px 16px; cursor: pointer; color: #c8dde5;
+        font-size: 0.72rem; font-weight: 600; font-family: inherit;
+        transition: all .2s; min-width: 64px;
+    }
+    .ctrl-btn .ctrl-icon { font-size: 1.3rem; }
+    .ctrl-btn:hover { background: #2d4055; color: #fff; }
+    .ctrl-btn.active { background: #4da3a9; color: #fff; }
+    .ctrl-btn.danger { background: #ef4444; color: #fff; }
+    .ctrl-btn.danger:hover { background: #dc2626; }
+    .ctrl-btn.muted { background: #374151; color: #9ca3af; }
+
+    /* ── Connection Banner ────────────────────────────────────────────── */
+    .conn-banner {
+        display: none;
+        padding: 8px 16px;
+        background: #fbbf24;
+        color: #000;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .conn-banner.visible { display: block; }
+    .conn-banner.error { background: #ef4444; color: #fff; }
+
+    /* ── Responsive ───────────────────────────────────────────────────── */
+    @media (max-width: 700px) {
+        .chat-panel { width: 100%; }
+        .video-area.visible { height: 45vh; }
+        .session-main { flex-direction: column; overflow-y: auto; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="session-wrap" id="sessionWrap">
+
+    <!-- Connection Banner -->
+    <div class="conn-banner" id="connBanner">Connecting to session…</div>
+
+    <!-- Top Bar -->
+    <div class="session-topbar">
+        <div class="session-info">
+            <div class="session-avatar" id="avatar初">
+                {{ other_user.full_name|slice:":1"|upper }}
+            </div>
+            <div>
+                <div class="session-name">{{ other_user.full_name }}</div>
+                <div class="session-subtitle">
+                    {% if is_therapist %}Patient{% else %}Therapist{% endif %}
+                    &middot; {{ appointment.date_time|date:"M j, Y" }} at {{ appointment.date_time|time:"g:i A" }}
+                </div>
+            </div>
+        </div>
+        <div class="session-badges">
+            <span class="badge badge-type">
+                {% if appointment.session_type == 'video_call' %}🎥 Video{% elif appointment.session_type == 'audio_call' %}🎙 Audio{% else %}💬 Chat{% endif %}
+            </span>
+            <span class="badge badge-live" id="liveBadge" style="display:none">● Live</span>
+        </div>
+        <div class="session-timer" id="sessionTimer">00:00</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <a href="{% url 'accounts:end_session' appointment.id %}"
+               onclick="return confirm('End this session?');"
+               style="padding:8px 16px;background:#ef4444;color:#fff;border-radius:10px;font-size:0.82rem;font-weight:700;text-decoration:none;">
+                Leave
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="session-main" id="sessionMain">
+
+        <!-- Video / Audio Area -->
+        <div class="video-area" id="videoArea">
+            <div class="video-grid" id="videoGrid">
+                <!-- Remote video -->
+                <div class="video-tile" id="remoteTile">
+                    <div class="video-avatar-placeholder" id="remoteAvatar">
+                        {{ other_user.full_name|slice:":1"|upper }}
+                    </div>
+                    <video id="remoteVideo" autoplay playsinline style="display:none;"></video>
+                    <div class="video-muted-icon" id="remoteMutedIcon">🔇</div>
+                    <div class="video-tile-label">{{ other_user.full_name }}</div>
+                </div>
+                <!-- Local video -->
+                <div class="video-tile" id="localTile" style="display:none;">
+                    <video id="localVideo" autoplay playsinline muted style="display:none;"></video>
+                    <div class="video-avatar-placeholder" id="localAvatar">
+                        {{ request.user.full_name|slice:":1"|upper }}
+                    </div>
+                    <div class="video-tile-label">You</div>
+                </div>
+            </div>
+
+            <!-- Incoming call overlay -->
+            <div class="call-overlay" id="callOverlay">
+                <div class="call-overlay-avatar">{{ other_user.full_name|slice:":1"|upper }}</div>
+                <h3 id="callOverlayTitle">Incoming Call</h3>
+                <p id="callOverlaySubtitle">from {{ other_user.full_name }}</p>
+                <div class="call-overlay-btns">
+                    <button class="btn-accept-call" onclick="acceptIncomingCall()" title="Accept">📞</button>
+                    <button class="btn-reject-call" onclick="rejectIncomingCall()" title="Decline">📵</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Panel -->
+        <div class="chat-panel" id="chatPanel">
+            <div class="chat-header">
+                <span>💬 Session Chat</span>
+                <span class="chat-participants" id="chatParticipants">connecting…</span>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <!-- Previous messages -->
+                {% for msg in previous_messages %}
+                {% if msg.message_type == 'system' %}
+                <div class="msg-bubble system">{{ msg.content }}</div>
+                {% elif msg.sender.id == current_user_id %}
+                <div class="msg-bubble mine">
+                    <div>{{ msg.content }}</div>
+                    <div class="msg-time">{{ msg.created_at|time:"g:i A" }}</div>
+                </div>
+                {% else %}
+                <div class="msg-bubble theirs">
+                    <div class="msg-sender">{{ msg.sender.full_name }}</div>
+                    <div>{{ msg.content }}</div>
+                    <div class="msg-time">{{ msg.created_at|time:"g:i A" }}</div>
+                </div>
+                {% endif %}
+                {% empty %}
+                <div class="msg-bubble system">Session started. Say hello!</div>
+                {% endfor %}
+            </div>
+            <div class="chat-footer">
+                <textarea class="chat-input" id="chatInput"
+                    placeholder="Type a message…" rows="1"
+                    onkeydown="handleChatKey(event)"></textarea>
+                <button class="send-btn" onclick="sendChat()" title="Send">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call Controls -->
+    <div class="call-controls" id="callControls">
+        <button class="ctrl-btn" id="btnChat" onclick="toggleChatPanel()" title="Chat">
+            <span class="ctrl-icon">💬</span>
+            <span>Chat</span>
+        </button>
+        <button class="ctrl-btn" id="btnAudioCall" onclick="startCall('audio')" title="Start Audio Call">
+            <span class="ctrl-icon">🎙</span>
+            <span>Audio</span>
+        </button>
+        <button class="ctrl-btn" id="btnVideoCall" onclick="startCall('video')" title="Start Video Call">
+            <span class="ctrl-icon">🎥</span>
+            <span>Video</span>
+        </button>
+        <button class="ctrl-btn muted" id="btnMic" onclick="toggleMic()" title="Toggle Mic" style="display:none">
+            <span class="ctrl-icon">🎤</span>
+            <span>Mic</span>
+        </button>
+        <button class="ctrl-btn muted" id="btnCam" onclick="toggleCam()" title="Toggle Camera" style="display:none">
+            <span class="ctrl-icon">📷</span>
+            <span>Cam</span>
+        </button>
+        <button class="ctrl-btn danger" id="btnEndCall" onclick="endCall()" title="End Call" style="display:none">
+            <span class="ctrl-icon">📵</span>
+            <span>End Call</span>
+        </button>
+    </div>
+</div>
+
+<script>
+// ── Constants ────────────────────────────────────────────────────────────────
+const ROOM_CODE      = "{{ room_code }}";
+const CURRENT_USER   = {{ current_user_id }};
+const SESSION_TYPE   = "{{ appointment.session_type }}";
+const OTHER_NAME     = "{{ other_user.full_name|escapejs }}";
+
+// ── WebSocket ────────────────────────────────────────────────────────────────
+let ws = null;
+let wsReconnectTimer = null;
+let wsConnected = false;
+
+function connectWS() {
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    ws = new WebSocket(`${proto}://${location.host}/ws/session/${ROOM_CODE}/`);
+
+    ws.onopen = () => {
+        wsConnected = true;
+        hideBanner();
+        document.getElementById("liveBadge").style.display = "";
+        startTimer();
+    };
+
+    ws.onclose = () => {
+        wsConnected = false;
+        document.getElementById("liveBadge").style.display = "none";
+        showBanner("Connection lost. Reconnecting…", false);
+        wsReconnectTimer = setTimeout(connectWS, 3000);
+    };
+
+    ws.onerror = () => {
+        showBanner("WebSocket error. Check your connection.", true);
+    };
+
+    ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        handleWsMessage(data);
+    };
+}
+
+function wsSend(obj) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(obj));
+    }
+}
+
+// ── WS Message Dispatcher ────────────────────────────────────────────────────
+function handleWsMessage(data) {
+    switch (data.type) {
+        case "chat_message":     onChatMessage(data);       break;
+        case "user_event":       onUserEvent(data);         break;
+        case "call_request":     onCallRequest(data);       break;
+        case "call_accept":      onCallAccept(data);        break;
+        case "call_reject":      onCallReject(data);        break;
+        case "call_end":         onCallEnd(data);           break;
+        case "webrtc_offer":     onWebRTCOffer(data);       break;
+        case "webrtc_answer":    onWebRTCAnswer(data);      break;
+        case "webrtc_ice_candidate": onIceCandidate(data);  break;
+    }
+}
+
+// ── Chat ─────────────────────────────────────────────────────────────────────
+function handleChatKey(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendChat();
+    }
+}
+
+function sendChat() {
+    const input = document.getElementById("chatInput");
+    const text = input.value.trim();
+    if (!text) return;
+    wsSend({ type: "chat_message", message: text });
+    appendMessage({ sender_id: CURRENT_USER, message: text, timestamp: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
+    input.value = "";
+    autoResizeInput(input);
+}
+
+function onChatMessage(data) {
+    if (data.sender_id !== CURRENT_USER) {
+        appendMessage(data);
+    }
+}
+
+function appendMessage(data) {
+    const box = document.getElementById("chatMessages");
+    const isMe = data.sender_id === CURRENT_USER;
+    const div = document.createElement("div");
+    div.className = `msg-bubble ${isMe ? "mine" : "theirs"}`;
+    let html = "";
+    if (!isMe) html += `<div class="msg-sender">${escHtml(data.sender_name || OTHER_NAME)}</div>`;
+    html += `<div>${escHtml(data.message)}</div>`;
+    html += `<div class="msg-time">${escHtml(data.timestamp || "")}</div>`;
+    div.innerHTML = html;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+
+function appendSystemMsg(text) {
+    const box = document.getElementById("chatMessages");
+    const div = document.createElement("div");
+    div.className = "msg-bubble system";
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+
+function onUserEvent(data) {
+    const msg = data.event === "joined"
+        ? `${escHtml(data.user_name)} joined the session.`
+        : `${escHtml(data.user_name)} left the session.`;
+    appendSystemMsg(msg);
+    document.getElementById("chatParticipants").textContent =
+        data.event === "joined" ? "● Connected" : "○ Waiting…";
+}
+
+// ── Call State ────────────────────────────────────────────────────────────────
+let localStream     = null;
+let peerConn        = null;
+let currentCallType = null;  // 'audio' | 'video'
+let isCaller        = false;
+let incomingCallType = null;
+let micEnabled      = true;
+let camEnabled      = true;
+
+const ICE_SERVERS = {
+    iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+    ]
+};
+
+// ── Start Call (caller side) ─────────────────────────────────────────────────
+async function startCall(callType) {
+    if (currentCallType) { appendSystemMsg("A call is already in progress."); return; }
+    currentCallType = callType;
+    isCaller = true;
+
+    // Request media
+    const constraints = {
+        audio: true,
+        video: callType === "video" ? { width:1280, height:720 } : false,
+    };
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (err) {
+        appendSystemMsg("⚠ Could not access camera/microphone: " + err.message);
+        currentCallType = null;
+        isCaller = false;
+        return;
+    }
+
+    showCallUI(callType, true);
+    wsSend({ type: "call_request", call_type: callType });
+    appendSystemMsg(`Calling ${OTHER_NAME}…`);
+}
+
+// ── Incoming Call ─────────────────────────────────────────────────────────────
+function onCallRequest(data) {
+    if (currentCallType) {
+        wsSend({ type: "call_reject", reason: "busy" });
+        return;
+    }
+    incomingCallType = data.call_type;
+    const typeLabel = data.call_type === "video" ? "Video Call" : "Audio Call";
+    document.getElementById("callOverlayTitle").textContent = `Incoming ${typeLabel}`;
+    document.getElementById("callOverlay").classList.add("visible");
+
+    // Show video area so overlay is visible
+    document.getElementById("videoArea").classList.add("visible");
+    document.getElementById("chatPanel").classList.remove("chat-only");
+}
+
+async function acceptIncomingCall() {
+    document.getElementById("callOverlay").classList.remove("visible");
+    currentCallType = incomingCallType;
+    isCaller = false;
+
+    const constraints = {
+        audio: true,
+        video: currentCallType === "video" ? { width:1280, height:720 } : false,
+    };
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (err) {
+        appendSystemMsg("⚠ Could not access camera/microphone: " + err.message);
+        wsSend({ type: "call_reject", reason: "media_error" });
+        currentCallType = null;
+        document.getElementById("videoArea").classList.remove("visible");
+        return;
+    }
+
+    showCallUI(currentCallType, false);
+    wsSend({ type: "call_accept", call_type: currentCallType });
+}
+
+function rejectIncomingCall() {
+    document.getElementById("callOverlay").classList.remove("visible");
+    document.getElementById("videoArea").classList.remove("visible");
+    wsSend({ type: "call_reject" });
+    incomingCallType = null;
+}
+
+function onCallAccept(data) {
+    appendSystemMsg(`${OTHER_NAME} accepted the call.`);
+    // Caller creates the offer
+    if (isCaller) createOffer();
+}
+
+function onCallReject(data) {
+    appendSystemMsg(`${OTHER_NAME} declined the call.`);
+    cleanupCall();
+}
+
+// ── WebRTC Signaling ──────────────────────────────────────────────────────────
+function createPeerConnection() {
+    peerConn = new RTCPeerConnection(ICE_SERVERS);
+
+    peerConn.onicecandidate = (e) => {
+        if (e.candidate) {
+            wsSend({ type: "webrtc_ice_candidate", candidate: e.candidate.toJSON() });
+        }
+    };
+
+    peerConn.ontrack = (e) => {
+        const remoteVideo = document.getElementById("remoteVideo");
+        if (!remoteVideo.srcObject) remoteVideo.srcObject = e.streams[0];
+        remoteVideo.style.display = "block";
+        document.getElementById("remoteAvatar").style.display = "none";
+    };
+
+    peerConn.oniceconnectionstatechange = () => {
+        if (peerConn.iceConnectionState === "disconnected" ||
+            peerConn.iceConnectionState === "failed") {
+            appendSystemMsg("Call connection lost.");
+            cleanupCall();
+        }
+    };
+
+    // Add local tracks
+    if (localStream) {
+        localStream.getTracks().forEach(track => peerConn.addTrack(track, localStream));
+    }
+}
+
+async function createOffer() {
+    createPeerConnection();
+    try {
+        const offer = await peerConn.createOffer();
+        await peerConn.setLocalDescription(offer);
+        wsSend({ type: "webrtc_offer", sdp: peerConn.localDescription.toJSON() });
+    } catch (err) {
+        appendSystemMsg("Failed to create call offer: " + err.message);
+    }
+}
+
+async function onWebRTCOffer(data) {
+    if (!isCaller) {
+        createPeerConnection();
+        try {
+            await peerConn.setRemoteDescription(new RTCSessionDescription(data.sdp));
+            const answer = await peerConn.createAnswer();
+            await peerConn.setLocalDescription(answer);
+            wsSend({ type: "webrtc_answer", sdp: peerConn.localDescription.toJSON() });
+        } catch (err) {
+            appendSystemMsg("Failed to process call offer: " + err.message);
+        }
+    }
+}
+
+async function onWebRTCAnswer(data) {
+    if (isCaller && peerConn) {
+        try {
+            await peerConn.setRemoteDescription(new RTCSessionDescription(data.sdp));
+        } catch (err) {
+            appendSystemMsg("Failed to process call answer: " + err.message);
+        }
+    }
+}
+
+async function onIceCandidate(data) {
+    if (peerConn && data.candidate) {
+        try {
+            await peerConn.addIceCandidate(new RTCIceCandidate(data.candidate));
+        } catch (err) {
+            // Non-fatal — ignore stale candidates
+        }
+    }
+}
+
+// ── Show Call UI ──────────────────────────────────────────────────────────────
+function showCallUI(callType, showLocal) {
+    const videoArea  = document.getElementById("videoArea");
+    const chatPanel  = document.getElementById("chatPanel");
+    const localTile  = document.getElementById("localTile");
+    const localVideo = document.getElementById("localVideo");
+    const localAvatar = document.getElementById("localAvatar");
+    const videoGrid  = document.getElementById("videoGrid");
+
+    videoArea.classList.add("visible");
+    chatPanel.classList.remove("chat-only");
+    videoGrid.classList.add("two-up");
+
+    localTile.style.display = "";
+    if (localStream) {
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack && callType === "video") {
+            localVideo.srcObject = localStream;
+            localVideo.style.display = "block";
+            localAvatar.style.display = "none";
+        } else {
+            localVideo.style.display = "none";
+            localAvatar.style.display = "flex";
+        }
+    }
+
+    // Show call-specific controls
+    document.getElementById("btnMic").style.display = "";
+    document.getElementById("btnEndCall").style.display = "";
+    document.getElementById("btnAudioCall").style.display = "none";
+    document.getElementById("btnVideoCall").style.display = "none";
+    if (callType === "video") {
+        document.getElementById("btnCam").style.display = "";
+    }
+
+    updateCtrlState();
+}
+
+// ── Call Controls ─────────────────────────────────────────────────────────────
+function toggleMic() {
+    if (!localStream) return;
+    micEnabled = !micEnabled;
+    localStream.getAudioTracks().forEach(t => t.enabled = micEnabled);
+    updateCtrlState();
+}
+
+function toggleCam() {
+    if (!localStream) return;
+    camEnabled = !camEnabled;
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) {
+        videoTrack.enabled = camEnabled;
+        document.getElementById("localVideo").style.display = camEnabled ? "block" : "none";
+        document.getElementById("localAvatar").style.display = camEnabled ? "none" : "flex";
+    }
+    updateCtrlState();
+}
+
+function updateCtrlState() {
+    const btnMic = document.getElementById("btnMic");
+    const btnCam = document.getElementById("btnCam");
+    btnMic.className = `ctrl-btn ${micEnabled ? "active" : "muted"}`;
+    btnMic.querySelector(".ctrl-icon").textContent = micEnabled ? "🎤" : "🔇";
+    btnMic.querySelector("span:last-child").textContent = micEnabled ? "Mic On" : "Mic Off";
+    if (currentCallType === "video") {
+        btnCam.className = `ctrl-btn ${camEnabled ? "active" : "muted"}`;
+        btnCam.querySelector(".ctrl-icon").textContent = camEnabled ? "📷" : "🚫";
+        btnCam.querySelector("span:last-child").textContent = camEnabled ? "Cam On" : "Cam Off";
+    }
+}
+
+function endCall() {
+    wsSend({ type: "call_end" });
+    appendSystemMsg("You ended the call.");
+    cleanupCall();
+}
+
+function onCallEnd(data) {
+    appendSystemMsg(`${OTHER_NAME} ended the call.`);
+    cleanupCall();
+}
+
+function cleanupCall() {
+    if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+        localStream = null;
+    }
+    if (peerConn) {
+        peerConn.close();
+        peerConn = null;
+    }
+
+    // Reset video elements
+    const rv = document.getElementById("remoteVideo");
+    rv.srcObject = null; rv.style.display = "none";
+    document.getElementById("remoteAvatar").style.display = "flex";
+    const lv = document.getElementById("localVideo");
+    lv.srcObject = null; lv.style.display = "none";
+    document.getElementById("localAvatar").style.display = "flex";
+
+    document.getElementById("localTile").style.display = "none";
+    document.getElementById("videoArea").classList.remove("visible");
+    document.getElementById("videoGrid").classList.remove("two-up");
+    document.getElementById("chatPanel").classList.add("chat-only");
+    document.getElementById("callOverlay").classList.remove("visible");
+
+    // Reset controls
+    document.getElementById("btnMic").style.display = "none";
+    document.getElementById("btnCam").style.display = "none";
+    document.getElementById("btnEndCall").style.display = "none";
+    document.getElementById("btnAudioCall").style.display = "";
+    document.getElementById("btnVideoCall").style.display = "";
+
+    currentCallType = null;
+    isCaller = false;
+    incomingCallType = null;
+    micEnabled = true;
+    camEnabled = true;
+}
+
+// ── Chat Panel Toggle ─────────────────────────────────────────────────────────
+function toggleChatPanel() {
+    const panel = document.getElementById("chatPanel");
+    const area  = document.getElementById("videoArea");
+    if (area.classList.contains("visible")) {
+        // in call — toggle visibility of chat
+        panel.style.display = panel.style.display === "none" ? "" : "none";
+    }
+    // if no call active, chat is always shown
+}
+
+// ── Timer ─────────────────────────────────────────────────────────────────────
+let timerInterval = null;
+let timerSeconds  = 0;
+
+function startTimer() {
+    if (timerInterval) return;
+    timerInterval = setInterval(() => {
+        timerSeconds++;
+        const m = String(Math.floor(timerSeconds / 60)).padStart(2, "0");
+        const s = String(timerSeconds % 60).padStart(2, "0");
+        document.getElementById("sessionTimer").textContent = `${m}:${s}`;
+    }, 1000);
+}
+
+// ── Banner ────────────────────────────────────────────────────────────────────
+function showBanner(msg, isError) {
+    const b = document.getElementById("connBanner");
+    b.textContent = msg;
+    b.className = "conn-banner visible" + (isError ? " error" : "");
+}
+function hideBanner() {
+    document.getElementById("connBanner").className = "conn-banner";
+}
+
+// ── Auto-resize textarea ──────────────────────────────────────────────────────
+function autoResizeInput(el) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 100) + "px";
+}
+document.getElementById("chatInput").addEventListener("input", function() {
+    autoResizeInput(this);
+});
+
+// ── Escape HTML ───────────────────────────────────────────────────────────────
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function() {
+    // Set initial layout: chat-only mode until a call starts
+    document.getElementById("chatPanel").classList.add("chat-only");
+
+    showBanner("Connecting to session…", false);
+    connectWS();
+
+    // Scroll chat to bottom
+    const cm = document.getElementById("chatMessages");
+    cm.scrollTop = cm.scrollHeight;
+
+    // If session type is video/audio, prompt user to start call
+    if (SESSION_TYPE === "video_call") {
+        appendSystemMsg("This session is scheduled as a Video Call. Use the Video button below to start.");
+    } else if (SESSION_TYPE === "audio_call") {
+        appendSystemMsg("This session is scheduled as an Audio Call. Use the Audio button below to start.");
+    } else {
+        appendSystemMsg("This is a Text Chat session. Use the Audio or Video buttons for calls.");
+    }
+})();
+</script>
+{% endblock %}

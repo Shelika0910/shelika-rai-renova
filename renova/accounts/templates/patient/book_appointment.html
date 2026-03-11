@@ -220,6 +220,30 @@
                         <div><strong>Therapist:</strong> <span id="summaryTherapist"></span></div>
                         <div><strong>Date:</strong> <span id="summaryDate"></span></div>
                         <div><strong>Time:</strong> <span id="summaryTime"></span></div>
+                        <div><strong>Session Type:</strong> <span id="summaryType"></span></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Session Type</label>
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:4px;">
+                        <label style="cursor:pointer;border:2px solid #e7ddd6;border-radius:10px;padding:12px 8px;text-align:center;transition:border-color .2s;" id="lbl-text_chat">
+                            <input type="radio" name="session_type" value="text_chat" style="display:none;" checked onchange="updateSessionType(this)">
+                            <div style="font-size:1.5rem;">💬</div>
+                            <div style="font-weight:700;font-size:.88rem;margin-top:4px;color:#2c4652;">Text Chat</div>
+                            <div style="font-size:.75rem;color:#627180;">Type messages</div>
+                        </label>
+                        <label style="cursor:pointer;border:2px solid #e7ddd6;border-radius:10px;padding:12px 8px;text-align:center;transition:border-color .2s;" id="lbl-audio_call">
+                            <input type="radio" name="session_type" value="audio_call" style="display:none;" onchange="updateSessionType(this)">
+                            <div style="font-size:1.5rem;">🎙</div>
+                            <div style="font-weight:700;font-size:.88rem;margin-top:4px;color:#2c4652;">Audio Call</div>
+                            <div style="font-size:.75rem;color:#627180;">Voice only</div>
+                        </label>
+                        <label style="cursor:pointer;border:2px solid #e7ddd6;border-radius:10px;padding:12px 8px;text-align:center;transition:border-color .2s;" id="lbl-video_call">
+                            <input type="radio" name="session_type" value="video_call" style="display:none;" onchange="updateSessionType(this)">
+                            <div style="font-size:1.5rem;">🎥</div>
+                            <div style="font-weight:700;font-size:.88rem;margin-top:4px;color:#2c4652;">Video Call</div>
+                            <div style="font-size:.75rem;color:#627180;">Camera &amp; voice</div>
+                        </label>
                     </div>
                 </div>
                 <div class="form-group">
@@ -282,10 +306,24 @@ function goToStep(step) {
         const d = document.getElementById('datePicker').value;
         document.getElementById('summaryDate').textContent = d ? new Date(d + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '';
         document.getElementById('summaryTime').textContent = selectedTime || '';
+        // Session type summary
+        const checked = document.querySelector('input[name="session_type"]:checked');
+        const typeLabels = { text_chat: '💬 Text Chat', audio_call: '🎙 Audio Call', video_call: '🎥 Video Call' };
+        document.getElementById('summaryType').textContent = checked ? (typeLabels[checked.value] || checked.value) : '';
     }
 }
 
 function pad2(n) { return String(n).padStart(2, '0'); }
+
+function updateSessionType(radio) {
+    ['text_chat','audio_call','video_call'].forEach(v => {
+        const lbl = document.getElementById('lbl-' + v);
+        if (lbl) lbl.style.borderColor = v === radio.value ? '#4da3a9' : '#e7ddd6';
+    });
+}
+// Highlight default selected (text_chat)
+updateSessionType({ value: 'text_chat' });
+
 
 function formatTime12(hhmm) {
     const [h, m] = hhmm.split(':').map(Number);

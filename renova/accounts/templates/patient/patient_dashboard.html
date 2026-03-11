@@ -741,62 +741,6 @@
         box-shadow: 0 8px 20px rgba(0,0,0,0.2);
     }
 
-    /* Resources Highlight Section */
-    .resources-highlight {
-        background: linear-gradient(135deg, #fff9f0 0%, #f0fafa 100%);
-        border: 1px solid #e7ddd6;
-        border-radius: 18px;
-        padding: 24px;
-        margin-top: 16px;
-    }
-
-    .resources-highlight h3 {
-        margin: 0 0 16px;
-        font-size: 1.15rem;
-        color: #2c4652;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .resources-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 14px;
-    }
-
-    .resource-card {
-        background: white;
-        border: 1px solid #e7f0f1;
-        border-radius: 14px;
-        padding: 18px;
-        text-align: center;
-        transition: transform 0.2s, box-shadow 0.2s;
-        cursor: pointer;
-    }
-
-    .resource-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 24px rgba(0,0,0,0.08);
-    }
-
-    .resource-icon {
-        font-size: 2.2rem;
-        margin-bottom: 10px;
-    }
-
-    .resource-card h4 {
-        margin: 0 0 6px;
-        font-size: 0.95rem;
-        color: #2c4652;
-    }
-
-    .resource-card p {
-        margin: 0;
-        font-size: 0.82rem;
-        color: #657482;
-    }
-
     /* Self-Care Reminder */
     .selfcare-reminder {
         background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
@@ -842,9 +786,6 @@
         }
         .chatbot-features {
             justify-content: center;
-        }
-        .resources-grid {
-            grid-template-columns: repeat(2, 1fr);
         }
         .selfcare-reminder {
             flex-direction: column;
@@ -1131,36 +1072,6 @@
             <a href="{% url 'accounts:find_therapist' %}" style="display:inline-block;margin-top:10px;">View all therapists</a>
         </section>
 
-        <section class="section-card">
-            <h3>Recommended For You</h3>
-            <p>Personalized support based on your {{ category_display }} category.</p>
-
-            <ul class="mini-list">
-                {% if mcq.category == 'anxiety' %}
-                <li>🎧 8-minute grounding audio for anxiety relief</li>
-                <li>🧠 CBT worksheet: challenge anxious thought loops</li>
-                <li>📘 Progressive muscle relaxation guide</li>
-                {% elif mcq.category == 'depression' %}
-                <li>🌞 Daily mood tracking and journaling template</li>
-                <li>📘 Behavioral activation: small steps to motivation</li>
-                <li>🧠 Cognitive reframing exercises for low mood</li>
-                {% elif mcq.category == 'stress' %}
-                <li>🧘 10-minute guided meditation for stress</li>
-                <li>📘 Time management & boundary-setting worksheet</li>
-                <li>🎵 Calming soundscape playlist for wind-down</li>
-                {% elif mcq.category == 'ptsd' %}
-                <li>🛡️ Grounding techniques for flashbacks</li>
-                <li>📘 EMDR self-help overview guide</li>
-                <li>🧠 Trauma-informed breathing exercises</li>
-                {% else %}
-                <li>🎧 8-minute grounding audio for relaxation</li>
-                <li>📘 Sleep reset checklist for better night routine</li>
-                <li>🧠 General wellness self-assessment tools</li>
-                {% endif %}
-            </ul>
-
-            <a href="{% url 'accounts:patient_resources' %}">Open resources</a>
-        </section>
     </div>
 
     <!-- Mood Check-In -->
@@ -1193,32 +1104,6 @@
         </a>
     </div>
 
-    <!-- Resources Highlight Section -->
-    <div class="resources-highlight">
-        <h3>📚 Healing Resources Just for You</h3>
-        <div class="resources-grid">
-            <a href="{% url 'accounts:patient_resources' %}" class="resource-card" style="text-decoration: none;">
-                <div class="resource-icon">🧘</div>
-                <h4>Guided Meditations</h4>
-                <p>Calm your mind with relaxing audio sessions</p>
-            </a>
-            <a href="{% url 'accounts:patient_resources' %}" class="resource-card" style="text-decoration: none;">
-                <div class="resource-icon">📖</div>
-                <h4>Self-Help Articles</h4>
-                <p>Expert tips for managing {{ category_display|lower }}</p>
-            </a>
-            <a href="{% url 'accounts:patient_resources' %}" class="resource-card" style="text-decoration: none;">
-                <div class="resource-icon">🎧</div>
-                <h4>Audio Exercises</h4>
-                <p>Breathing & grounding techniques</p>
-            </a>
-            <a href="{% url 'accounts:patient_resources' %}" class="resource-card" style="text-decoration: none;">
-                <div class="resource-icon">📝</div>
-                <h4>Worksheets</h4>
-                <p>CBT exercises & mood trackers</p>
-            </a>
-        </div>
-    </div>
 
     <!-- Self-Care Reminder -->
     <div class="selfcare-reminder">
@@ -1348,32 +1233,7 @@
         </div>
     </div>
 
-    <!-- Resources Section -->
-    <div id="resources-section" class="content-section" style="display: none;">
-        <div class="hero-card">
-            <h1>Mental Health Resources</h1>
-            <p>Access helpful tools and educational materials.</p>
-        </div>
-        <div class="content-grid">
-            <div class="section-card">
-                <h3>Self-Help Guides</h3>
-                <div class="mini-list">
-                    <li>Managing Anxiety: A Complete Guide</li>
-                    <li>Depression Recovery Workbook</li>
-                    <li>Mindfulness & Meditation Basics</li>
-                    <li>Sleep Hygiene Tips</li>
-                </div>
-            </div>
-            <div class="section-card">
-                <h3>Crisis Support</h3>
-                <p>24/7 support lines and emergency contacts.</p>
-                <div style="margin-top: 12px; padding: 12px; background: #fef7f0; border: 1px solid #f4a261; border-radius: 8px;">
-                    <strong>Crisis Hotline:</strong> 988<br>
-                    <strong>Text Support:</strong> Text HOME to 741741
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- AI Chatbot Section -->
     <div id="chatbot-section" class="content-section" style="display: none;">

@@ -8,21 +8,60 @@
         width: min(1120px, calc(100% - 40px));
         margin: 28px auto 46px;
     }
+
     .patient-nav {
-        display: flex; flex-wrap: wrap; gap: 10px; padding: 14px;
-        background: #fff; border: 1px solid #e7ddd6; border-radius: 14px;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.04); margin-bottom: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+        margin-bottom: 18px;
     }
-    .patient-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
-    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .patient-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
     .patient-nav a {
-        padding: 9px 14px; border-radius: 999px; border: 1px solid #dce6e8;
-        background: #f7fbfc; color: #2b4e59; font-weight: 600; font-size: 0.92rem;
-        cursor: pointer; transition: all 0.2s ease; text-decoration: none;
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dce6e8;
+        background: #f7fbfc;
+        color: #2b4e59;
+        font-weight: 600;
+        font-size: 0.92rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
     }
-    .patient-nav a.active { background: #4da3a9; color: white; border-color: #4da3a9; }
-    .patient-nav a:hover { background: #e8f4f5; border-color: #4da3a9; }
-    .patient-nav a.active:hover { background: #3c8b90; }
+
+    .patient-nav a.active {
+        background: #4da3a9;
+        color: white;
+        border-color: #4da3a9;
+    }
+
+    .patient-nav a:hover {
+        background: #e8f4f5;
+        border-color: #4da3a9;
+    }
+
+    .patient-nav a.active:hover {
+        background: #3c8b90;
+    }
 
     .find-wrap {
         width: min(960px, calc(100% - 40px));

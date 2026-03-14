@@ -1,6 +1,8 @@
+from django.conf import settings
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
+from django.contrib.auth.models import User
 from django.utils import timezone
 import uuid
 
@@ -480,29 +482,16 @@ class TherapistRating(models.Model):
 	def __str__(self):
 		return f"{self.patient.full_name} rated {self.therapist.full_name}: {self.rating}/5"
 
-
 class VideoWatchHistory(models.Model):
-	"""Track user's video watching history for personalized recommendations."""
-	
-	VIDEO_SOURCE_CHOICES = [
-		("youtube", "YouTube"),
-		("database", "Database Resource"),
-	]
-	
-	user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="watch_history")
-	video_id = models.CharField(max_length=255, help_text="YouTube video ID or resource ID")
-	video_title = models.CharField(max_length=255)
-	video_source = models.CharField(max_length=20, choices=VIDEO_SOURCE_CHOICES, default="youtube")
-	category = models.CharField(max_length=50, help_text="meditation, yoga, breathing, etc.")
-	watched_at = models.DateTimeField(auto_now_add=True)
-	watch_duration = models.PositiveIntegerField(default=0, help_text="Seconds watched")
-	
-	class Meta:
-		ordering = ["-watched_at"]
-		verbose_name = "Video Watch History"
-		
-	def __str__(self):
-		return f"{self.user.full_name} watched {self.video_title[:50]}"
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    video_id = models.CharField(max_length=50)
+    video_title = models.CharField(max_length=255)
+    category = models.CharField(max_length=100)
+    video_source = models.CharField(max_length=50, default="youtube")
+    watched_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.video_title}"
 
 
 class SearchHistory(models.Model):
@@ -520,3 +509,20 @@ class SearchHistory(models.Model):
 		
 	def __str__(self):
 		return f"{self.user.full_name} searched: {self.query}"
+
+class ChatSession(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class ChatMessage(models.Model):
+    session = models.ForeignKey(ChatSession, related_name="messages", on_delete=models.CASCADE)
+    role = models.CharField(max_length=20, choices=(("user","User"),("assistant","Assistant")))
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Meta:
+		ordering = ["created_at"]
+
+def __str__(self):
+	return f"[{self.role}] {self.content[:60]}"

@@ -1,8 +1,11 @@
-from datetime import timedelta, datetime, date
 import json
 import random
+import os
+from datetime import timedelta, datetime, date
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+from dotenv import load_dotenv
+from .models import VideoWatchHistory
+from .youtube_service import get_youtube_videos
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login, logout
@@ -17,17 +20,163 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q, Count, Avg, Sum
+import requests
 
 from .models import (
 	PatientMCQResult, Appointment, Notification,
 	TherapistAvailability, TherapistDayOff, SessionReport, Message,
 	Resource, GuidedExercise, ActivityLog, TherapistRating,
 	VideoWatchHistory, SearchHistory, TherapySession, SessionMessage,
+	ChatSession, ChatMessage,
 )
-from .youtube_service import get_youtube_videos
+
+load_dotenv()
+HF_API_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN")
+HF_MODEL_URL = "https://api-inference.huggingface.co/models/ShenLab/MentalChat16K"
+
+headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
 
 
 User = get_user_model()
+
+MOOD_SCORE_MAP = {
+	"great": 5,
+	"good": 4,
+	"okay": 3,
+	"low": 2,
+	"struggling": 1,
+}
+
+TASK_SUGGESTIONS_BY_CATEGORY = {
+	"anxiety": [
+		"Do 5 minutes of deep breathing exercises",
+		"Write down 3 things you're grateful for",
+		"Take a 10-minute walk without your phone",
+		"Practice 5-4-3-2-1 grounding for 3 minutes",
+		"Stretch your shoulders and jaw for 5 minutes",
+	],
+	"depression": [
+		"Open the curtains and let sunlight in",
+		"Send a message to someone you care about",
+		"Do one small productive task (make bed, wash dishes)",
+		"Play one uplifting song and listen mindfully",
+		"Write one kind sentence to yourself",
+	],
+	"stress": [
+		"Write your top 3 priorities for today",
+		"Take a 15-minute break without screens",
+		"Say 'no' to one non-essential request",
+		"Do a 4-4-6 breathing cycle five times",
+		"Declutter one small area for 10 minutes",
+	],
+	"ptsd": [
+		"Practice your safe space visualization for 5 min",
+		"Ground yourself: feel your feet on the floor",
+		"Write in your journal for 10 minutes",
+		"Name 3 safe people you can reach out to",
+		"Hold a calming object and focus on your senses",
+	],
+	"general": [
+		"Drink 8 glasses of water today",
+		"Get at least 7 hours of sleep tonight",
+		"Do something that makes you smile",
+		"Spend 10 minutes away from social media",
+		"Take a short walk after a meal",
+	],
+}
+
+CHALLENGE_SUGGESTIONS_BY_CATEGORY = {
+	"anxiety": [
+		{"emoji": "🧘", "title": "Complete a 10-min meditation without checking your phone", "points": 50, "label": "Calm Points"},
+		{"emoji": "🌿", "title": "Spend 20 minutes in nature today", "points": 30, "label": "Peace Points"},
+		{"emoji": "📝", "title": "Write down 5 anxious thoughts and reframe them", "points": 40, "label": "Resilience Points"},
+	],
+	"depression": [
+		{"emoji": "🎨", "title": "Create something today - draw, write, or craft", "points": 50, "label": "Joy Points"},
+		{"emoji": "🤝", "title": "Have a real conversation with someone face-to-face", "points": 40, "label": "Connection Points"},
+		{"emoji": "🌅", "title": "Watch sunrise or sunset without distractions", "points": 35, "label": "Hope Points"},
+	],
+	"stress": [
+		{"emoji": "📵", "title": "Go 1 hour without checking work emails", "points": 40, "label": "Balance Points"},
+		{"emoji": "😂", "title": "Watch something funny and laugh out loud", "points": 30, "label": "Relief Points"},
+		{"emoji": "🧩", "title": "Do a 15-minute offline hobby", "points": 35, "label": "Reset Points"},
+	],
+	"ptsd": [
+		{"emoji": "🎧", "title": "Listen to calming music for 15 minutes", "points": 40, "label": "Serenity Points"},
+		{"emoji": "✍️", "title": "Write a letter to your future self", "points": 50, "label": "Hope Points"},
+		{"emoji": "🕯️", "title": "Create a comfort ritual for bedtime", "points": 35, "label": "Safety Points"},
+	],
+	"general": [
+		{"emoji": "🏃", "title": "Get moving - 20 min of any physical activity", "points": 40, "label": "Energy Points"},
+		{"emoji": "📚", "title": "Read for 15 minutes before bed", "points": 30, "label": "Wellness Points"},
+		{"emoji": "🍲", "title": "Prepare one nourishing meal today", "points": 35, "label": "Care Points"},
+	],
+}
+
+
+def _daily_rotation(items, count, seed_value):
+	if not items:
+		return []
+	if len(items) <= count:
+		return items[:]
+	start = seed_value % len(items)
+	rotated = items[start:] + items[:start]
+	return rotated[:count]
+
+
+def _build_mood_trend_data(user):
+	today = date.today()
+	mood_logs = ActivityLog.objects.filter(
+		user=user,
+		activity_type="mood",
+	).order_by("date", "created_at")
+
+	latest_mood_by_day = {}
+	for entry in mood_logs:
+		latest_mood_by_day[entry.date] = entry.mood
+
+	weekly_labels = []
+	weekly_scores = []
+	for offset in range(6, -1, -1):
+		d = today - timedelta(days=offset)
+		weekly_labels.append(d.strftime("%a"))
+		mood_key = latest_mood_by_day.get(d)
+		weekly_scores.append(MOOD_SCORE_MAP.get(mood_key) if mood_key else None)
+
+	monthly_labels = []
+	monthly_scores = []
+	for offset in range(29, -1, -1):
+		d = today - timedelta(days=offset)
+		monthly_labels.append(d.strftime("%d %b"))
+		mood_key = latest_mood_by_day.get(d)
+		monthly_scores.append(MOOD_SCORE_MAP.get(mood_key) if mood_key else None)
+
+	improvement_labels = []
+	improvement_scores = []
+	current_week_start = today - timedelta(days=today.weekday())
+	for week_index in range(11, -1, -1):
+		week_start = current_week_start - timedelta(weeks=week_index)
+		week_values = []
+		for day_offset in range(7):
+			week_day = week_start + timedelta(days=day_offset)
+			mood_key = latest_mood_by_day.get(week_day)
+			if mood_key:
+				week_values.append(MOOD_SCORE_MAP.get(mood_key, 0))
+		improvement_labels.append(week_start.strftime("%d %b"))
+		if week_values:
+			improvement_scores.append(round(sum(week_values) / len(week_values), 2))
+		else:
+			improvement_scores.append(None)
+
+	return {
+		"weekly_labels": weekly_labels,
+		"weekly_scores": weekly_scores,
+		"monthly_labels": monthly_labels,
+		"monthly_scores": monthly_scores,
+		"improvement_labels": improvement_labels,
+		"improvement_scores": improvement_scores,
+		"mood_days_logged": sum(1 for value in monthly_scores if value is not None),
+	}
 
 
 # ─── helpers ────────────────────────────────────────────────────────────────
@@ -230,8 +379,6 @@ def patient_dashboard(request):
 	all_therapists = User.objects.filter(role="therapist", is_active=True)
 	
 	# Daily supportive quotes based on MCQ category
-	import random
-	from datetime import date
 	
 	quotes_by_category = {
 		"anxiety": [
@@ -302,11 +449,26 @@ def patient_dashboard(request):
 	total_appointments = Appointment.objects.filter(patient=request.user).count()
 	
 	# Get today's activities (tasks, challenges, mood)
-	today_activities = ActivityLog.objects.filter(user=request.user, date=today)
+	today_activities = ActivityLog.objects.filter(user=request.user, date=today, completed=True)
 	today_tasks = list(today_activities.filter(activity_type="task").values_list("title", flat=True))
 	today_challenges = list(today_activities.filter(activity_type="challenge").values_list("title", flat=True))
-	today_mood = today_activities.filter(activity_type="mood").first()
+	today_mood = today_activities.filter(activity_type="mood").order_by("-created_at").first()
 	today_mood_value = today_mood.mood if today_mood else ""
+
+	# Build daily activity sets that refresh on the next day rather than immediately.
+	task_pool = TASK_SUGGESTIONS_BY_CATEGORY.get(mcq.category, TASK_SUGGESTIONS_BY_CATEGORY["general"])
+	challenge_pool = CHALLENGE_SUGGESTIONS_BY_CATEGORY.get(mcq.category, CHALLENGE_SUGGESTIONS_BY_CATEGORY["general"])
+	rotation_seed = today.toordinal() + sum(ord(ch) for ch in mcq.category)
+	active_tasks = _daily_rotation(task_pool, 3, rotation_seed)
+	active_challenges = _daily_rotation(challenge_pool, 2, rotation_seed + 7)
+
+	remaining_task = next((task for task in active_tasks if task not in today_tasks), None)
+	remaining_challenge = next((challenge["title"] for challenge in active_challenges if challenge["title"] not in today_challenges), None)
+	today_activity_text = remaining_task or remaining_challenge or "Today's activities are complete. New suggestions will appear tomorrow."
+
+	quick_resources = Resource.objects.filter(
+		Q(category=mcq.category) | Q(category="general")
+	).order_by("order", "-is_featured", "-created_at")[:3]
 	
 	# Wellness tips based on category
 	wellness_tips = {
@@ -350,9 +512,15 @@ def patient_dashboard(request):
 		"completed_sessions": completed_sessions,
 		"total_appointments": total_appointments,
 		"wellness_tips": category_tips,
+		"today_activity_text": today_activity_text,
+		"task_pool": json.dumps(task_pool),
+		"active_tasks": json.dumps(active_tasks),
+		"challenge_pool": json.dumps(challenge_pool),
+		"active_challenges": json.dumps(active_challenges),
 		"today_tasks": json.dumps(today_tasks),
 		"today_challenges": json.dumps(today_challenges),
 		"today_mood": today_mood_value,
+		"quick_resources": quick_resources,
 	}
 	return render(request, "patient/patient_dashboard.html", context)
 
@@ -701,173 +869,304 @@ def reschedule_appointment(request, appointment_id):
 
 
 # ─── patient resources ───────────────────────────────────────────────────────
+RESOURCE_SECTION_CONFIG = [
+	{
+		"slug": "recommended",
+		"label": "Recommended",
+		"icon": "🎯",
+		"title": "Recommended For You",
+		"description": "YouTube videos matched to your current wellness focus.",
+		"tag": "Recommended",
+		"gradient": "linear-gradient(135deg,#f0f4ff 0%,#e0ebff 100%)",
+		"border": "rgba(74,144,226,0.15)",
+		"accent": "#4a90e2",
+		"query_template": "{category} mental wellness tips",
+	},
+	{
+		"slug": "positive",
+		"label": "Positive & Motivational",
+		"icon": "✨",
+		"title": "Positive & Motivational",
+		"description": "Uplifting YouTube content to boost mood and confidence.",
+		"tag": "Motivation",
+		"gradient": "linear-gradient(135deg,#fff8f0 0%,#ffecdb 100%)",
+		"border": "rgba(230,126,34,0.15)",
+		"accent": "#e67e22",
+		"query_template": "positive motivation mental health",
+	},
+	{
+		"slug": "meditation",
+		"label": "Meditation",
+		"icon": "🧘",
+		"title": "Guided Meditation",
+		"description": "Mindfulness and calming meditation videos from YouTube.",
+		"tag": "Meditation",
+		"gradient": "linear-gradient(135deg,#e8f8f5 0%,#d4f3ea 100%)",
+		"border": "rgba(39,174,96,0.12)",
+		"accent": "#27ae60",
+		"query_template": "guided meditation for {category}",
+	},
+	{
+		"slug": "meditation_tutorial",
+		"label": "Meditation Tutorial",
+		"icon": "🎓",
+		"title": "Learn Meditation",
+		"description": "Beginner-friendly meditation tutorials and foundations.",
+		"tag": "Tutorial",
+		"gradient": "linear-gradient(135deg,#f8f9ff 0%,#e6edff 100%)",
+		"border": "rgba(74,144,226,0.12)",
+		"accent": "#5b7cfa",
+		"query_template": "how to meditate for beginners",
+	},
+	{
+		"slug": "yoga",
+		"label": "Yoga",
+		"icon": "🧘‍♂️",
+		"title": "Yoga & Movement",
+		"description": "Gentle yoga flows and body-based grounding practices.",
+		"tag": "Yoga",
+		"gradient": "linear-gradient(135deg,#fef7f0 0%,#fde8d7 100%)",
+		"border": "rgba(233,30,99,0.12)",
+		"accent": "#e91e63",
+		"query_template": "yoga for mental health beginners",
+	},
+	{
+		"slug": "yoga_tutorial",
+		"label": "Yoga Tutorial",
+		"icon": "🎯",
+		"title": "Learn Yoga Fundamentals",
+		"description": "Foundational yoga videos focused on technique and safe form.",
+		"tag": "Tutorial",
+		"gradient": "linear-gradient(135deg,#fff8f0 0%,#ffe8d0 100%)",
+		"border": "rgba(233,30,99,0.12)",
+		"accent": "#f39c12",
+		"query_template": "yoga basics tutorial",
+	},
+	{
+		"slug": "breathing",
+		"label": "Breathing",
+		"icon": "🌬️",
+		"title": "Breathing Exercises",
+		"description": "Quick breathing techniques for calm and stress reduction.",
+		"tag": "Breathing",
+		"gradient": "linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%)",
+		"border": "rgba(33,150,243,0.15)",
+		"accent": "#2196f3",
+		"query_template": "breathing exercises for anxiety",
+	},
+	{
+		"slug": "sleep",
+		"label": "Sleep",
+		"icon": "🌙",
+		"title": "Sleep & Relaxation",
+		"description": "Sleep meditations and calming wind-down sessions.",
+		"tag": "Sleep",
+		"gradient": "linear-gradient(135deg,#f3e5f5 0%,#e1bee7 100%)",
+		"border": "rgba(156,39,176,0.15)",
+		"accent": "#9c27b0",
+		"query_template": "sleep meditation relaxing",
+	},
+	{
+		"slug": "mindfulness",
+		"label": "Mindfulness",
+		"icon": "🌱",
+		"title": "Mindfulness Practice",
+		"description": "Daily awareness and grounding videos to stay present.",
+		"tag": "Mindfulness",
+		"gradient": "linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%)",
+		"border": "rgba(34,197,94,0.15)",
+		"accent": "#22c55e",
+		"query_template": "mindfulness meditation practice",
+	},
+	{
+		"slug": "stress_relief",
+		"label": "Stress Relief",
+		"icon": "🛡️",
+		"title": "Stress Relief",
+		"description": "Evidence-based techniques to lower pressure and reset.",
+		"tag": "Stress Relief",
+		"gradient": "linear-gradient(135deg,#fef3f2 0%,#fecaca 100%)",
+		"border": "rgba(239,68,68,0.15)",
+		"accent": "#ef4444",
+		"query_template": "stress relief techniques",
+	},
+	{
+		"slug": "anxiety_help",
+		"label": "Anxiety Help",
+		"icon": "🤝",
+		"title": "Anxiety Support",
+		"description": "Practical videos for understanding and reducing anxiety.",
+		"tag": "Anxiety Help",
+		"gradient": "linear-gradient(135deg,#f0f4ff 0%,#e0e7ff 100%)",
+		"border": "rgba(99,102,241,0.15)",
+		"accent": "#6366f1",
+		"query_template": "how to reduce anxiety",
+	},
+	{
+		"slug": "self_care",
+		"label": "Self Care",
+		"icon": "💝",
+		"title": "Self-Care Essentials",
+		"description": "Gentle, practical self-care resources for daily wellbeing.",
+		"tag": "Self Care",
+		"gradient": "linear-gradient(135deg,#fdf2f8 0%,#fbcfe8 100%)",
+		"border": "rgba(236,72,153,0.15)",
+		"accent": "#ec4899",
+		"query_template": "self care for mental health",
+	},
+]
+
+
 @login_required
 def patient_resources(request):
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
+	active_type = request.GET.get("type", "all")
+	section_map = {section["slug"]: section for section in RESOURCE_SECTION_CONFIG}
+	valid_types = set(section_map) | {"all"}
+	if active_type not in valid_types:
+		active_type = "all"
 
 	mcq = PatientMCQResult.objects.filter(user=request.user).first()
 	patient_category = mcq.category if mcq else "general"
-	category_display = dict(PatientMCQResult.CATEGORY_CHOICES).get(patient_category, "General Wellness")
+	category_display = mcq.get_category_display() if mcq else "General Wellness"
 
-	active_type = request.GET.get("type", "all")
+	def build_query(section):
+		category_text = category_display.lower()
+		return section["query_template"].format(category=category_text)
 
-	category_queries = {
-		"anxiety":    "anxiety relief calm guided mindfulness mental health",
-		"depression": "depression recovery hope positivity mental health",
-		"stress":     "stress relief relaxation techniques wellness calm",
-		"ptsd":       "trauma healing ptsd recovery guided therapy",
-		"general":    "mental health wellness mindfulness positivity self care",
-	}
-	rec_query = category_queries.get(patient_category, category_queries["general"])
+	sections_to_fetch = RESOURCE_SECTION_CONFIG if active_type == "all" else [section_map[active_type]]
+	videos_by_type = {section["slug"]: [] for section in RESOURCE_SECTION_CONFIG}
 
-	section_queries = {
-		"positive":            "positive thinking motivation inspirational self improvement mental health",
-		"meditation":          "guided meditation mindfulness deep relaxation calm",
-		"meditation_tutorial": "how to meditate beginner meditation tutorial step by step",
-		"yoga":                "yoga for mental health relaxation gentle flow",
-		"yoga_tutorial":       "yoga tutorial beginner poses alignment fundamentals",
-		"breathing":           "breathing exercises anxiety calm pranayama deep breath",
-		"sleep":               "sleep meditation relaxation bedtime calm insomnia relief",
-		"mindfulness":         "mindfulness practice daily awareness present moment",
-		"stress_relief":       "stress relief relaxation techniques stress management calm",
-		"anxiety_help":        "anxiety relief coping techniques calm grounding",
-		"self_care":           "self care mental health routine wellness habits",
-	}
+	max_workers = min(6, len(sections_to_fetch)) or 1
+	with ThreadPoolExecutor(max_workers=max_workers) as executor:
+		future_map = {
+			executor.submit(get_youtube_videos, build_query(section)): section["slug"]
+			for section in sections_to_fetch
+		}
+		for future in as_completed(future_map):
+			slug = future_map[future]
+			try:
+				videos_by_type[slug] = future.result() or []
+			except Exception:
+				videos_by_type[slug] = []
 
-	# Initialise all lists to empty
-	personalized_recommendations = []
-	youtube_recommended = []
-	youtube_positive = []
-	youtube_meditation = []
-	youtube_meditation_tutorial = []
-	youtube_yoga = []
-	youtube_yoga_tutorial = []
-	youtube_breathing = []
-	youtube_sleep = []
-	youtube_mindfulness = []
-	youtube_stress_relief = []
-	youtube_anxiety_help = []
-	youtube_self_care = []
+	personalized_videos = []
+	watch_history = VideoWatchHistory.objects.filter(user=request.user).order_by("-watched_at")[:1]
+	if watch_history:
+		last_category = (watch_history[0].category or patient_category).replace("_", " ")
+		personalized_videos = get_youtube_videos(f"{last_category} mental health support")
 
-	if active_type == "all":
-		# Personalised section from watch/search history
-		recent_watches = VideoWatchHistory.objects.filter(user=request.user).order_by("-watched_at")[:10]
-		recent_searches = SearchHistory.objects.filter(user=request.user).order_by("-searched_at")[:5]
-		watch_cats = list({w.category for w in recent_watches if w.category})
-		search_terms = [s.query for s in recent_searches if s.query]
-		if watch_cats or search_terms:
-			personal_query = " ".join(watch_cats[:3] + search_terms[:2])
-			personalized_recommendations = get_youtube_videos(personal_query, max_results=6)
+	resource_sections = []
+	for section in RESOURCE_SECTION_CONFIG:
+		if active_type != "all" and section["slug"] != active_type:
+			continue
+		videos = videos_by_type.get(section["slug"], [])
+		if not videos:
+			continue
+		resource_sections.append({
+			**section,
+			"videos": videos,
+		})
 
-		# Fetch all sections in parallel
-		to_fetch = {"recommended": rec_query, **section_queries}
-		results = {}
-		with ThreadPoolExecutor(max_workers=6) as executor:
-			future_map = {
-				executor.submit(get_youtube_videos, query, 6): key
-				for key, query in to_fetch.items()
-			}
-			for future in as_completed(future_map):
-				key = future_map[future]
-				try:
-					results[key] = future.result()
-				except Exception:
-					results[key] = []
+	show_personalized = active_type in {"all", "recommended"} and bool(personalized_videos)
+	has_visible_resources = bool(resource_sections) or show_personalized
 
-		youtube_recommended       = results.get("recommended", [])
-		youtube_positive          = results.get("positive", [])
-		youtube_meditation        = results.get("meditation", [])
-		youtube_meditation_tutorial = results.get("meditation_tutorial", [])
-		youtube_yoga              = results.get("yoga", [])
-		youtube_yoga_tutorial     = results.get("yoga_tutorial", [])
-		youtube_breathing         = results.get("breathing", [])
-		youtube_sleep             = results.get("sleep", [])
-		youtube_mindfulness       = results.get("mindfulness", [])
-		youtube_stress_relief     = results.get("stress_relief", [])
-		youtube_anxiety_help      = results.get("anxiety_help", [])
-		youtube_self_care         = results.get("self_care", [])
-
-	elif active_type in section_queries:
-		query = section_queries[active_type]
-		result = get_youtube_videos(query, max_results=12)
-		if active_type == "positive":           youtube_positive = result
-		elif active_type == "meditation":       youtube_meditation = result
-		elif active_type == "meditation_tutorial": youtube_meditation_tutorial = result
-		elif active_type == "yoga":             youtube_yoga = result
-		elif active_type == "yoga_tutorial":    youtube_yoga_tutorial = result
-		elif active_type == "breathing":        youtube_breathing = result
-		elif active_type == "sleep":            youtube_sleep = result
-		elif active_type == "mindfulness":      youtube_mindfulness = result
-		elif active_type == "stress_relief":    youtube_stress_relief = result
-		elif active_type == "anxiety_help":     youtube_anxiety_help = result
-		elif active_type == "self_care":        youtube_self_care = result
-
-	# Guided exercises and DB resources
-	exercises = GuidedExercise.objects.filter(category=patient_category)
-	if not exercises.exists():
-		exercises = GuidedExercise.objects.all()
-
-	relaxation_resources = Resource.objects.filter(category=patient_category)
-	if not relaxation_resources.exists():
-		relaxation_resources = Resource.objects.all()
+	filter_options = [{"slug": "all", "label": "All", "icon": "📋"}] + [
+		{
+			"slug": section["slug"],
+			"label": section["label"],
+			"icon": section["icon"],
+		}
+		for section in RESOURCE_SECTION_CONFIG
+	]
 
 	context = {
-		"patient_category":           patient_category,
-		"category_display":           category_display,
-		"active_type":                active_type,
-		"personalized_recommendations": personalized_recommendations,
-		"youtube_recommended":        youtube_recommended,
-		"youtube_positive":           youtube_positive,
-		"youtube_meditation":         youtube_meditation,
-		"youtube_meditation_tutorial": youtube_meditation_tutorial,
-		"youtube_yoga":               youtube_yoga,
-		"youtube_yoga_tutorial":      youtube_yoga_tutorial,
-		"youtube_breathing":          youtube_breathing,
-		"youtube_sleep":              youtube_sleep,
-		"youtube_mindfulness":        youtube_mindfulness,
-		"youtube_stress_relief":      youtube_stress_relief,
-		"youtube_anxiety_help":       youtube_anxiety_help,
-		"youtube_self_care":          youtube_self_care,
-		"exercises":                  exercises[:8],
-		"relaxation_resources":       relaxation_resources[:6],
-		"unread_notifications":       _unread(request.user),
-		"unread_messages":            _unread_msgs(request.user),
+		"active_type": active_type,
+		"category_display": category_display,
+		"filter_options": filter_options,
+		"resource_sections": resource_sections,
+		"personalized_videos": personalized_videos,
+		"show_personalized": show_personalized,
+		"has_visible_resources": has_visible_resources,
+		"unread_notifications": _unread(request.user),
 	}
 	return render(request, "patient/resources.html", context)
 
-
-@login_required
-def exercise_detail(request, exercise_id):
-	"""View a single guided exercise with step-by-step instructions."""
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
-
-	exercise = get_object_or_404(GuidedExercise, id=exercise_id)
-	mcq = PatientMCQResult.objects.filter(user=request.user).first()
-	patient_category = mcq.category if mcq else "general"
-
-	# Related exercises in the same category
-	related = GuidedExercise.objects.filter(category=exercise.category).exclude(id=exercise.id)[:4]
-
-	context = {
-		"exercise": exercise,
-		"related_exercises": related,
-		"patient_category": patient_category,
-		"unread_notifications": _unread(request.user),
-		"unread_messages": _unread_msgs(request.user),
-	}
-	return render(request, "patient/exercise_detail.html", context)
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 
 @login_required
-def ai_chatbot(request):
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
-	return render(request, "patient/patient_page.html", {
-		"page_title": "AI-Chatbot",
-		"page_text": "Chat with your AI assistant for emotional support and guidance.",
-	})
+@csrf_exempt
+def track_video_watch(request):
+
+    if request.method == "POST":
+
+        data = json.loads(request.body)
+
+        VideoWatchHistory.objects.create(
+            user=request.user,
+            video_id=data.get("video_id"),
+            video_title=data.get("video_title"),
+            category=data.get("category"),
+            video_source=data.get("video_source")
+        )
+
+        return JsonResponse({"status": "success"})
+
+
+@login_required
+def chatbot_page(request, session_id=None):
+    if session_id:
+        chat_session = get_object_or_404(ChatSession, id=session_id, user=request.user)
+        chat_messages = chat_session.messages.all()
+    else:
+        chat_session = ChatSession.objects.create(user=request.user)
+        chat_messages = []
+
+    past_sessions = ChatSession.objects.filter(user=request.user).order_by('-created_at')
+    unread_notifications = 0  # Replace with your notifications logic
+
+    return render(request, "patient/ai_chatbot.html", {
+        "chat_session": chat_session,
+        "chat_messages": chat_messages,
+        "past_sessions": past_sessions,
+        "unread_notifications": unread_notifications,
+    })
+
+@csrf_exempt
+@login_required
+def chatbot_send(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request"}, status=400)
+
+    data = json.loads(request.body)
+    session_id = data.get("session_id")
+    message_text = data.get("message", "").strip()
+
+    if not message_text:
+        return JsonResponse({"error": "Message cannot be empty"}, status=400)
+
+    chat_session = get_object_or_404(ChatSession, id=session_id, user=request.user)
+    ChatMessage.objects.create(session=chat_session, role="user", content=message_text)
+
+    payload = {"inputs": f"{message_text}"}
+    response = requests.post(HF_MODEL_URL, headers=headers, json=payload)
+    
+    if response.status_code == 200:
+        hf_data = response.json()
+        reply = hf_data.get("generated_text") or "Sorry, I couldn't generate a response."
+    else:
+        reply = "Sorry, something went wrong with the AI service."
+
+    ChatMessage.objects.create(session=chat_session, role="assistant", content=reply)
+    return JsonResponse({"reply": reply, "session_id": chat_session.id})
+
+@csrf_exempt
+@login_required
+def chatbot_new_session(request):
+    chat_session = ChatSession.objects.create(user=request.user)
+    return JsonResponse({"session_id": chat_session.id})
 
 
 @login_required
@@ -916,6 +1215,7 @@ def patient_profile(request):
 	from django.db.models import Avg
 	avg_mood = session_reports.aggregate(Avg("mood_rating"))["mood_rating__avg"]
 	avg_progress = session_reports.aggregate(Avg("progress_rating"))["progress_rating__avg"]
+	mood_trends = _build_mood_trend_data(request.user)
 	
 	context = {
 		"mcq_results": mcq_results,
@@ -923,12 +1223,20 @@ def patient_profile(request):
 		"completed_sessions": completed_sessions,
 		"upcoming_sessions": upcoming_sessions,
 		"session_reports": session_reports,
+		"patient_reports": session_reports,
 		"appointment_history": appointment_history,
 		"therapists_worked_with": therapists_worked_with,
 		"mood_data": mood_data,
 		"progress_data": progress_data,
 		"avg_mood": round(avg_mood, 1) if avg_mood else None,
 		"avg_progress": round(avg_progress, 1) if avg_progress else None,
+		"weekly_labels": json.dumps(mood_trends["weekly_labels"]),
+		"weekly_scores": json.dumps(mood_trends["weekly_scores"]),
+		"monthly_labels": json.dumps(mood_trends["monthly_labels"]),
+		"monthly_scores": json.dumps(mood_trends["monthly_scores"]),
+		"improvement_labels": json.dumps(mood_trends["improvement_labels"]),
+		"improvement_scores": json.dumps(mood_trends["improvement_scores"]),
+		"mood_days_logged": mood_trends["mood_days_logged"],
 		"unread_notifications": _unread(request.user),
 	}
 	
@@ -963,28 +1271,65 @@ def log_activity(request):
 		return JsonResponse({"error": "Not authorized"}, status=403)
 	
 	try:
-		data = json.loads(request.body)
+		data = json.loads(request.body or "{}")
 		activity_type = data.get("activity_type")
-		title = data.get("title", "")
+		title = data.get("title", "").strip()
 		description = data.get("description", "")
-		mood = data.get("mood", "")
-		points = data.get("points", 0)
+		mood = data.get("mood", "").strip()
+		points = int(data.get("points", 0) or 0)
 		
 		if activity_type not in ["task", "challenge", "mood"]:
 			return JsonResponse({"error": "Invalid activity type"}, status=400)
-		
-		activity = ActivityLog.objects.create(
-			user=request.user,
-			activity_type=activity_type,
-			title=title,
-			description=description,
-			mood=mood,
-			points=points,
-		)
+
+		today = timezone.localdate()
+		if activity_type == "mood":
+			if mood not in MOOD_SCORE_MAP:
+				return JsonResponse({"error": "Invalid mood"}, status=400)
+
+			activity, created = ActivityLog.objects.update_or_create(
+				user=request.user,
+				activity_type="mood",
+				date=today,
+				defaults={
+					"title": "Mood check-in",
+					"description": description or "Daily mood tracking",
+					"mood": mood,
+					"points": max(points, 10),
+					"completed": True,
+				},
+			)
+		else:
+			if not title:
+				return JsonResponse({"error": "Title is required"}, status=400)
+
+			activity, created = ActivityLog.objects.get_or_create(
+				user=request.user,
+				activity_type=activity_type,
+				title=title,
+				date=today,
+				defaults={
+					"description": description,
+					"mood": "",
+					"points": max(points, 0),
+					"completed": True,
+				},
+			)
+
+			if not created:
+				changed = False
+				if not activity.completed:
+					activity.completed = True
+					changed = True
+				if points > activity.points:
+					activity.points = points
+					changed = True
+				if changed:
+					activity.save(update_fields=["completed", "points"])
 		
 		return JsonResponse({
 			"success": True,
 			"activity_id": activity.id,
+			"created": created,
 			"message": "Activity logged successfully"
 		})
 	except json.JSONDecodeError:

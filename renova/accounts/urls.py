@@ -42,8 +42,10 @@ urlpatterns = [
 	path("dashboard/patient/appointments/", views.patient_appointments, name="patient_appointments"),
 	path("dashboard/patient/book/", views.book_appointment, name="book_appointment"),
 	path("dashboard/patient/resources/", views.patient_resources, name="patient_resources"),
-	path("dashboard/patient/resources/exercise/<int:exercise_id>/", views.exercise_detail, name="exercise_detail"),
-	path("dashboard/patient/ai-chatbot/", views.ai_chatbot, name="ai_chatbot"),
+	path("ai-chatbot/", views.chatbot_page, name="ai_chatbot"),
+    path("ai-chatbot/<int:session_id>/", views.chatbot_page, name="chatbot_load_session"),
+    path("ai-chatbot/send/", views.chatbot_send, name="chatbot_send"),
+    path("ai-chatbot/new/", views.chatbot_new_session, name="chatbot_new_session"),
 	path("dashboard/patient/profile/", views.patient_profile, name="patient_profile"),
 	path("dashboard/patient/therapist/<int:therapist_id>/", views.view_therapist_profile, name="view_therapist_profile"),
 	path("dashboard/patient/log-activity/", views.log_activity, name="log_activity"),
@@ -81,5 +83,5 @@ urlpatterns = [
 	path("appointment/<int:appointment_id>/end-session/", views.end_session, name="end_session"),
 
 	# ── api endpoints ──
-	path("api/track-video-watch/", views.track_video_watch, name="track_video_watch"),
+	path("track-video/",views.track_video_watch,name="track_video_watch"),
 ]

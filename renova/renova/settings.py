@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import os
 from pathlib import Path
+from decouple import config
 import decouple
 config = decouple.config
 
@@ -97,7 +98,10 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER', default='noreply@renova.com')
 CONTACT_EMAIL = 'raishelika@gmail.com'
 
-YOUTUBE_API_KEY = config("YOUTUBE_API_KEY", default="")
+YOUTUBE_API_KEY = ""
+
+HF_API_TOKEN = config("HF_API_TOKEN", default="")
+HF_CHAT_MODEL = config("HF_CHAT_MODEL", default="mistralai/Mistral-7B-Instruct-v0.2")
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent

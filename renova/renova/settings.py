@@ -78,11 +78,6 @@ SOCIAL_AUTH_PIPELINE = (
 )
 SOCIAL_AUTH_GOOGLE_OAUTH2_EXTRA_DATA = ['first_name', 'last_name']
 
-# eSewa Settings
-ESEWA_MERCHANT_CODE = "EPAYTEST"
-ESEWA_SECRET_KEY = "8gBm/:&EnhH.1/q"
-ESEWA_PAYMENT_URL = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
-ESEWA_VERIFY_URL = "https://rc-epay.esewa.com.np/api/epay/transaction/status/"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

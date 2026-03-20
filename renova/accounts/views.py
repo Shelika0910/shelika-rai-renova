@@ -21,6 +21,10 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q, Count, Avg, Sum
 import requests
+import uuid
+import hmac
+import hashlib
+import base64
 
 from .models import (
 	PatientMCQResult, Appointment, Notification,
@@ -112,6 +116,16 @@ CHALLENGE_SUGGESTIONS_BY_CATEGORY = {
 		{"emoji": "🍲", "title": "Prepare one nourishing meal today", "points": 35, "label": "Care Points"},
 	],
 }
+
+DURATION_PRICING = {
+	30: 100,
+	60: 200,
+	90: 300,
+}
+
+
+def _session_fee(duration_minutes):
+	return DURATION_PRICING.get(duration_minutes, 200)
 
 
 def _daily_rotation(items, count, seed_value):
@@ -303,6 +317,7 @@ def register_view(request):
 					password=password1,
 				)
 				user.groups.add(Group.objects.get(name=role))
+				user.backend = 'django.contrib.auth.backends.ModelBackend'
 				login(request, user)
 				messages.success(request, "Account created successfully.")
 				return redirect("accounts:dashboard_redirect")
@@ -660,6 +675,7 @@ def patient_appointments(request):
 		"missed_appointments": missed,
 		"requested_appointments": requested,
 		"cancelled_appointments": cancelled,
+		"session_pricing": DURATION_PRICING,
 		"unread_notifications": _unread(request.user),
 	}
 	return render(request, "patient/patient_appointments.html", context)
@@ -678,6 +694,8 @@ def book_appointment(request):
 		date_str = request.POST.get("appointment_date")
 		time_str = request.POST.get("appointment_time")
 		duration = int(request.POST.get("duration", 60))
+		if duration not in {30, 60, 90}:
+			duration = 60
 		patient_notes = request.POST.get("patient_notes", "")
 		session_type = request.POST.get("session_type", "text_chat")
 		valid_types = {"text_chat", "audio_call", "video_call"}
@@ -710,16 +728,12 @@ def book_appointment(request):
 			duration_minutes=duration,
 			patient_notes=patient_notes,
 			session_type=session_type,
+			fee_amount=_session_fee(duration),
+			payment_status="pending",
+			refund_status="none",
 		)
-		_notify(
-			therapist, "appointment_requested",
-			"New Appointment Request",
-			f"{request.user.full_name} has requested an appointment on {dt.strftime('%b %d, %Y at %I:%M %p')}.",
-			apt,
-			"/dashboard/therapist/appointments/"
-		)
-		messages.success(request, "Appointment request submitted successfully!")
-		return redirect("accounts:patient_appointments")
+		messages.info(request, "Appointment slot reserved. Please complete eSewa payment to send your request to the therapist.")
+		return redirect("accounts:esewa_payment", appointment_id=apt.pk)
 
 	# Build availability + booked data for every therapist, keyed by therapist pk
 	allAvail = {}  # {therapist_id: {day_of_week: [{start, end}]}}
@@ -757,9 +771,66 @@ def book_appointment(request):
 		"all_avail_json": json.dumps(allAvail),
 		"all_booked_json": json.dumps(allBooked),
 		"preselected_therapist_id": preselected,
+		"session_pricing": DURATION_PRICING,
 		"unread_notifications": _unread(request.user),
 	}
 	return render(request, "patient/book_appointment.html", context)
+
+
+@login_required
+def esewa_payment(request, appointment_id):
+	"""Simple eSewa checkout simulation page for an appointment."""
+	apt = get_object_or_404(Appointment, pk=appointment_id, patient=request.user)
+	if apt.status not in ["requested", "confirmed"]:
+		messages.error(request, "This appointment can no longer be paid.")
+		return redirect("accounts:patient_appointments")
+
+	if apt.payment_status == "paid":
+		messages.info(request, "Payment already completed for this appointment.")
+		return redirect("accounts:patient_appointments")
+
+	context = {
+		"appointment": apt,
+		"unread_notifications": _unread(request.user),
+	}
+	return render(request, "patient/esewa_payment.html", context)
+
+
+@login_required
+def esewa_payment_success(request, appointment_id):
+	"""Marks appointment payment as paid and sends request to therapist."""
+	apt = get_object_or_404(Appointment, pk=appointment_id, patient=request.user)
+	if apt.payment_status == "paid":
+		messages.info(request, "Payment already completed.")
+		return redirect("accounts:patient_appointments")
+
+	if apt.status not in ["requested", "confirmed"]:
+		messages.error(request, "This appointment is no longer payable.")
+		return redirect("accounts:patient_appointments")
+
+	apt.payment_status = "paid"
+	apt.paid_at = timezone.now()
+	apt.payment_method = "esewa"
+	apt.payment_reference = f"ESEWA-{apt.pk}-{int(timezone.now().timestamp())}"
+	apt.save(update_fields=["payment_status", "paid_at", "payment_method", "payment_reference", "updated_at"])
+
+	_notify(
+		apt.therapist, "appointment_requested",
+		"New Paid Appointment Request",
+		f"{request.user.full_name} paid NPR {apt.fee_amount} via eSewa and requested an appointment on {apt.date_time.strftime('%b %d, %Y at %I:%M %p')}.",
+		apt,
+		"/dashboard/therapist/appointments/"
+	)
+	messages.success(request, "Payment successful. Your request is now waiting for therapist approval.")
+	return redirect("accounts:patient_appointments")
+
+
+@login_required
+def esewa_payment_failed(request, appointment_id):
+	"""Handles failed or cancelled eSewa checkout attempt."""
+	apt = get_object_or_404(Appointment, pk=appointment_id, patient=request.user)
+	messages.warning(request, "Payment was not completed. You can retry eSewa payment from your appointments page.")
+	return redirect("accounts:patient_appointments")
 
 
 @login_required
@@ -774,18 +845,49 @@ def cancel_appointment(request, appointment_id):
 		reason = request.POST.get("cancellation_reason", "")
 		apt.status = "cancelled"
 		apt.cancellation_reason = reason
+
+		# Refund policy:
+		# - Patient cancellation > 24h before session: refund.
+		# - Patient cancellation within 24h / no-show: no refund.
+		# - Therapist-side cancellation: refund paid amount.
+		if apt.payment_status == "paid":
+			now = timezone.now()
+			hours_left = (apt.date_time - now).total_seconds() / 3600
+			if request.user == apt.therapist:
+				apt.payment_status = "refunded"
+				apt.refund_status = "refunded"
+				apt.refunded_at = now
+			elif hours_left > 24:
+				apt.payment_status = "refunded"
+				apt.refund_status = "refunded"
+				apt.refunded_at = now
+			else:
+				apt.refund_status = "not_eligible"
+		elif apt.payment_status == "pending":
+			apt.refund_status = "none"
+
 		apt.save()
 		# Notify the other party
 		other = apt.therapist if request.user == apt.patient else apt.patient
 		redirect_path = "/dashboard/patient/appointments/" if other.role == "patient" else "/dashboard/therapist/appointments/"
+		refund_text = ""
+		if apt.refund_status == "refunded":
+			refund_text = f" Payment refund of NPR {apt.fee_amount} has been initiated."
+		elif apt.refund_status == "not_eligible":
+			refund_text = " Refund is not eligible because cancellation happened within 24 hours of the appointment time."
 		_notify(
 			other, "appointment_cancelled",
 			"Appointment Cancelled",
-			f"Your appointment on {apt.date_time.strftime('%b %d, %Y at %I:%M %p')} has been cancelled by {request.user.full_name}. Reason: {reason or 'Not specified'}",
+			f"Your appointment on {apt.date_time.strftime('%b %d, %Y at %I:%M %p')} has been cancelled by {request.user.full_name}. Reason: {reason or 'Not specified'}.{refund_text}",
 			apt,
 			redirect_path
 		)
-		messages.success(request, "Appointment cancelled.")
+		if apt.refund_status == "refunded":
+			messages.success(request, f"Appointment cancelled. Refund of NPR {apt.fee_amount} has been processed.")
+		elif apt.refund_status == "not_eligible":
+			messages.warning(request, "Appointment cancelled. Refund not allowed for cancellations within 24 hours.")
+		else:
+			messages.success(request, "Appointment cancelled.")
 		return redirect("accounts:patient_appointments" if request.user == apt.patient else "accounts:therapist_appointments")
 
 	return render(request, "appointments/cancel_appointment.html", {
@@ -1356,6 +1458,30 @@ def doctor_dashboard(request):
 	completed_sessions = all_apts.filter(status="completed").count()
 	reports_count = SessionReport.objects.filter(therapist=request.user).count()
 
+	month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+	if month_start.month == 12:
+		next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+	else:
+		next_month_start = month_start.replace(month=month_start.month + 1)
+
+	month_eligible = all_apts.filter(
+		status="completed",
+		payment_status="paid",
+		date_time__gte=month_start,
+		date_time__lt=next_month_start,
+	)
+	month_earnings = month_eligible.aggregate(total=Sum("fee_amount"))["total"] or 0
+	month_paid_out = all_apts.filter(
+		therapist_payout_status="paid",
+		therapist_paid_out_at__gte=month_start,
+		therapist_paid_out_at__lt=next_month_start,
+	).aggregate(total=Sum("fee_amount"))["total"] or 0
+	pending_payout_amount = all_apts.filter(
+		status="completed",
+		payment_status="paid",
+		therapist_payout_status="pending",
+	).aggregate(total=Sum("fee_amount"))["total"] or 0
+
 	context = {
 		"unread_notifications": _unread(request.user),
 		"unread_messages": _unread_msgs(request.user),
@@ -1365,6 +1491,9 @@ def doctor_dashboard(request):
 		"total_patients": total_patients,
 		"completed_sessions": completed_sessions,
 		"reports_count": reports_count,
+		"month_earnings": month_earnings,
+		"month_paid_out": month_paid_out,
+		"pending_payout_amount": pending_payout_amount,
 	}
 	return render(request, "therapist/therapist_dashboard.html", context)
 
@@ -1383,6 +1512,17 @@ def therapist_appointments(request):
 	missed = all_apts.filter(date_time__lt=now, status__in=["requested", "confirmed"]).order_by("-date_time")
 	requested = all_apts.filter(status="requested").order_by("-created_at")
 	cancelled = all_apts.filter(status__in=["cancelled", "rescheduled"]).order_by("-updated_at")
+	current_month_completed_paid = all_apts.filter(
+		status="completed",
+		payment_status="paid",
+		date_time__year=now.year,
+		date_time__month=now.month,
+	).aggregate(total=Sum("fee_amount"))["total"] or 0
+	pending_payout = all_apts.filter(
+		status="completed",
+		payment_status="paid",
+		therapist_payout_status="pending",
+	).aggregate(total=Sum("fee_amount"))["total"] or 0
 
 	context = {
 		"upcoming_appointments": upcoming,
@@ -1390,6 +1530,8 @@ def therapist_appointments(request):
 		"missed_appointments": missed,
 		"requested_appointments": requested,
 		"cancelled_appointments": cancelled,
+		"current_month_completed_paid": current_month_completed_paid,
+		"pending_payout": pending_payout,
 		"unread_notifications": _unread(request.user),
 	}
 	return render(request, "therapist/therapist_appointments.html", context)
@@ -1401,6 +1543,9 @@ def confirm_appointment(request, appointment_id):
 	apt = get_object_or_404(Appointment, pk=appointment_id, therapist=request.user)
 	if apt.status != "requested":
 		messages.error(request, "This appointment cannot be confirmed.")
+		return redirect("accounts:therapist_appointments")
+	if apt.payment_status != "paid":
+		messages.error(request, "This request cannot be approved until payment is completed.")
 		return redirect("accounts:therapist_appointments")
 
 	apt.status = "confirmed"
@@ -1427,15 +1572,23 @@ def reject_appointment(request, appointment_id):
 	reason = request.POST.get("rejection_reason", "") if request.method == "POST" else ""
 	apt.status = "rejected"
 	apt.cancellation_reason = reason
+	if apt.payment_status == "paid":
+		apt.payment_status = "refunded"
+		apt.refund_status = "refunded"
+		apt.refunded_at = timezone.now()
 	apt.save()
+	refund_line = f" A refund of NPR {apt.fee_amount} has been initiated via eSewa." if apt.refund_status == "refunded" else ""
 	_notify(
 		apt.patient, "appointment_rejected",
 		"Appointment Request Declined",
-		f"Your appointment request with {request.user.full_name} on {apt.date_time.strftime('%b %d, %Y at %I:%M %p')} was declined. {('Reason: ' + reason) if reason else 'Please try another time.'}",
+		f"Your appointment request with {request.user.full_name} on {apt.date_time.strftime('%b %d, %Y at %I:%M %p')} was declined. {('Reason: ' + reason) if reason else 'Please try another time.'}{refund_line}",
 		apt,
 		"/dashboard/patient/appointments/"
 	)
-	messages.success(request, "Appointment request declined.")
+	if apt.refund_status == "refunded":
+		messages.success(request, "Appointment request declined and payment refunded.")
+	else:
+		messages.success(request, "Appointment request declined.")
 	return redirect("accounts:therapist_appointments")
 
 
@@ -1443,10 +1596,47 @@ def reject_appointment(request, appointment_id):
 def complete_appointment(request, appointment_id):
 	"""Therapist marks appointment as completed."""
 	apt = get_object_or_404(Appointment, pk=appointment_id, therapist=request.user)
+	if apt.payment_status != "paid":
+		messages.error(request, "Only paid appointments can be marked as completed.")
+		return redirect("accounts:therapist_appointments")
 	apt.status = "completed"
+	apt.therapist_payout_status = "pending"
 	apt.save()
 	messages.success(request, "Session marked as completed.")
 	return redirect("accounts:therapist_appointments")
+
+
+@login_required
+def process_monthly_payout(request):
+	"""Marks eligible completed sessions as paid out to therapist."""
+	if not request.user.groups.filter(name="doctor").exists():
+		return redirect("accounts:patient_dashboard")
+
+	if request.method != "POST":
+		return redirect("accounts:doctor_dashboard")
+
+	now = timezone.now()
+	paid_count = 0
+	paid_total = 0
+	eligible_qs = Appointment.objects.filter(
+		therapist=request.user,
+		status="completed",
+		payment_status="paid",
+		therapist_payout_status="pending",
+	)
+	for apt in eligible_qs:
+		apt.therapist_payout_status = "paid"
+		apt.therapist_paid_out_at = now
+		apt.save(update_fields=["therapist_payout_status", "therapist_paid_out_at", "updated_at"])
+		paid_count += 1
+		paid_total += apt.fee_amount
+
+	if paid_count:
+		messages.success(request, f"Payout processed for {paid_count} session(s). Total NPR {paid_total}.")
+	else:
+		messages.info(request, "No eligible completed paid sessions for payout right now.")
+
+	return redirect("accounts:doctor_dashboard")
 
 
 # ─── session reports ────────────────────────────────────────────────────────

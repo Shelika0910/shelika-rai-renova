@@ -81,7 +81,7 @@
 
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 14px;
         margin-bottom: 18px;
     }
@@ -287,6 +287,19 @@
                 <small>Completed Sessions</small>
                 <strong>{{ completed_sessions }}</strong>
             </article>
+            <article class="stat">
+                <small>This Month Earnings</small>
+                <strong>NPR {{ month_earnings }}</strong>
+            </article>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;align-items:center;margin-top:-4px;margin-bottom:14px;flex-wrap:wrap;">
+            <span style="background:#f8fdfd;border:1px solid #c9e8ea;padding:7px 12px;border-radius:999px;font-size:.88rem;color:#2c4652;">Pending payout: NPR {{ pending_payout_amount }}</span>
+            <span style="background:#f0f7ff;border:1px solid #c8dcff;padding:7px 12px;border-radius:999px;font-size:.88rem;color:#1e4f86;">Paid out this month: NPR {{ month_paid_out }}</span>
+            <form method="post" action="{% url 'accounts:process_monthly_payout' %}">
+                {% csrf_token %}
+                <button type="submit" style="padding:8px 14px;border:none;border-radius:10px;background:#4da3a9;color:#fff;font-weight:700;cursor:pointer;">Process Payout</button>
+            </form>
         </div>
 
         <div class="content-grid">

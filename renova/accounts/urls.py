@@ -41,6 +41,9 @@ urlpatterns = [
 	path("dashboard/patient/find-therapist/", views.find_therapist, name="find_therapist"),
 	path("dashboard/patient/appointments/", views.patient_appointments, name="patient_appointments"),
 	path("dashboard/patient/book/", views.book_appointment, name="book_appointment"),
+	path("dashboard/patient/appointment/<int:appointment_id>/payment/", views.esewa_payment, name="esewa_payment"),
+	path("dashboard/patient/appointment/<int:appointment_id>/payment/success/", views.esewa_payment_success, name="esewa_payment_success"),
+	path("dashboard/patient/appointment/<int:appointment_id>/payment/failed/", views.esewa_payment_failed, name="esewa_payment_failed"),
 	path("dashboard/patient/resources/", views.patient_resources, name="patient_resources"),
 	path("ai-chatbot/", views.chatbot_page, name="ai_chatbot"),
     path("ai-chatbot/<int:session_id>/", views.chatbot_page, name="chatbot_load_session"),
@@ -70,6 +73,7 @@ urlpatterns = [
 	path("dashboard/therapist/clients/", views.client_list, name="client_list"),
 	path("dashboard/therapist/clients/<int:client_id>/", views.client_profile, name="client_profile"),
 	path("dashboard/therapist/profile/", views.therapist_profile, name="therapist_profile"),
+	path("dashboard/therapist/payout/process/", views.process_monthly_payout, name="process_monthly_payout"),
 
 	# ── messaging ──
 	path("messages/", views.inbox, name="inbox"),

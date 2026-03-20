@@ -54,12 +54,21 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 	role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="patient")
 	specialization = models.CharField(
 		max_length=30, choices=SPECIALIZATION_CHOICES, default="", blank=True,
-		help_text="Therapist specialization (only for doctors)",
+		help_text="Therapist specialization (only for therapists)",
 	)
 	phone = models.CharField(max_length=20, blank=True, default="")
 	bio = models.TextField(blank=True, default="", help_text="Short bio or about me")
 	profile_image = models.ImageField(upload_to="profile_images/", blank=True, null=True)
-	is_verified = models.BooleanField(default=False)
+	is_approved = models.BooleanField(default=False)
+	rejected = models.BooleanField(default=False)
+	rejection_reason = models.TextField(blank=True, null=True)
+	approved_by = models.ForeignKey(
+		settings.AUTH_USER_MODEL,
+		on_delete=models.SET_NULL,
+		null=True,
+		blank=True,
+		related_name="approved_therapists",
+	)
 	is_active = models.BooleanField(default=True)
 	is_staff = models.BooleanField(default=False)
 	date_joined = models.DateTimeField(default=timezone.now)
@@ -155,6 +164,21 @@ class Appointment(models.Model):
 		("rescheduled", "Rescheduled"),
 		("rejected", "Rejected"),
 	]
+	PAYMENT_STATUS_CHOICES = [
+		("pending", "Pending"),
+		("paid", "Paid"),
+		("refunded", "Refunded"),
+	]
+	REFUND_STATUS_CHOICES = [
+		("none", "None"),
+		("eligible", "Eligible"),
+		("not_eligible", "Not Eligible"),
+		("refunded", "Refunded"),
+	]
+	PAYOUT_STATUS_CHOICES = [
+		("pending", "Pending"),
+		("paid", "Paid"),
+	]
 
 	patient = models.ForeignKey(
 		CustomUser, on_delete=models.CASCADE, related_name="patient_appointments"
@@ -179,6 +203,15 @@ class Appointment(models.Model):
 		max_length=20, choices=SESSION_TYPE_CHOICES, default="text_chat",
 		help_text="How the session will be conducted",
 	)
+	fee_amount = models.PositiveIntegerField(default=0, help_text="Session fee in NPR")
+	payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending")
+	payment_method = models.CharField(max_length=20, default="esewa")
+	payment_reference = models.CharField(max_length=100, blank=True)
+	paid_at = models.DateTimeField(null=True, blank=True)
+	refund_status = models.CharField(max_length=20, choices=REFUND_STATUS_CHOICES, default="none")
+	refunded_at = models.DateTimeField(null=True, blank=True)
+	therapist_payout_status = models.CharField(max_length=20, choices=PAYOUT_STATUS_CHOICES, default="pending")
+	therapist_paid_out_at = models.DateTimeField(null=True, blank=True)
 	cancellation_reason = models.TextField(blank=True)
 	rescheduled_from = models.ForeignKey(
 		"self", on_delete=models.SET_NULL, null=True, blank=True, related_name="rescheduled_to"
@@ -209,6 +242,22 @@ class Appointment(models.Model):
 	def end_time(self):
 		from datetime import timedelta
 		return self.date_time + timedelta(minutes=self.duration_minutes)
+
+	@property
+	def session_fee(self):
+		fee_map = {
+			30: 100,
+			60: 200,
+			90: 300,
+		}
+		return fee_map.get(self.duration_minutes, 200)
+
+	@property
+	def is_refund_eligible(self):
+		if self.status != "cancelled":
+			return False
+		remaining = self.date_time - timezone.now()
+		return remaining.total_seconds() > 24 * 3600
 
 
 class TherapySession(models.Model):

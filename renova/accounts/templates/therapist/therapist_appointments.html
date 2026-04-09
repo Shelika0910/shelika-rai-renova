@@ -63,7 +63,7 @@
 
     .stats-bar {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 14px;
         margin-bottom: 18px;
     }
@@ -258,7 +258,7 @@
     <nav class="doctor-nav" aria-label="Doctor Navigation">
         <div class="doctor-nav-row">
             <div class="nav-links">
-                <a href="{% url 'accounts:doctor_dashboard' %}" class="nav-item">Dashboard</a>
+                <a href="{% url 'accounts:therapist_dashboard' %}" class="nav-item">Dashboard</a>
                 <a href="{% url 'accounts:client_list' %}" class="nav-item">Patients</a>
                 <a href="{% url 'accounts:therapist_appointments' %}" class="nav-item active">Appointments</a>
                 <a href="{% url 'accounts:manage_availability' %}" class="nav-item">Availability</a>
@@ -298,6 +298,17 @@
             <div class="stat-number">{{ missed_appointments|length }}</div>
             <div class="stat-label">Missed</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-number">NPR {{ current_month_completed_paid|floatformat:2 }}</div>
+            <div class="stat-label">This Month Earnings</div>
+        </div>
+    </div>
+    <div style="margin:-6px 0 16px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:0.9rem;color:#2c4652;background:#f8fdfd;border:1px solid #c9e8ea;border-radius:999px;padding:6px 12px;">Pending payout: NPR {{ pending_payout|floatformat:2 }}</span>
+        <form method="post" action="{% url 'accounts:process_monthly_payout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Process Therapist Payout</button>
+        </form>
     </div>
 
     <!-- Tabs -->
@@ -330,6 +341,7 @@
                         <div>📅 {{ appointment.date_time|date:"M d, Y" }}</div>
                         <div>🕐 {{ appointment.date_time|time:"g:i A" }}</div>
                         <div>⏱️ {{ appointment.duration_minutes }} min</div>
+                        <div>💳 {% if appointment.payment_status == 'paid' %}Paid{% elif appointment.payment_status == 'refunded' %}Refunded{% else %}Pending Payment{% endif %} · NPR {{ appointment.fee_amount }}</div>
                         <div>📧 {{ appointment.patient.email }}</div>
                         <div>{% if appointment.session_type == 'video_call' %}🎥 Video Call{% elif appointment.session_type == 'audio_call' %}🎙 Audio Call{% else %}💬 Text Chat{% endif %}</div>
                         {% if appointment.patient_notes %}
@@ -346,7 +358,9 @@
                             <a href="{% url 'accounts:confirm_appointment' appointment.pk %}" class="btn btn-success">✓ Confirm</a>
                             <a href="{% url 'accounts:reject_appointment' appointment.pk %}" class="btn btn-warning">✗ Decline</a>
                         {% endif %}
+                        {% if appointment.status == 'confirmed' %}
                         <a href="{% url 'accounts:complete_appointment' appointment.pk %}" class="btn btn-primary">Complete</a>
+                        {% endif %}
                         <a href="{% url 'accounts:cancel_appointment' appointment.pk %}" class="btn btn-danger">Cancel</a>
                     </div>
                 </div>
@@ -375,6 +389,7 @@
                         <div>📅 {{ appointment.date_time|date:"M d, Y" }}</div>
                         <div>🕐 {{ appointment.date_time|time:"g:i A" }}</div>
                         <div>⏱️ {{ appointment.duration_minutes }} min</div>
+                        <div>💳 {% if appointment.payment_status == 'paid' %}Paid{% elif appointment.payment_status == 'refunded' %}Refunded{% else %}Pending Payment{% endif %} · NPR {{ appointment.fee_amount }}</div>
                         <div>📧 {{ appointment.patient.email }}</div>
                         {% if appointment.patient_notes %}
                             <div>📝 {{ appointment.patient_notes|truncatechars:50 }}</div>
@@ -410,6 +425,8 @@
                     <div class="appointment-details">
                         <div>📅 {{ appointment.date_time|date:"M d, Y" }}</div>
                         <div>🕐 {{ appointment.date_time|time:"g:i A" }}</div>
+                        <div>💰 Session Fee: NPR {{ appointment.fee_amount }}</div>
+                        <div>🏦 Payout: {{ appointment.get_therapist_payout_status_display }}</div>
                         <div>📧 {{ appointment.patient.email }}</div>
                         {% if appointment.notes %}
                             <div>📝 {{ appointment.notes|truncatechars:50 }}</div>

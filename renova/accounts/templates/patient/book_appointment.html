@@ -8,21 +8,60 @@
         width: min(1120px, calc(100% - 40px));
         margin: 28px auto 46px;
     }
+
     .patient-nav {
-        display: flex; flex-wrap: wrap; gap: 10px; padding: 14px;
-        background: #fff; border: 1px solid #e7ddd6; border-radius: 14px;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.04); margin-bottom: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+        margin-bottom: 18px;
     }
-    .patient-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
-    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .patient-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
     .patient-nav a {
-        padding: 9px 14px; border-radius: 999px; border: 1px solid #dce6e8;
-        background: #f7fbfc; color: #2b4e59; font-weight: 600; font-size: 0.92rem;
-        cursor: pointer; transition: all 0.2s ease;
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dce6e8;
+        background: #f7fbfc;
+        color: #2b4e59;
+        font-weight: 600;
+        font-size: 0.92rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
     }
-    .patient-nav a.active { background: #4da3a9; color: white; border-color: #4da3a9; }
-    .patient-nav a:hover { background: #e8f4f5; border-color: #4da3a9; }
-    .patient-nav a.active:hover { background: #3c8b90; }
+
+    .patient-nav a.active {
+        background: #4da3a9;
+        color: white;
+        border-color: #4da3a9;
+    }
+
+    .patient-nav a:hover {
+        background: #e8f4f5;
+        border-color: #4da3a9;
+    }
+
+    .patient-nav a.active:hover {
+        background: #3c8b90;
+    } 
 
     .booking-wrap {
         width: min(900px, calc(100% - 40px));
@@ -136,7 +175,7 @@
 <section class="booking-wrap">
     <div class="hero-card">
         <h1>Book an Appointment</h1>
-        <p>Select a therapist, pick a date, and choose a time. You can request any time — the therapist will accept or decline.</p>
+        <p>Select a therapist, pick a date, choose session type, and pay securely before the therapist's approval.</p>
     </div>
 
     <div class="booking-form">
@@ -157,7 +196,7 @@
                 <div class="form-group">
                     <label>Select a Therapist</label>
                     {% for t in therapists %}
-                    <div class="therapist-card" data-id="{{ t.pk }}" onclick="selectTherapist(this, {{ t.pk }})">
+                    <div class="therapist-card" data-id="{{ t.pk }}" onclick="selectTherapist(this, '{{ t.pk }}')">
                         <h4>{{ t.full_name }}</h4>
                         <p>{{ t.get_specialization_display|default:"General Wellness" }} &middot; {{ t.email }}</p>
                         {% if t.bio %}<p style="margin-top:4px; font-style:italic;">{{ t.bio|truncatechars:80 }}</p>{% endif %}
@@ -221,6 +260,7 @@
                         <div><strong>Date:</strong> <span id="summaryDate"></span></div>
                         <div><strong>Time:</strong> <span id="summaryTime"></span></div>
                         <div><strong>Session Type:</strong> <span id="summaryType"></span></div>
+                        <div><strong>Session Fee:</strong> NPR <span id="summaryFee">100</span></div>
                     </div>
                 </div>
                 <div class="form-group">
@@ -246,13 +286,18 @@
                         </label>
                     </div>
                 </div>
+                <div style="background:#f8fdfd;border:1px solid #b8e0e3;border-radius:10px;padding:12px 14px;margin-bottom:14px;color:#2d6a6f;font-size:0.88rem;line-height:1.5;">
+                    <strong>Payment and refund policy:</strong><br>
+                    Duration pricing: 30 min = NPR 100, 60 min = NPR 200, 90 min = NPR 300.<br>
+                    Pay after submitting booking. Therapist approves paid requests only. If therapist declines, full refund is processed. Patient cancellation gets refund only when cancelled more than 24 hours before the session.
+                </div>
                 <div class="form-group">
                     <label for="patientNotes">Notes for the therapist (optional)</label>
                     <textarea name="patient_notes" id="patientNotes" rows="3" placeholder="Describe what you'd like to discuss..."></textarea>
                 </div>
                 <div style="display:flex; gap:10px;">
                     <button type="button" class="submit-btn" style="background:#6c757d;" onclick="goToStep(2)">&larr; Back</button>
-                    <button type="submit" class="submit-btn">Confirm Booking</button>
+                    <button type="submit" class="submit-btn" id="paymentSubmitBtn">Book and Pay</button>
                 </div>
             </div>
         </form>
@@ -269,6 +314,7 @@ let selectedTherapistName = '';
 let selectedTime = null;
 let availRanges = [];
 let bookedTimes = [];
+const pricingByDuration = { 30: 100, 60: 200, 90: 300 };
 
 // Set min date to today
 const today = new Date().toISOString().split('T')[0];
@@ -320,9 +366,23 @@ function updateSessionType(radio) {
         const lbl = document.getElementById('lbl-' + v);
         if (lbl) lbl.style.borderColor = v === radio.value ? '#4da3a9' : '#e7ddd6';
     });
+    updateSummaryFee();
+}
+
+function updateSummaryFee() {
+    const durationSelect = document.querySelector('select[name="duration"]');
+    const duration = durationSelect ? parseInt(durationSelect.value || '60', 10) : 60;
+    const fee = pricingByDuration[duration] || 200;
+    const feeEl = document.getElementById('summaryFee');
+    if (feeEl) feeEl.textContent = String(fee);
 }
 // Highlight default selected (text_chat)
 updateSessionType({ value: 'text_chat' });
+
+const durationSelect = document.querySelector('select[name="duration"]');
+if (durationSelect) {
+    durationSelect.addEventListener('change', updateSummaryFee);
+}
 
 
 function formatTime12(hhmm) {

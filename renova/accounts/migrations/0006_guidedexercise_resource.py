@@ -10,26 +10,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name='GuidedExercise',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('description', models.TextField()),
-                ('category', models.CharField(choices=[('anxiety', 'Anxiety'), ('depression', 'Depression'), ('stress', 'Stress'), ('ptsd', 'PTSD'), ('general', 'General Wellness')], default='general', max_length=30)),
-                ('exercise_type', models.CharField(choices=[('breathing', 'Breathing Exercise'), ('meditation', 'Guided Meditation'), ('relaxation', 'Progressive Relaxation'), ('journaling', 'Journaling Prompt'), ('grounding', 'Grounding Technique'), ('mindfulness', 'Mindfulness Exercise')], default='breathing', max_length=20)),
-                ('difficulty', models.CharField(choices=[('beginner', 'Beginner'), ('intermediate', 'Intermediate'), ('advanced', 'Advanced')], default='beginner', max_length=15)),
-                ('steps', models.JSONField(default=list, help_text='Ordered list of step strings')),
-                ('duration_minutes', models.PositiveIntegerField(default=5)),
-                ('icon', models.CharField(default='🧘', help_text='Emoji icon', max_length=10)),
-                ('video_url', models.URLField(blank=True, help_text='Optional YouTube embed URL')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-            ],
-            options={
-                'verbose_name': 'Guided Exercise',
-                'ordering': ['category', 'exercise_type'],
-            },
-        ),
+
         migrations.CreateModel(
             name='Resource',
             fields=[

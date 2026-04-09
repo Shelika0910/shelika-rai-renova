@@ -1,66 +1,64 @@
 import requests
+import hashlib
 from django.conf import settings
+from django.core.cache import cache
+
+YOUTUBE_URL = "https://www.googleapis.com/youtube/v3/search"
 
 
-def get_youtube_videos(query="mental health wellness", max_results=6):
-    """
-    Fetch YouTube videos via the YouTube Data API v3.
-    Returns a list of dicts: {title, description, video_id, thumbnail}
-    Returns [] on any error.
-    """
+def get_youtube_videos(query, max_results=6):
+    cache_key = "yt:%s:%s" % (
+        hashlib.md5(query.encode("utf-8")).hexdigest(),
+        max_results,
+    )
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    api_key = str(getattr(settings, "YOUTUBE_API_KEY", "")).strip()
+
+    if not api_key:
+        return []
+
+    params = {
+        "part": "snippet",
+        "q": query,
+        "key": api_key,
+        "type": "video",
+        "maxResults": max_results,
+        "safeSearch": "strict",
+        "videoEmbeddable": "true",
+        "videoSyndicated": "true",
+        "relevanceLanguage": "en",
+    }
+
     try:
-        api_key = str(settings.YOUTUBE_API_KEY).strip()
-        if not api_key:
-            print("YouTube API: No API key configured.")
-            return []
-
-        response = requests.get(
-            "https://www.googleapis.com/youtube/v3/search",
-            params={
-                "part": "snippet",
-                "q": query,
-                "type": "video",
-                "maxResults": max_results,
-                "key": api_key,
-                "safeSearch": "strict",
-                "videoEmbeddable": "true",
-                "videoSyndicated": "true",
-                "relevanceLanguage": "en",
-            },
-            timeout=10,
-        )
-
-        if response.status_code != 200:
-            print(f"YouTube API HTTP {response.status_code}: {response.text[:400]}")
-            return []
-
+        response = requests.get(YOUTUBE_URL, params=params, timeout=4)
+        response.raise_for_status()
         data = response.json()
-
-        if "error" in data:
-            err = data["error"]
-            print(f"YouTube API error {err.get('code')}: {err.get('message')}")
-            return []
-
-        videos = []
-        for item in data.get("items", []):
-            try:
-                videos.append({
-                    "title": item["snippet"]["title"],
-                    "description": item["snippet"]["description"],
-                    "video_id": item["id"]["videoId"],
-                    "thumbnail": (
-                        item["snippet"]["thumbnails"].get("medium", {}).get("url")
-                        or item["snippet"]["thumbnails"].get("default", {}).get("url", "")
-                    ),
-                })
-            except (KeyError, TypeError):
-                continue
-
-        return videos
-
-    except requests.exceptions.Timeout:
-        print("YouTube API: Request timed out.")
+    except (requests.RequestException, ValueError, KeyError):
         return []
-    except Exception as e:
-        print(f"YouTube API error: {e}")
+
+    if data.get("error"):
         return []
+
+    videos = []
+    for item in data.get("items", []):
+        try:
+            snippet = item["snippet"]
+            thumbs = snippet.get("thumbnails", {})
+            videos.append({
+                "video_id": item["id"]["videoId"],
+                "title": snippet["title"],
+                "description": snippet.get("description", ""),
+                "thumbnail": (
+                    thumbs.get("high", {}).get("url")
+                    or thumbs.get("medium", {}).get("url")
+                    or thumbs.get("default", {}).get("url", "")
+                ),
+            })
+        except (KeyError, TypeError):
+            continue
+
+    cache.set(cache_key, videos, timeout=600)
+    return videos

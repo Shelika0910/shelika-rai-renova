@@ -1,7 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 
-from . import views
+from . import views, payment_views
 
 app_name = "accounts"
 
@@ -10,6 +10,7 @@ urlpatterns = [
 	path("contact/", views.contact_us, name="contact_us"),
 	path("login/", views.login_view, name="login"),
 	path("register/", views.register_view, name="register"),
+	# path('activate/<uidb64>/<token>/', views.activate, name='activate'),
 	path("logout/", views.logout_view, name="logout"),
 	path("dashboard/", views.dashboard_redirect, name="dashboard_redirect"),
 
@@ -41,9 +42,17 @@ urlpatterns = [
 	path("dashboard/patient/find-therapist/", views.find_therapist, name="find_therapist"),
 	path("dashboard/patient/appointments/", views.patient_appointments, name="patient_appointments"),
 	path("dashboard/patient/book/", views.book_appointment, name="book_appointment"),
+<<<<<<< HEAD
+=======
+	path("dashboard/patient/appointment/<int:appointment_id>/payment/", views.esewa_payment, name="esewa_payment"),
+	path("dashboard/patient/appointment/<int:appointment_id>/payment/success/", views.esewa_payment_success, name="esewa_payment_success"),
+	path("dashboard/patient/appointment/<int:appointment_id>/payment/failed/", views.esewa_payment_failed, name="esewa_payment_failed"),
+>>>>>>> parent of 482fd21 (Admin portal)
 	path("dashboard/patient/resources/", views.patient_resources, name="patient_resources"),
-	path("dashboard/patient/resources/exercise/<int:exercise_id>/", views.exercise_detail, name="exercise_detail"),
-	path("dashboard/patient/ai-chatbot/", views.ai_chatbot, name="ai_chatbot"),
+	path("ai-chatbot/", views.chatbot_page, name="ai_chatbot"),
+    path("ai-chatbot/<int:session_id>/", views.chatbot_page, name="chatbot_load_session"),
+    path("ai-chatbot/send/", views.chatbot_send, name="chatbot_send"),
+    path("ai-chatbot/new/", views.chatbot_new_session, name="chatbot_new_session"),
 	path("dashboard/patient/profile/", views.patient_profile, name="patient_profile"),
 	path("dashboard/patient/therapist/<int:therapist_id>/", views.view_therapist_profile, name="view_therapist_profile"),
 	path("dashboard/patient/log-activity/", views.log_activity, name="log_activity"),
@@ -56,9 +65,12 @@ urlpatterns = [
 	path("appointment/<int:appointment_id>/complete/", views.complete_appointment, name="complete_appointment"),
 	path("appointment/<int:appointment_id>/rate/", views.rate_therapist, name="rate_therapist"),
 
+	# -- Payment --
+	path('payment/initiate/<int:appointment_id>/', payment_views.esewa_payment_initiation, name='esewa_payment_initiation'),
+    path('payment/verify/', payment_views.esewa_payment_verification, name='esewa_payment_verification'),
 
 	# ── therapist ──
-	path("dashboard/doctor/", views.doctor_dashboard, name="doctor_dashboard"),
+	path("dashboard/therapist/", views.therapist_dashboard, name="therapist_dashboard"),
 	path("dashboard/therapist/appointments/", views.therapist_appointments, name="therapist_appointments"),
 	path("dashboard/therapist/availability/", views.manage_availability, name="manage_availability"),
 	path("dashboard/therapist/reports/", views.session_reports, name="session_reports"),
@@ -68,6 +80,8 @@ urlpatterns = [
 	path("dashboard/therapist/clients/", views.client_list, name="client_list"),
 	path("dashboard/therapist/clients/<int:client_id>/", views.client_profile, name="client_profile"),
 	path("dashboard/therapist/profile/", views.therapist_profile, name="therapist_profile"),
+	path("dashboard/therapist/payout/process/", views.process_monthly_payout, name="process_monthly_payout"),
+
 
 	# ── messaging ──
 	path("messages/", views.inbox, name="inbox"),
@@ -81,5 +95,5 @@ urlpatterns = [
 	path("appointment/<int:appointment_id>/end-session/", views.end_session, name="end_session"),
 
 	# ── api endpoints ──
-	path("api/track-video-watch/", views.track_video_watch, name="track_video_watch"),
+	path("track-video/",views.track_video_watch,name="track_video_watch"),
 ]

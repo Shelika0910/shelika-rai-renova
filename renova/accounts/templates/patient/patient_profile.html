@@ -8,21 +8,60 @@
         width: min(1120px, calc(100% - 40px));
         margin: 28px auto 46px;
     }
+
     .patient-nav {
-        display: flex; flex-wrap: wrap; gap: 10px; padding: 14px;
-        background: #fff; border: 1px solid #e7ddd6; border-radius: 14px;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.04); margin-bottom: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+        margin-bottom: 18px;
     }
-    .patient-nav-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; width: 100%; }
-    .nav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .patient-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
     .patient-nav a {
-        padding: 9px 14px; border-radius: 999px; border: 1px solid #dce6e8;
-        background: #f7fbfc; color: #2b4e59; font-weight: 600; font-size: 0.92rem;
-        cursor: pointer; transition: all 0.2s ease; text-decoration: none;
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dce6e8;
+        background: #f7fbfc;
+        color: #2b4e59;
+        font-weight: 600;
+        font-size: 0.92rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
     }
-    .patient-nav a.active { background: #4da3a9; color: white; border-color: #4da3a9; }
-    .patient-nav a:hover { background: #e8f4f5; border-color: #4da3a9; }
-    .patient-nav a.active:hover { background: #3c8b90; }
+
+    .patient-nav a.active {
+        background: #4da3a9;
+        color: white;
+        border-color: #4da3a9;
+    }
+
+    .patient-nav a:hover {
+        background: #e8f4f5;
+        border-color: #4da3a9;
+    }
+
+    .patient-nav a.active:hover {
+        background: #3c8b90;
+    }
 
     .profile-wrap {
         width: min(960px, calc(100% - 40px));
@@ -88,8 +127,24 @@
     }
     .btn-retake:hover { background: #3c8b90; }
 
-    /* Progress Chart */
-    .chart-container { height: 200px; margin: 16px 0; }
+    .mood-trend-card {
+        background: #fff; border: 1px solid #e7ddd6; border-radius: 16px;
+        padding: 24px; box-shadow: 0 6px 16px rgba(0,0,0,0.04); margin-bottom: 18px;
+    }
+    .mood-trend-card h3 { margin: 0 0 6px; color: #2c4652; }
+    .mood-trend-card p { margin: 0 0 16px; color: #627180; font-size: 0.9rem; }
+    .mood-chart-grid {
+        display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px;
+    }
+    .mood-chart-panel {
+        padding: 18px; border: 1px solid #e0f0f1; border-radius: 12px;
+        background: #f8fdfd;
+    }
+    .mood-chart-panel h4 { margin: 0 0 4px; font-size: 0.95rem; color: #2d6a6f; font-weight: 700; }
+    .chart-desc { margin: 0 0 12px; font-size: 0.82rem; color: #7a9aaa; }
+    .mood-scale-legend { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .mood-scale-legend span { font-size: 0.78rem; padding: 2px 8px; border-radius: 12px; background: #eef7f8; color: #2d6a6f; border: 1px solid #c8e8ea; }
+    .mood-chart-canvas { height: 230px; }
 
     /* Session Records */
     .record-list { display: flex; flex-direction: column; gap: 12px; }
@@ -195,6 +250,8 @@
 
     @media (max-width: 768px) {
         .activity-stats { grid-template-columns: repeat(2, 1fr); }
+        .mood-chart-grid { grid-template-columns: 1fr; }
+        .mood-scale-legend { justify-content: center; }
     }
 
     /* Edit Modal */
@@ -383,50 +440,57 @@
 
     {% if therapists_worked_with %}
     <div class="card">
-        <h3>👨‍⚕️ My Therapists</h3>
+        <h3>👨‍⚕️ Chat with my Therapists</h3>
         <div class="therapist-list">
             {% for t in therapists_worked_with %}
-            <div class="therapist-chip">
+            <a href="{% url 'accounts:conversation' t.pk %}" class="therapist-chip" style="text-decoration: none; color: inherit;">
                 <div class="therapist-avatar">{{ t.full_name|first }}</div>
                 <div>
                     <div class="therapist-name">{{ t.full_name }}</div>
                     <div class="therapist-spec">{{ t.get_specialization_display|default:"General" }}</div>
                 </div>
-            </div>
+            </a>
             {% endfor %}
         </div>
     </div>
     {% endif %}
 
-    {% if session_reports %}
-    <div class="card">
-        <h3>📈 Progress Tracking</h3>
-        <div class="chart-container">
-            <canvas id="progressChart"></canvas>
+    <div class="mood-trend-card">
+        <h3>😊 Mood Trends</h3>
+        <p>
+            You have logged mood data on <strong>{{ mood_days_logged }} day{{ mood_days_logged|pluralize }}</strong> in the last month.
+            Scores run from <strong>1 — Struggling</strong> up to <strong>5 — Great</strong>.
+        </p>
+        <div class="mood-scale-legend">
+            <span>1 😔 Struggling</span>
+            <span>2 😞 Low</span>
+            <span>3 😐 Okay</span>
+            <span>4 🙂 Good</span>
+            <span>5 😄 Great</span>
         </div>
-        <div style="display: flex; gap: 20px; justify-content: center; margin-top: 12px; font-size: 0.85rem;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="width: 12px; height: 12px; background: #4da3a9; border-radius: 2px;"></span>
-                <span>Mood Rating</span>
+        <div class="mood-chart-grid">
+            <div class="mood-chart-panel">
+                <h4>📅 This Month — Daily Mood</h4>
+                <p class="chart-desc">Each bar shows how you felt on that day over the last 30 days.</p>
+                <div class="mood-chart-canvas"><canvas id="monthlyMoodChart"></canvas></div>
             </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="width: 12px; height: 12px; background: #f59e0b; border-radius: 2px;"></span>
-                <span>Progress Rating</span>
+            <div class="mood-chart-panel">
+                <h4>📈 Mood Improvement Over Time</h4>
+                <p class="chart-desc">Weekly averages over the past 12 weeks — a rising line means you are improving.</p>
+                <div class="mood-chart-canvas"><canvas id="improvementMoodChart"></canvas></div>
             </div>
         </div>
     </div>
-    {% endif %}
 
     <div class="card">
         <h3>📋 Records</h3>
         <div class="tabs">
             <button class="tab-btn active" onclick="showTab('records')">Session Records</button>
             <button class="tab-btn" onclick="showTab('appointments')">Appointment History</button>
-            <button class="tab-btn" onclick="showTab('assessments')">Assessments</button>
+            <button class="tab-btn" onclick="showTab('reports')">Reports</button>
             <button class="tab-btn" onclick="showTab('activities')">My Activities</button>
         </div>
 
-        <!-- Session Records Tab -->
         <div id="records-tab" class="tab-content active">
             {% if session_reports %}
             <div class="record-list">
@@ -442,14 +506,14 @@
                         <div class="rating-item">
                             <span>😊 Mood:</span>
                             <div class="rating-bar">
-                                <div class="rating-fill mood" style="width: {{ report.mood_rating }}0%;"></div>
+                                <div class="rating-fill mood" data-width="{{ report.mood_rating }}0"></div>
                             </div>
                             <span style="font-weight: 600;">{{ report.mood_rating }}/10</span>
                         </div>
                         <div class="rating-item">
                             <span>📈 Progress:</span>
                             <div class="rating-bar">
-                                <div class="rating-fill progress" style="width: {{ report.progress_rating }}0%;"></div>
+                                <div class="rating-fill progress" data-width="{{ report.progress_rating }}0"></div>
                             </div>
                             <span style="font-weight: 600;">{{ report.progress_rating }}/10</span>
                         </div>
@@ -473,7 +537,6 @@
             {% endif %}
         </div>
 
-        <!-- Appointment History Tab -->
         <div id="appointments-tab" class="tab-content">
             {% if appointment_history %}
             <div class="apt-list">
@@ -496,38 +559,58 @@
             {% endif %}
         </div>
 
-        <!-- Assessments Tab -->
-        <div id="assessments-tab" class="tab-content">
-            {% if mcq_results %}
-            <div class="assessment-list">
-                {% for mcq in mcq_results %}
-                <div class="assessment-card {% if forloop.first %}latest{% endif %}">
-                    <div class="assessment-info">
-                        <div class="assessment-category">
-                            <span class="category-badge">{{ mcq.get_category_display }}</span>
-                            {% if forloop.first %}
-                            <span class="latest-badge">Current</span>
-                            {% endif %}
+        <div id="reports-tab" class="tab-content">
+            {% if patient_reports %}
+            <div class="record-list">
+                {% for report in patient_reports %}
+                <div class="record-card">
+                    <div class="record-header">
+                        <div>
+                            <div class="record-therapist">Dr. {{ report.therapist.full_name }}</div>
+                            <div class="record-date">Report date: {{ report.created_at|date:"F j, Y" }} · Session: {{ report.appointment.date_time|date:"M j, Y" }}</div>
                         </div>
-                        <div class="assessment-date">Completed on {{ mcq.completed_at|date:"F j, Y" }} at {{ mcq.completed_at|time:"g:i A" }}</div>
                     </div>
+                    <div class="record-homework" style="margin-top: 0; margin-bottom: 10px; border-left-color: #2d6a6f;">
+                        <div class="record-homework-title">Session Summary</div>
+                        <div class="record-homework-text">{{ report.summary }}</div>
+                    </div>
+                    {% if report.diagnosis_notes %}
+                    <div class="record-homework" style="margin-bottom: 10px; border-left-color: #f59e0b;">
+                        <div class="record-homework-title">Diagnosis Notes</div>
+                        <div class="record-homework-text">{{ report.diagnosis_notes }}</div>
+                    </div>
+                    {% endif %}
+                    {% if report.treatment_plan %}
+                    <div class="record-homework" style="margin-bottom: 10px; border-left-color: #4da3a9;">
+                        <div class="record-homework-title">Treatment Plan</div>
+                        <div class="record-homework-text">{{ report.treatment_plan }}</div>
+                    </div>
+                    {% endif %}
+                    {% if report.homework %}
+                    <div class="record-homework" style="margin-bottom: 10px; border-left-color: #10b981;">
+                        <div class="record-homework-title">Homework / Exercises</div>
+                        <div class="record-homework-text">{{ report.homework }}</div>
+                    </div>
+                    {% endif %}
+                    {% if report.attachment %}
+                    <div style="margin-top: 6px;">
+                        <a href="{{ report.attachment.url }}" target="_blank" rel="noopener" style="font-size: 0.88rem; font-weight: 600; color: #2d6a6f;">
+                            View Attached Report
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
-            <div style="margin-top: 18px; padding-top: 18px; border-top: 1px solid #e7ddd6;">
-                <a href="{% url 'accounts:patient_mcq' %}" class="btn-retake">Retake Assessment</a>
-            </div>
             {% else %}
             <div class="empty-state">
-                <i>📝</i>
-                <h4>No Assessments Yet</h4>
-                <p>Take the mental health assessment to get personalized therapist recommendations.</p>
-                <a href="{% url 'accounts:patient_mcq' %}" class="btn-retake" style="margin-top: 12px;">Take Assessment</a>
+                <i>📄</i>
+                <h4>No Reports Yet</h4>
+                <p>Your therapist reports will appear here after your completed sessions.</p>
             </div>
             {% endif %}
         </div>
 
-        <!-- Activities Tab -->
         <div id="activities-tab" class="tab-content">
             <div class="activity-stats">
                 <div class="activity-stat">
@@ -551,7 +634,7 @@
                     <div class="activity-stat-label">Total Points</div>
                 </div>
             </div>
-            
+
             <h4 style="margin-bottom: 12px; color: #2d6a6f; font-weight: 600;">Recent Activity</h4>
             {% if activity_logs %}
             <div class="activity-feed">
@@ -583,49 +666,91 @@
     </div>
 </section>
 
-{% if session_reports %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
-const moodData = {{ mood_data|safe }};
-const progressData = {{ progress_data|safe }};
-const labels = moodData.map((_, i) => 'Session ' + (i + 1));
+const monthlyLabels = JSON.parse('{{ monthly_labels|escapejs }}');
+const monthlyScores = JSON.parse('{{ monthly_scores|escapejs }}');
+const improvementLabels = JSON.parse('{{ improvement_labels|escapejs }}');
+const improvementScores = JSON.parse('{{ improvement_scores|escapejs }}');
 
-new Chart(document.getElementById('progressChart'), {
-    type: 'line',
+const moodScaleTicks = {
+    min: 0,
+    max: 5,
+    ticks: {
+        stepSize: 1,
+        callback: function(val) {
+            return ['', 'Struggling', 'Low', 'Okay', 'Good', 'Great'][val] || '';
+        }
+    }
+};
+
+new Chart(document.getElementById('monthlyMoodChart'), {
+    type: 'bar',
     data: {
-        labels: labels,
-        datasets: [
-            {
-                label: 'Mood',
-                data: moodData,
-                borderColor: '#4da3a9',
-                backgroundColor: 'rgba(77, 163, 169, 0.1)',
-                tension: 0.3,
-                fill: true
-            },
-            {
-                label: 'Progress',
-                data: progressData,
-                borderColor: '#f59e0b',
-                backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                tension: 0.3,
-                fill: true
-            }
-        ]
+        labels: monthlyLabels,
+        datasets: [{
+            label: 'Daily Mood',
+            data: monthlyScores,
+            backgroundColor: monthlyScores.map(s =>
+                s >= 4 ? 'rgba(45,160,111,0.75)' :
+                s === 3 ? 'rgba(77,163,169,0.75)' :
+                'rgba(245,158,11,0.75)'
+            ),
+            borderRadius: 6
+        }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-            y: { min: 0, max: 10, ticks: { stepSize: 2 } }
+            y: moodScaleTicks,
+            x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } }
         },
         plugins: {
-            legend: { display: false }
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: ctx => ['','Struggling','Low','Okay','Good','Great'][ctx.raw] || ctx.raw
+                }
+            }
+        }
+    }
+});
+
+new Chart(document.getElementById('improvementMoodChart'), {
+    type: 'line',
+    data: {
+        labels: improvementLabels,
+        datasets: [{
+            label: 'Weekly Average Mood',
+            data: improvementScores,
+            borderColor: '#2d9a6f',
+            backgroundColor: 'rgba(45, 154, 111, 0.12)',
+            fill: true,
+            tension: 0.35,
+            spanGaps: true,
+            pointRadius: 4,
+            pointBackgroundColor: '#2d9a6f'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: moodScaleTicks,
+            x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 6 } }
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: ctx => 'Avg: ' + (['','Struggling','Low','Okay','Good','Great'][Math.round(ctx.raw)] || ctx.raw.toFixed(1))
+                }
+            }
         }
     }
 });
 </script>
-{% endif %}
 
 <script>
 function showTab(tab) {
@@ -653,6 +778,10 @@ document.getElementById('editModal').addEventListener('click', function(e) {
 // Close modal with Escape key
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeEditModal();
+});
+
+document.querySelectorAll('.rating-fill[data-width]').forEach(function (el) {
+    el.style.width = `${el.dataset.width}%`;
 });
 </script>
 {% endblock %}

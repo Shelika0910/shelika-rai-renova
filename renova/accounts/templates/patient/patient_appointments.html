@@ -338,13 +338,7 @@
                     {% endif %}
                 </div>
                 <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-<<<<<<< HEAD
 
-=======
-                    {% if appointment.payment_status != 'paid' %}
-                    <a href="{% url 'accounts:esewa_payment' appointment.id %}" style="padding:6px 14px;background:#d1fae5;color:#065f46;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;">Pay with eSewa</a>
-                    {% endif %}
->>>>>>> parent of 482fd21 (Admin portal)
                     <a href="{% url 'accounts:cancel_appointment' appointment.id %}" style="padding:6px 14px;background:#f8d7da;color:#721c24;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;">Cancel Request</a>
                 </div>
             </div>

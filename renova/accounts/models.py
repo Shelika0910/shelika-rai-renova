@@ -59,21 +59,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 	phone = models.CharField(max_length=20, blank=True, default="")
 	bio = models.TextField(blank=True, default="", help_text="Short bio or about me")
 	profile_image = models.ImageField(upload_to="profile_images/", blank=True, null=True)
-<<<<<<< HEAD
 	is_verified = models.BooleanField(default=False)
 	is_approved = models.BooleanField(default=False)
-=======
-	is_approved = models.BooleanField(default=False)
-	rejected = models.BooleanField(default=False)
-	rejection_reason = models.TextField(blank=True, null=True)
-	approved_by = models.ForeignKey(
-		settings.AUTH_USER_MODEL,
-		on_delete=models.SET_NULL,
-		null=True,
-		blank=True,
-		related_name="approved_therapists",
-	)
->>>>>>> parent of 482fd21 (Admin portal)
 	is_active = models.BooleanField(default=True)
 	is_staff = models.BooleanField(default=False)
 	date_joined = models.DateTimeField(default=timezone.now)
@@ -213,11 +200,7 @@ class Appointment(models.Model):
 	reminder_sent = models.BooleanField(default=False)
 	fee_amount = models.PositiveIntegerField(default=0, help_text="Session fee in NPR")
 	payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending")
-<<<<<<< HEAD
 	payment_method = models.CharField(max_length=20, default="card")
-=======
-	payment_method = models.CharField(max_length=20, default="esewa")
->>>>>>> parent of 482fd21 (Admin portal)
 	payment_reference = models.CharField(max_length=100, blank=True)
 	paid_at = models.DateTimeField(null=True, blank=True)
 	refund_status = models.CharField(max_length=20, choices=REFUND_STATUS_CHOICES, default="none")
@@ -318,6 +301,48 @@ class Payment(Appointment):
 	"""Proxy model to manage payments in the Django admin separately."""
 	class Meta:
 		proxy = True
+
+
+class TherapySession(models.Model):
+	"""Tracks a live online therapy session room."""
+
+	appointment = models.OneToOneField(
+		Appointment, on_delete=models.CASCADE, related_name="therapy_session"
+	)
+	room_code = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+	is_active = models.BooleanField(default=False)
+	started_at = models.DateTimeField(null=True, blank=True)
+	ended_at = models.DateTimeField(null=True, blank=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ["-created_at"]
+
+	def __str__(self):
+		return f"Session: {self.appointment}"
+
+
+class SessionMessage(models.Model):
+	"""Chat messages sent during a live therapy session."""
+
+	MESSAGE_TYPE_CHOICES = [
+		("text", "Text"),
+		("system", "System"),
+	]
+
+	session = models.ForeignKey(
+		TherapySession, on_delete=models.CASCADE, related_name="session_messages"
+	)
+	sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="session_messages")
+	content = models.TextField()
+	message_type = models.CharField(max_length=10, choices=MESSAGE_TYPE_CHOICES, default="text")
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ["created_at"]
+
+	def __str__(self):
+		return f"{self.sender.full_name}: {self.content[:50]}"
 
 
 class SessionReport(models.Model):

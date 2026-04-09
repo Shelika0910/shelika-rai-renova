@@ -76,6 +76,15 @@ SOCIAL_AUTH_PIPELINE = (
 )
 SOCIAL_AUTH_GOOGLE_OAUTH2_EXTRA_DATA = ['first_name', 'last_name']
 
+<<<<<<< HEAD
+=======
+# eSewa Settings
+ESEWA_MERCHANT_CODE = "EPAYTEST"
+ESEWA_SECRET_KEY = "8gBm/:&EnhH.1/q"
+ESEWA_PAYMENT_URL = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
+ESEWA_VERIFY_URL = "https://rc-epay.esewa.com.np/api/epay/transaction/status/"
+
+>>>>>>> parent of 482fd21 (Admin portal)
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

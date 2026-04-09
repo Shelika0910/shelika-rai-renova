@@ -827,6 +827,62 @@ def book_appointment(request):
 
 
 @login_required
+def esewa_payment(request, appointment_id):
+	"""Simple eSewa checkout simulation page for an appointment."""
+	apt = get_object_or_404(Appointment, pk=appointment_id, patient=request.user)
+	if apt.status not in ["requested", "confirmed"]:
+		messages.error(request, "This appointment can no longer be paid.")
+		return redirect("accounts:patient_appointments")
+
+	if apt.payment_status == "paid":
+		messages.info(request, "Payment already completed for this appointment.")
+		return redirect("accounts:patient_appointments")
+
+	context = {
+		"appointment": apt,
+		"unread_notifications": _unread(request.user),
+	}
+	return render(request, "patient/esewa_payment.html", context)
+
+
+@login_required
+def esewa_payment_success(request, appointment_id):
+	"""Marks appointment payment as paid and sends request to therapist."""
+	apt = get_object_or_404(Appointment, pk=appointment_id, patient=request.user)
+	if apt.payment_status == "paid":
+		messages.info(request, "Payment already completed.")
+		return redirect("accounts:patient_appointments")
+
+	if apt.status not in ["requested", "confirmed"]:
+		messages.error(request, "This appointment is no longer payable.")
+		return redirect("accounts:patient_appointments")
+
+	apt.payment_status = "paid"
+	apt.paid_at = timezone.now()
+	apt.payment_method = "esewa"
+	apt.payment_reference = f"ESEWA-{apt.pk}-{int(timezone.now().timestamp())}"
+	apt.save(update_fields=["payment_status", "paid_at", "payment_method", "payment_reference", "updated_at"])
+
+	_notify(
+		apt.therapist, "appointment_requested",
+		"New Paid Appointment Request",
+		f"{request.user.full_name} paid NPR {apt.fee_amount} via eSewa and requested an appointment on {apt.date_time.strftime('%b %d, %Y at %I:%M %p')}.",
+		apt,
+		"/dashboard/therapist/appointments/"
+	)
+	messages.success(request, "Payment successful. Your request is now waiting for therapist approval.")
+	return redirect("accounts:patient_appointments")
+
+
+@login_required
+def esewa_payment_failed(request, appointment_id):
+	"""Handles failed or cancelled eSewa checkout attempt."""
+	apt = get_object_or_404(Appointment, pk=appointment_id, patient=request.user)
+	messages.warning(request, "Payment was not completed. You can retry eSewa payment from your appointments page.")
+	return redirect("accounts:patient_appointments")
+
+
+@login_required
 def cancel_appointment(request, appointment_id):
 	"""Cancel an appointment."""
 	apt = get_object_or_404(Appointment, pk=appointment_id)
@@ -1583,7 +1639,7 @@ def reject_appointment(request, appointment_id):
 		apt.refund_status = "refunded"
 		apt.refunded_at = timezone.now()
 	apt.save()
-	refund_line = f" A refund of NPR {apt.fee_amount} has been initiated." if apt.refund_status == "refunded" else ""
+	refund_line = f" A refund of NPR {apt.fee_amount} has been initiated via eSewa." if apt.refund_status == "refunded" else ""
 	_notify(
 		apt.patient, "appointment_rejected",
 		"Appointment Request Declined",

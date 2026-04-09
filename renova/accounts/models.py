@@ -54,13 +54,26 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 	role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="patient")
 	specialization = models.CharField(
 		max_length=30, choices=SPECIALIZATION_CHOICES, default="", blank=True,
-		help_text="Therapist specialization (only for doctors)",
+		help_text="Therapist specialization (only for therapists)",
 	)
 	phone = models.CharField(max_length=20, blank=True, default="")
 	bio = models.TextField(blank=True, default="", help_text="Short bio or about me")
 	profile_image = models.ImageField(upload_to="profile_images/", blank=True, null=True)
+<<<<<<< HEAD
 	is_verified = models.BooleanField(default=False)
 	is_approved = models.BooleanField(default=False)
+=======
+	is_approved = models.BooleanField(default=False)
+	rejected = models.BooleanField(default=False)
+	rejection_reason = models.TextField(blank=True, null=True)
+	approved_by = models.ForeignKey(
+		settings.AUTH_USER_MODEL,
+		on_delete=models.SET_NULL,
+		null=True,
+		blank=True,
+		related_name="approved_therapists",
+	)
+>>>>>>> parent of 482fd21 (Admin portal)
 	is_active = models.BooleanField(default=True)
 	is_staff = models.BooleanField(default=False)
 	date_joined = models.DateTimeField(default=timezone.now)
@@ -200,7 +213,11 @@ class Appointment(models.Model):
 	reminder_sent = models.BooleanField(default=False)
 	fee_amount = models.PositiveIntegerField(default=0, help_text="Session fee in NPR")
 	payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending")
+<<<<<<< HEAD
 	payment_method = models.CharField(max_length=20, default="card")
+=======
+	payment_method = models.CharField(max_length=20, default="esewa")
+>>>>>>> parent of 482fd21 (Admin portal)
 	payment_reference = models.CharField(max_length=100, blank=True)
 	paid_at = models.DateTimeField(null=True, blank=True)
 	refund_status = models.CharField(max_length=20, choices=REFUND_STATUS_CHOICES, default="none")

@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 from .models import VideoWatchHistory
 from .youtube_service import get_youtube_videos
+from .chatbot_service import get_gemini_response
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login, logout
@@ -20,22 +21,20 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q, Count, Avg, Sum
-import requests
+import uuid
+import hmac
+import hashlib
+import uuid
+from django.urls import reverse
 
 from .models import (
 	PatientMCQResult, Appointment, Notification,
 	TherapistAvailability, TherapistDayOff, SessionReport, Message,
-	Resource, GuidedExercise, ActivityLog, TherapistRating,
-	VideoWatchHistory, SearchHistory, TherapySession, SessionMessage,
+	Resource, ActivityLog, TherapistRating,
+	VideoWatchHistory, TherapySession, SessionMessage,
 	ChatSession, ChatMessage,
+	OnlineAwarenessProgram,
 )
-
-load_dotenv()
-HF_API_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN")
-HF_MODEL_URL = "https://api-inference.huggingface.co/models/ShenLab/MentalChat16K"
-
-headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
-
 
 User = get_user_model()
 
@@ -113,6 +112,16 @@ CHALLENGE_SUGGESTIONS_BY_CATEGORY = {
 	],
 }
 
+DURATION_PRICING = {
+	30: 100,
+	60: 200,
+	90: 300,
+}
+
+
+def _session_fee(duration_minutes):
+	return DURATION_PRICING.get(duration_minutes, 200)
+
 
 def _daily_rotation(items, count, seed_value):
 	if not items:
@@ -181,6 +190,24 @@ def _build_mood_trend_data(user):
 
 # ─── helpers ────────────────────────────────────────────────────────────────
 def _unread(user):
+	from datetime import timedelta
+	from django.utils import timezone
+	
+	if hasattr(user, "role") and user.role == "patient":
+		now = timezone.now()
+		in_15 = now + timedelta(minutes=15)
+		upcoming = Appointment.objects.filter(
+			patient=user, status="confirmed",
+			date_time__lte=in_15, date_time__gt=now
+		)
+		for apt in upcoming:
+			if not Notification.objects.filter(user=user, related_appointment=apt, type="appointment_reminder", title="Session Starting Soon").exists():
+				_notify(
+					user, "appointment_reminder",
+					"Session Starting Soon",
+					f"Your session with {apt.therapist.full_name} is starting in less than 15 minutes.",
+					apt, "/dashboard/patient/appointments/"
+				)
 	return Notification.objects.filter(user=user, is_read=False).count()
 
 def _unread_msgs(user):
@@ -264,8 +291,13 @@ def register_view(request):
 	if request.method == "POST":
 		full_name = request.POST.get("full_name", "").strip()
 		email = request.POST.get("email", "").strip().lower()
-		password1 = request.POST.get("password1", "")
-		password2 = request.POST.get("password2", "")
+		password_val = request.POST.get("password")
+		if password_val:
+			password1 = password_val
+			password2 = password_val
+		else:
+			password1 = request.POST.get("password1", "")
+			password2 = request.POST.get("password2", "")
 		role = request.POST.get("role", "patient").strip().lower()
 		account_role = "therapist" if role == "doctor" else "patient"
 		has_error = False
@@ -285,10 +317,22 @@ def register_view(request):
 		elif not email:
 			messages.error(request, "Email is required.")
 			has_error = True
-		elif Group.objects.filter(name=role).exists() is False:
-			Group.objects.create(name=role)
 
 		if not has_error:
+			try:
+				from email_validator import validate_email, EmailNotValidError
+				# check_deliverability=True ensures the domain actually exists and accepts mail
+				valid = validate_email(email, check_deliverability=False)
+				email = valid.normalized
+			except ImportError:
+				pass
+			except Exception as e:
+				messages.error(request, str(e))
+				has_error = True
+
+		if not has_error:
+			if Group.objects.filter(name=role).exists() is False:
+				Group.objects.create(name=role)
 			if User.objects.filter(email=email).exists():
 				messages.error(request, "An account with this email already exists.")
 			else:
@@ -303,7 +347,7 @@ def register_view(request):
 					password=password1,
 				)
 				user.groups.add(Group.objects.get(name=role))
-				login(request, user)
+				login(request, user, backend="django.contrib.auth.backends.ModelBackend")
 				messages.success(request, "Account created successfully.")
 				return redirect("accounts:dashboard_redirect")
 
@@ -318,8 +362,12 @@ def logout_view(request):
 
 @login_required
 def dashboard_redirect(request):
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
+	if request.user.role == "therapist":
+		if not request.user.is_approved:
+			messages.error(request, "Your account is pending approval from the administrator.")
+			logout(request)
+			return redirect("accounts:login")
+		return redirect("accounts:therapist_dashboard")
 	if not PatientMCQResult.objects.filter(user=request.user).exists():
 		return redirect("accounts:patient_mcq")
 	return redirect("accounts:patient_dashboard")
@@ -328,8 +376,8 @@ def dashboard_redirect(request):
 # ─── patient MCQ ────────────────────────────────────────────────────────────
 @login_required
 def patient_mcq(request):
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
+	if request.user.role == "therapist":
+		return redirect("accounts:therapist_dashboard")
 	if PatientMCQResult.objects.filter(user=request.user).exists():
 		return redirect("accounts:patient_dashboard")
 
@@ -367,8 +415,8 @@ def patient_mcq(request):
 # ─── patient dashboard ──────────────────────────────────────────────────────
 @login_required
 def patient_dashboard(request):
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
+	if request.user.role == "therapist":
+		return redirect("accounts:therapist_dashboard")
 	if not PatientMCQResult.objects.filter(user=request.user).exists():
 		return redirect("accounts:patient_mcq")
 
@@ -443,6 +491,11 @@ def patient_dashboard(request):
 		date_time__gt=timezone.now(),
 		status="confirmed"
 	).order_by("date_time")[:3]
+
+	# Get upcoming awareness programs
+	upcoming_programs = OnlineAwarenessProgram.objects.filter(
+		date__gte=timezone.now().date()
+	).order_by("date", "time")[:3]
 	
 	# Get session stats
 	completed_sessions = Appointment.objects.filter(patient=request.user, status="completed").count()
@@ -467,7 +520,8 @@ def patient_dashboard(request):
 	today_activity_text = remaining_task or remaining_challenge or "Today's activities are complete. New suggestions will appear tomorrow."
 
 	quick_resources = Resource.objects.filter(
-		Q(category=mcq.category) | Q(category="general")
+		Q(category=mcq.category) | Q(category="general"),
+		video_url__icontains="youtube.com"
 	).order_by("order", "-is_featured", "-created_at")[:3]
 	
 	# Wellness tips based on category
@@ -509,6 +563,7 @@ def patient_dashboard(request):
 		"unread_messages": _unread_msgs(request.user),
 		"daily_quote": daily_quote,
 		"upcoming_appointments": upcoming_appointments,
+		"upcoming_programs": upcoming_programs,
 		"completed_sessions": completed_sessions,
 		"total_appointments": total_appointments,
 		"wellness_tips": category_tips,
@@ -527,8 +582,8 @@ def patient_dashboard(request):
 
 @login_required
 def find_therapist(request):
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
+	if request.user.role == "therapist":
+		return redirect("accounts:therapist_dashboard")
 
 	therapists = User.objects.filter(role="therapist", is_active=True)
 
@@ -587,8 +642,8 @@ def find_therapist(request):
 @login_required
 def view_therapist_profile(request, therapist_id):
 	"""Patient-facing therapist profile with availability, booked times, and booking link."""
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
+	if request.user.role == "therapist":
+		return redirect("accounts:therapist_dashboard")
 
 	therapist = get_object_or_404(User, pk=therapist_id, role="therapist", is_active=True)
 	slots = TherapistAvailability.objects.filter(therapist=therapist, is_active=True)
@@ -618,6 +673,11 @@ def view_therapist_profile(request, therapist_id):
 	# Get days off for this therapist
 	days_off = TherapistDayOff.objects.filter(therapist=therapist, date__gte=date.today())
 
+	# Calculate therapist ratings
+	ratings = TherapistRating.objects.filter(therapist=therapist)
+	avg_rating = ratings.aggregate(Avg("rating"))["rating__avg"]
+	rating_count = ratings.count()
+
 	context = {
 		"therapist": therapist,
 		"slots": slots,
@@ -626,6 +686,8 @@ def view_therapist_profile(request, therapist_id):
 		"completed_count": completed_count,
 		"booked_by_date": dict(booked_by_date),
 		"days_off": days_off,
+		"avg_rating": avg_rating or 0.0,
+		"rating_count": rating_count,
 		"unread_notifications": _unread(request.user),
 	}
 	return render(request, "patient/view_therapist_profile.html", context)
@@ -634,8 +696,8 @@ def view_therapist_profile(request, therapist_id):
 # ─── appointment booking (patient) ─────────────────────────────────────────
 @login_required
 def patient_appointments(request):
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
+	if request.user.role == "therapist":
+		return redirect("accounts:therapist_dashboard")
 
 	now = timezone.now()
 	upcoming = Appointment.objects.filter(
@@ -660,6 +722,7 @@ def patient_appointments(request):
 		"missed_appointments": missed,
 		"requested_appointments": requested,
 		"cancelled_appointments": cancelled,
+		"session_pricing": DURATION_PRICING,
 		"unread_notifications": _unread(request.user),
 	}
 	return render(request, "patient/patient_appointments.html", context)
@@ -668,8 +731,8 @@ def patient_appointments(request):
 @login_required
 def book_appointment(request):
 	"""Calendar-based appointment booking for patients."""
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
+	if request.user.role == "therapist":
+		return redirect("accounts:therapist_dashboard")
 
 	therapists = User.objects.filter(role="therapist", is_active=True)
 
@@ -678,6 +741,8 @@ def book_appointment(request):
 		date_str = request.POST.get("appointment_date")
 		time_str = request.POST.get("appointment_time")
 		duration = int(request.POST.get("duration", 60))
+		if duration not in {30, 60, 90}:
+			duration = 60
 		patient_notes = request.POST.get("patient_notes", "")
 		session_type = request.POST.get("session_type", "text_chat")
 		valid_types = {"text_chat", "audio_call", "video_call"}
@@ -710,16 +775,11 @@ def book_appointment(request):
 			duration_minutes=duration,
 			patient_notes=patient_notes,
 			session_type=session_type,
+			fee_amount=_session_fee(duration),
+			payment_status="pending",
 		)
-		_notify(
-			therapist, "appointment_requested",
-			"New Appointment Request",
-			f"{request.user.full_name} has requested an appointment on {dt.strftime('%b %d, %Y at %I:%M %p')}.",
-			apt,
-			"/dashboard/therapist/appointments/"
-		)
-		messages.success(request, "Appointment request submitted successfully!")
-		return redirect("accounts:patient_appointments")
+		
+		return redirect("accounts:esewa_payment_initiation", appointment_id=apt.id)
 
 	# Build availability + booked data for every therapist, keyed by therapist pk
 	allAvail = {}  # {therapist_id: {day_of_week: [{start, end}]}}
@@ -757,9 +817,13 @@ def book_appointment(request):
 		"all_avail_json": json.dumps(allAvail),
 		"all_booked_json": json.dumps(allBooked),
 		"preselected_therapist_id": preselected,
+		"session_pricing": DURATION_PRICING,
 		"unread_notifications": _unread(request.user),
 	}
 	return render(request, "patient/book_appointment.html", context)
+
+
+
 
 
 @login_required
@@ -774,18 +838,49 @@ def cancel_appointment(request, appointment_id):
 		reason = request.POST.get("cancellation_reason", "")
 		apt.status = "cancelled"
 		apt.cancellation_reason = reason
+
+		# Refund policy:
+		# - Patient cancellation > 24h before session: refund.
+		# - Patient cancellation within 24h / no-show: no refund.
+		# - Therapist-side cancellation: refund paid amount.
+		if apt.payment_status == "paid":
+			now = timezone.now()
+			hours_left = (apt.date_time - now).total_seconds() / 3600
+			if request.user == apt.therapist:
+				apt.payment_status = "refunded"
+				apt.refund_status = "refunded"
+				apt.refunded_at = now
+			elif hours_left > 24:
+				apt.payment_status = "refunded"
+				apt.refund_status = "refunded"
+				apt.refunded_at = now
+			else:
+				apt.refund_status = "not_eligible"
+		elif apt.payment_status == "pending":
+			apt.refund_status = "none"
+
 		apt.save()
 		# Notify the other party
 		other = apt.therapist if request.user == apt.patient else apt.patient
 		redirect_path = "/dashboard/patient/appointments/" if other.role == "patient" else "/dashboard/therapist/appointments/"
+		refund_text = ""
+		if apt.refund_status == "refunded":
+			refund_text = f" Payment refund of NPR {apt.fee_amount} has been initiated."
+		elif apt.refund_status == "not_eligible":
+			refund_text = " Refund is not eligible because cancellation happened within 24 hours of the appointment time."
 		_notify(
 			other, "appointment_cancelled",
 			"Appointment Cancelled",
-			f"Your appointment on {apt.date_time.strftime('%b %d, %Y at %I:%M %p')} has been cancelled by {request.user.full_name}. Reason: {reason or 'Not specified'}",
+			f"Your appointment on {apt.date_time.strftime('%b %d, %Y at %I:%M %p')} has been cancelled by {request.user.full_name}. Reason: {reason or 'Not specified'}.{refund_text}",
 			apt,
 			redirect_path
 		)
-		messages.success(request, "Appointment cancelled.")
+		if apt.refund_status == "refunded":
+			messages.success(request, f"Appointment cancelled. Refund of NPR {apt.fee_amount} has been processed.")
+		elif apt.refund_status == "not_eligible":
+			messages.warning(request, "Appointment cancelled. Refund not allowed for cancellations within 24 hours.")
+		else:
+			messages.success(request, "Appointment cancelled.")
 		return redirect("accounts:patient_appointments" if request.user == apt.patient else "accounts:therapist_appointments")
 
 	return render(request, "appointments/cancel_appointment.html", {
@@ -1137,30 +1232,33 @@ def chatbot_page(request, session_id=None):
 @csrf_exempt
 @login_required
 def chatbot_send(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Invalid request"}, status=400)
+	if request.method != "POST":
+		return JsonResponse({"error": "Invalid request"}, status=400)
 
-    data = json.loads(request.body)
-    session_id = data.get("session_id")
-    message_text = data.get("message", "").strip()
+	try:
+		data = json.loads(request.body or "{}")
+	except json.JSONDecodeError:
+		return JsonResponse({"error": "Invalid JSON payload"}, status=400)
 
-    if not message_text:
-        return JsonResponse({"error": "Message cannot be empty"}, status=400)
+	session_id = data.get("session_id")
+	message_text = (data.get("message") or "").strip()
 
-    chat_session = get_object_or_404(ChatSession, id=session_id, user=request.user)
-    ChatMessage.objects.create(session=chat_session, role="user", content=message_text)
+	if not message_text:
+		return JsonResponse({"error": "Message cannot be empty"}, status=400)
 
-    payload = {"inputs": f"{message_text}"}
-    response = requests.post(HF_MODEL_URL, headers=headers, json=payload)
-    
-    if response.status_code == 200:
-        hf_data = response.json()
-        reply = hf_data.get("generated_text") or "Sorry, I couldn't generate a response."
-    else:
-        reply = "Sorry, something went wrong with the AI service."
+	if session_id:
+		chat_session = get_object_or_404(ChatSession, id=session_id, user=request.user)
+		history = chat_session.messages.order_by("created_at")[:10]
+	else:
+		chat_session = ChatSession.objects.create(user=request.user)
+		history = []
 
-    ChatMessage.objects.create(session=chat_session, role="assistant", content=reply)
-    return JsonResponse({"reply": reply, "session_id": chat_session.id})
+	ChatMessage.objects.create(session=chat_session, role="user", content=message_text)
+
+	reply = get_gemini_response(message_text, history)
+
+	ChatMessage.objects.create(session=chat_session, role="assistant", content=reply)
+	return JsonResponse({"reply": reply, "session_id": chat_session.id})
 
 @csrf_exempt
 @login_required
@@ -1171,8 +1269,8 @@ def chatbot_new_session(request):
 
 @login_required
 def patient_profile(request):
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
+	if request.user.role == "therapist":
+		return redirect("accounts:therapist_dashboard")
 	
 	# Handle profile update
 	if request.method == "POST":
@@ -1267,7 +1365,7 @@ def log_activity(request):
 	if request.method != "POST":
 		return JsonResponse({"error": "POST required"}, status=405)
 	
-	if request.user.groups.filter(name="doctor").exists():
+	if request.user.role == "therapist":
 		return JsonResponse({"error": "Not authorized"}, status=403)
 	
 	try:
@@ -1340,23 +1438,57 @@ def log_activity(request):
 
 # ─── therapist dashboard ───────────────────────────────────────────────────
 @login_required
-def doctor_dashboard(request):
-	if not request.user.groups.filter(name="doctor").exists():
+def therapist_dashboard(request):
+	if not request.user.role == "therapist":
 		return redirect("accounts:patient_dashboard")
+		
+	if not request.user.is_approved:
+		messages.error(request, "Your account is not approved to view this page.")
+		return redirect("accounts:login")
 
 	now = timezone.now()
 	today_start = now.replace(hour=0, minute=0, second=0)
 	today_end = now.replace(hour=23, minute=59, second=59)
 
 	all_apts = Appointment.objects.filter(therapist=request.user)
+	
 	today_apts = all_apts.filter(date_time__range=[today_start, today_end], status="confirmed")
 	upcoming_apts = all_apts.filter(date_time__gt=now, status="confirmed").order_by("date_time")[:5]
 	pending_requests = all_apts.filter(status="requested").count()
+	
 	total_patients = all_apts.values("patient").distinct().count()
 	completed_sessions = all_apts.filter(status="completed").count()
 	reports_count = SessionReport.objects.filter(therapist=request.user).count()
 
+	month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+	if month_start.month == 12:
+		next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+	else:
+		next_month_start = month_start.replace(month=month_start.month + 1)
+
+	month_eligible = all_apts.filter(
+		status="completed",
+		payment_status="paid",
+		date_time__gte=month_start,
+		date_time__lt=next_month_start,
+	)
+	month_earnings = (month_eligible.aggregate(total=Sum("fee_amount"))["total"] or 0) * 0.75
+
+	month_paid_out = (all_apts.filter(
+		status="completed",
+		therapist_payout_status="paid",
+		therapist_paid_out_at__gte=month_start,
+		therapist_paid_out_at__lt=next_month_start,
+	).aggregate(total=Sum("fee_amount"))["total"] or 0) * 0.75
+
+	pending_payout_amount = (all_apts.filter(
+		status="completed",
+		payment_status="paid",
+		therapist_payout_status="pending",
+	).aggregate(total=Sum("fee_amount"))["total"] or 0) * 0.75
+
 	context = {
+		"therapist": request.user,
 		"unread_notifications": _unread(request.user),
 		"unread_messages": _unread_msgs(request.user),
 		"today_appointments": today_apts,
@@ -1365,6 +1497,9 @@ def doctor_dashboard(request):
 		"total_patients": total_patients,
 		"completed_sessions": completed_sessions,
 		"reports_count": reports_count,
+		"month_earnings": month_earnings,
+		"month_paid_out": month_paid_out,
+		"pending_payout_amount": pending_payout_amount,
 	}
 	return render(request, "therapist/therapist_dashboard.html", context)
 
@@ -1372,7 +1507,7 @@ def doctor_dashboard(request):
 @login_required
 def therapist_appointments(request):
 	"""Therapist appointment management."""
-	if not request.user.groups.filter(name="doctor").exists():
+	if not request.user.role == "therapist":
 		return redirect("accounts:patient_dashboard")
 
 	now = timezone.now()
@@ -1383,6 +1518,17 @@ def therapist_appointments(request):
 	missed = all_apts.filter(date_time__lt=now, status__in=["requested", "confirmed"]).order_by("-date_time")
 	requested = all_apts.filter(status="requested").order_by("-created_at")
 	cancelled = all_apts.filter(status__in=["cancelled", "rescheduled"]).order_by("-updated_at")
+	current_month_completed_paid = (all_apts.filter(
+		status="completed",
+		payment_status="paid",
+		date_time__year=now.year,
+		date_time__month=now.month,
+	).aggregate(total=Sum("fee_amount"))["total"] or 0) * 0.75
+	pending_payout = (all_apts.filter(
+		status="completed",
+		payment_status="paid",
+		therapist_payout_status="pending",
+	).aggregate(total=Sum("fee_amount"))["total"] or 0) * 0.75
 
 	context = {
 		"upcoming_appointments": upcoming,
@@ -1390,6 +1536,8 @@ def therapist_appointments(request):
 		"missed_appointments": missed,
 		"requested_appointments": requested,
 		"cancelled_appointments": cancelled,
+		"current_month_completed_paid": current_month_completed_paid,
+		"pending_payout": pending_payout,
 		"unread_notifications": _unread(request.user),
 	}
 	return render(request, "therapist/therapist_appointments.html", context)
@@ -1401,6 +1549,9 @@ def confirm_appointment(request, appointment_id):
 	apt = get_object_or_404(Appointment, pk=appointment_id, therapist=request.user)
 	if apt.status != "requested":
 		messages.error(request, "This appointment cannot be confirmed.")
+		return redirect("accounts:therapist_appointments")
+	if apt.payment_status != "paid":
+		messages.error(request, "This request cannot be approved until payment is completed.")
 		return redirect("accounts:therapist_appointments")
 
 	apt.status = "confirmed"
@@ -1427,15 +1578,23 @@ def reject_appointment(request, appointment_id):
 	reason = request.POST.get("rejection_reason", "") if request.method == "POST" else ""
 	apt.status = "rejected"
 	apt.cancellation_reason = reason
+	if apt.payment_status == "paid":
+		apt.payment_status = "refunded"
+		apt.refund_status = "refunded"
+		apt.refunded_at = timezone.now()
 	apt.save()
+	refund_line = f" A refund of NPR {apt.fee_amount} has been initiated." if apt.refund_status == "refunded" else ""
 	_notify(
 		apt.patient, "appointment_rejected",
 		"Appointment Request Declined",
-		f"Your appointment request with {request.user.full_name} on {apt.date_time.strftime('%b %d, %Y at %I:%M %p')} was declined. {('Reason: ' + reason) if reason else 'Please try another time.'}",
+		f"Your appointment request with {request.user.full_name} on {apt.date_time.strftime('%b %d, %Y at %I:%M %p')} was declined. {('Reason: ' + reason) if reason else 'Please try another time.'}{refund_line}",
 		apt,
 		"/dashboard/patient/appointments/"
 	)
-	messages.success(request, "Appointment request declined.")
+	if apt.refund_status == "refunded":
+		messages.success(request, "Appointment request declined and payment refunded.")
+	else:
+		messages.success(request, "Appointment request declined.")
 	return redirect("accounts:therapist_appointments")
 
 
@@ -1443,17 +1602,54 @@ def reject_appointment(request, appointment_id):
 def complete_appointment(request, appointment_id):
 	"""Therapist marks appointment as completed."""
 	apt = get_object_or_404(Appointment, pk=appointment_id, therapist=request.user)
+	if apt.payment_status != "paid":
+		messages.error(request, "Only paid appointments can be marked as completed.")
+		return redirect("accounts:therapist_appointments")
 	apt.status = "completed"
+	apt.therapist_payout_status = "pending"
 	apt.save()
 	messages.success(request, "Session marked as completed.")
 	return redirect("accounts:therapist_appointments")
+
+
+@login_required
+def process_monthly_payout(request):
+	"""Marks eligible completed sessions as paid out to therapist."""
+	if not request.user.role == "therapist":
+		return redirect("accounts:patient_dashboard")
+
+	if request.method != "POST":
+		return redirect("accounts:therapist_dashboard")
+
+	now = timezone.now()
+	paid_count = 0
+	paid_total = 0
+	eligible_qs = Appointment.objects.filter(
+		therapist=request.user,
+		status="completed",
+		payment_status="paid",
+		therapist_payout_status="pending",
+	)
+	for apt in eligible_qs:
+		apt.therapist_payout_status = "paid"
+		apt.therapist_paid_out_at = now
+		apt.save(update_fields=["therapist_payout_status", "therapist_paid_out_at", "updated_at"])
+		paid_count += 1
+		paid_total += apt.fee_amount * 0.75
+
+	if paid_count:
+		messages.success(request, f"Payout processed for {paid_count} session(s). Total NPR {paid_total:.2f}.")
+	else:
+		messages.info(request, "No eligible completed paid sessions for payout right now.")
+
+	return redirect("accounts:therapist_dashboard")
 
 
 # ─── session reports ────────────────────────────────────────────────────────
 @login_required
 def session_reports(request):
 	"""Therapist views all session reports."""
-	if not request.user.groups.filter(name="doctor").exists():
+	if not request.user.role == "therapist":
 		return redirect("accounts:patient_dashboard")
 
 	reports = SessionReport.objects.filter(therapist=request.user).select_related("appointment__patient")
@@ -1553,7 +1749,7 @@ def view_session_report(request, report_id):
 @login_required
 def client_list(request):
 	"""Therapist views all their clients."""
-	if not request.user.groups.filter(name="doctor").exists():
+	if not request.user.role == "therapist":
 		return redirect("accounts:patient_dashboard")
 
 	client_ids = Appointment.objects.filter(
@@ -1567,7 +1763,9 @@ def client_list(request):
 		apts = Appointment.objects.filter(patient=client, therapist=request.user)
 		completed = apts.filter(status="completed").count()
 		upcoming = apts.filter(date_time__gt=timezone.now(), status="confirmed").count()
-		reports = SessionReport.objects.filter(appointment__patient=client, therapist=request.user)
+		reports = SessionReport.objects.filter(
+			appointment__patient=client, therapist=request.user
+		)
 		avg_mood = reports.aggregate(Avg("mood_rating"))["mood_rating__avg"]
 		avg_progress = reports.aggregate(Avg("progress_rating"))["progress_rating__avg"]
 		mcq = PatientMCQResult.objects.filter(user=client).first()
@@ -1592,7 +1790,7 @@ def client_list(request):
 @login_required
 def client_profile(request, client_id):
 	"""Therapist views a specific client's profile & progress."""
-	if not request.user.groups.filter(name="doctor").exists():
+	if not request.user.role == "therapist":
 		return redirect("accounts:patient_dashboard")
 
 	client = get_object_or_404(User, pk=client_id)
@@ -1689,7 +1887,7 @@ def conversation(request, partner_id):
 @login_required
 def manage_availability(request):
 	"""Therapist manages their weekly availability — multiple slots per day + days off."""
-	if not request.user.groups.filter(name="doctor").exists():
+	if not request.user.role == "therapist":
 		return redirect("accounts:patient_dashboard")
 
 	if request.method == "POST":
@@ -1759,7 +1957,7 @@ def manage_availability(request):
 @login_required
 def therapist_profile(request):
 	"""Therapist profile page — view and edit account details."""
-	if not request.user.groups.filter(name="doctor").exists():
+	if not request.user.role == "therapist":
 		return redirect("accounts:patient_dashboard")
 
 	user = request.user
@@ -1785,16 +1983,14 @@ def therapist_profile(request):
 # ─── notifications ──────────────────────────────────────────────────────────
 @login_required
 def notifications_view(request):
-	notifications = Notification.objects.filter(user=request.user)
-	unread_count = notifications.filter(is_read=False).count()
+	# Mark all as read when page is viewed
+	Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
 	
-	# Auto-mark all notifications as read when page is viewed
-	if unread_count > 0:
-		notifications.filter(is_read=False).update(is_read=True)
-
+	all_notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
+	
 	context = {
-		"notifications": notifications,
-		"unread_count": 0,  # Already marked as read
+		"notifications": all_notifications,
+		"unread_notifications": 0, # Since we just marked all as read
 	}
 	return render(request, "notifications.html", context)
 
@@ -1803,8 +1999,8 @@ def notifications_view(request):
 @login_required
 def rate_therapist(request, appointment_id):
 	"""Patient rates therapist after a completed appointment."""
-	if request.user.groups.filter(name="doctor").exists():
-		return redirect("accounts:doctor_dashboard")
+	if request.user.role == "therapist":
+		return redirect("accounts:therapist_dashboard")
 	
 	apt = get_object_or_404(Appointment, pk=appointment_id, patient=request.user)
 	

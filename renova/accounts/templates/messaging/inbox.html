@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Messages | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .inbox-wrap {
+        width: min(800px, calc(100% - 40px));
+        margin: 28px auto 46px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+        padding: 24px;
+        min-height: 500px;
+    }
+
+    .inbox-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #f0f2f4;
+        padding-bottom: 16px;
+        margin-bottom: 20px;
+    }
+
+    .inbox-header h2 {
+        margin: 0;
+        font-size: 1.6rem;
+        color: #2c4652;
+    }
+
+    .conversation-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .conversation-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        background: #f9fbfc;
+        border: 1px solid #e7ddd6;
+        border-radius: 12px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s;
+    }
+
+    .conversation-item:hover {
+        background: #e8f4f5;
+        border-color: #4da3a9;
+        transform: translateY(-2px);
+    }
+
+    .convo-left {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .convo-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #2c4652;
+    }
+
+    .convo-preview {
+        font-size: 0.95rem;
+        color: #627180;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 450px;
+    }
+
+    .convo-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 8px;
+    }
+
+    .convo-time {
+        font-size: 0.85rem;
+        color: #8a95a0;
+    }
+
+    .unread-badge {
+        background: #dc3545;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 999px;
+        min-width: 24px;
+        text-align: center;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #8a95a0;
+        font-size: 1.05rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="inbox-wrap">
+    <div class="inbox-header">
+        <h2>Your Conversations</h2>
+        <a href="{% if request.user.user_type == 'therapist' %}{% url 'accounts:therapist_dashboard' %}{% else %}{% url 'accounts:patient_dashboard' %}{% endif %}" style="color: #4da3a9; text-decoration: none; font-weight: 600;">← Back to Dashboard</a>
+    </div>
+
+    <div class="conversation-list">
+        {% for convo in conversations %}
+            <a href="{% url 'accounts:conversation' convo.partner.pk %}" class="conversation-item">
+                <div class="convo-left">
+                    <span class="convo-name">{{ convo.partner.full_name }}</span>
+                    <span class="convo-preview">{{ convo.last_msg|truncatechars:50 }}</span>
+                </div>
+                <div class="convo-right">
+                    <span class="convo-time">{{ convo.updated_at|date:"M d, Y" }}</span>
+                    {% if convo.unread > 0 %}
+                        <span class="unread-badge">{{ convo.unread }}</span>
+                    {% endif %}
+                </div>
+            </a>
+        {% empty %}
+            <div class="empty-state">
+                <p>You have no ongoing conversations.</p>
+                <p style="font-size: 0.9rem; margin-top: 10px;">Select a user to message to start a conversation.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

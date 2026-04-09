@@ -364,12 +364,12 @@
     <nav class="patient-nav" aria-label="Patient Navigation">
         <div class="patient-nav-row">
             <div class="nav-links">
-                <a href="{% url 'accounts:patient_dashboard' %}" class="nav-item">Dashboard</a>
-                <a href="{% url 'accounts:find_therapist' %}" class="nav-item">Find Therapist</a>
-                <a href="{% url 'accounts:patient_appointments' %}" class="nav-item active">Appointments</a>
-                <a href="{% url 'accounts:patient_resources' %}" class="nav-item">Resources</a>
-                <a href="{% url 'accounts:ai_chatbot' %}" class="nav-item">AI-Chatbot</a>
-                <a href="{% url 'accounts:patient_profile' %}" class="nav-item">Profile</a>
+                <a href="{% url 'accounts:patient_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'patient_dashboard' %}active{% endif %}">Dashboard</a>
+                <a href="{% url 'accounts:find_therapist' %}" class="nav-item {% if request.resolver_match.url_name == 'find_therapist' or request.resolver_match.url_name == 'view_therapist_profile' %}active{% endif %}">Find Therapist</a>
+                <a href="{% url 'accounts:patient_appointments' %}" class="nav-item {% if request.resolver_match.url_name == 'patient_appointments' or request.resolver_match.url_name == 'book_appointment' %}active{% endif %}">Appointments</a>
+                <a href="{% url 'accounts:patient_resources' %}" class="nav-item {% if request.resolver_match.url_name == 'patient_resources' %}active{% endif %}">Resources</a>
+                <a href="{% url 'accounts:ai_chatbot' %}" class="nav-item {% if request.resolver_match.url_name == 'ai_chatbot' or request.resolver_match.url_name == 'chatbot_load_session' %}active{% endif %}">AI-Chatbot</a>
+                <a href="{% url 'accounts:patient_profile' %}" class="nav-item {% if request.resolver_match.url_name == 'patient_profile' %}active{% endif %}">Profile</a>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <a href="{% url 'accounts:notifications' %}" style="position: relative; padding: 8px 12px; border-radius: 8px; color: #000; text-decoration: none; font-size: 1.2rem;" title="Notifications">
@@ -478,7 +478,7 @@
                     </svg>
                 </button>
             </div>
-            <p class="disclaimer">ReNova AI is not a substitute for professional mental health care. In an emergency, call 988 or your local emergency number.</p>
+            <p class="disclaimer">ReNova AI is a friend that supports you in your lowest moments.</p>
         </div>
 
     </div><!-- /chat-layout -->
@@ -488,7 +488,7 @@
 const SEND_URL   = "{% url 'accounts:chatbot_send' %}";
 const NEW_URL    = "{% url 'accounts:chatbot_new_session' %}";
 const CSRF_TOKEN = document.querySelector('[name=csrfmiddlewaretoken]').value;
-let sessionId    = {{ chat_session.id }};
+let sessionId    = Number("{{ chat_session.id }}");
 
 const messagesArea    = document.getElementById('messagesArea');
 const chatInput       = document.getElementById('chatInput');
@@ -599,7 +599,7 @@ document.getElementById('newChatBtn').addEventListener('click', function () {
     })
     .then(r => r.json())
     .then(data => {
-        window.location.href = `/dashboard/patient/ai-chatbot/${data.session_id}/`;
+        window.location.href = `/ai-chatbot/${data.session_id}/`;
     });
 });
 

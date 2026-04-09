@@ -999,7 +999,35 @@
         {% else %}
         <div class="no-upcoming">
             <span>📭</span>
-            <p>No upcoming appointments. <a href="{% url 'accounts:find_therapist' %}">Book a session</a> with a therapist!</p>
+            No upcoming appointments. <a href="{% url 'accounts:find_therapist' %}">Book a session</a> with a therapist!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Upcoming Online Awareness Programs Section -->
+    <div class="upcoming-section">
+        <h3>🗓️ Upcoming Awareness Programs</h3>
+        {% if upcoming_programs %}
+        <div class="upcoming-list">
+            {% for program in upcoming_programs %}
+            <div class="upcoming-item">
+                <div class="upcoming-date">
+                    <div class="day">{{ program.date|date:'d' }}</div>
+                    <div class="month">{{ program.date|date:'M' }}</div>
+                </div>
+                <div class="upcoming-info">
+                    <h4>{{ program.title }}</h4>
+                    <p style="color: #5f6b7a; font-size: 0.9rem; margin-bottom: 8px;">{{ program.description|truncatewords:20 }}</p>
+                    <p style="font-weight: 600; color: #3c8b90;">{{ program.date|date:'l' }}, {{ program.time|time:'P' }}</p>
+                    <a href="{{ program.link }}" target="_blank" rel="noopener noreferrer" class="btn" style="margin-top: 8px; display: inline-block; background: #4da3a9; color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none;">Join Program</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-upcoming">
+            <span>✨</span>
+            No upcoming awareness programs at the moment.
         </div>
         {% endif %}
     </div>
@@ -1025,24 +1053,56 @@
         </div>
     </div>
 
+    <!-- Recommended Therapists Section -->
+    <div class="upcoming-section">
+        <h3>👩‍⚕️ Recommended Therapists</h3>
+        <p style="margin: -8px 0 12px; font-size: 0.9rem; color: #5f6b7a;">Based on your <strong>{{ category_display }}</strong> assessment, these therapists match your needs.</p>
+        {% if recommended_therapists %}
+        <div class="upcoming-list">
+            {% for therapist in recommended_therapists|slice:":3" %}
+            <div class="upcoming-item" style="align-items: flex-start;">
+                {% if therapist.profile_image %}
+                <img src="{{ therapist.profile_image.url }}" alt="Dr. {{ therapist.full_name }}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
+                {% else %}
+                <img src="https://ui-avatars.com/api/?name={{ therapist.first_name }}+{{ therapist.last_name }}&background=random" alt="Dr. {{ therapist.full_name }}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
+                {% endif %}
+                <div class="upcoming-info">
+                    <h4>Dr. {{ therapist.full_name }}</h4>
+                    <p>{{ therapist.get_specialization_display }}</p>
+                    <a href="{% url 'accounts:view_therapist_profile' therapist.id %}" class="btn" style="margin-top: 8px; display: inline-block; background: #4da3a9; color: white; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-size: 0.85rem;">View Profile</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <a href="{% url 'accounts:find_therapist' %}" style="display: block; text-align: center; margin-top: 12px; color: #3c8b90; font-weight: 600;">View all therapists</a>
+        {% else %}
+        <div class="no-upcoming">
+            <span>🤷‍♀️</span>
+            No therapists currently match your assessment category.
+            <br>
+            <a href="{% url 'accounts:find_therapist' %}" style="margin-top: 8px;">Browse all therapists</a>
+        </div>
+        {% endif %}
+    </div>
+
     <div class="content-grid">
         <section class="section-card">
-            <h3>Recommended Therapists</h3>
-            <p>Based on your <strong>{{ category_display }}</strong> assessment, these therapists match your needs.</p>
-
-            {% if recommended_therapists %}
+            <h3>Your Care Plan</h3>
+            <p>Based on your assessment, here are some focus areas:</p>
+            <div class="care-plan">
+                Techniques for managing {{ category_display|lower }} and building resilience.
+            </div>
+            <a href="{% url 'accounts:patient_resources' %}?category={{ mcq.category }}">Explore Resources</a>
+        </section>
+        <section class="section-card">
+            <h3>Wellness Tips</h3>
+            <p>Small actions for a better day:</p>
             <ul class="mini-list">
-                {% for t in recommended_therapists %}
-                <li><strong>{{ t.full_name }}</strong> · {{ t.get_specialization_display }} · {{ t.email }}</li>
+                {% for tip in wellness_tips %}
+                <li>{{ tip.icon }} {{ tip.tip }}</li>
                 {% endfor %}
             </ul>
-            {% else %}
-            <div style="margin-top:12px;padding:14px;background:#fef7f0;border:1px solid #f4a261;border-radius:8px;color:#7c4a15;font-size:0.92rem;">No therapists registered for {{ category_display }} yet. Check Find Therapist for all available doctors.</div>
-            {% endif %}
-
-            <a href="{% url 'accounts:find_therapist' %}" style="display:inline-block;margin-top:10px;">View all therapists</a>
         </section>
-
     </div>
 
     <!-- Mood Check-In -->
@@ -1060,37 +1120,32 @@
 
     <div class="resource-preview">
         <h3>Small Resources For Today</h3>
-        <p>Short wellness resources matched to your current support category.</p>
+        <p>Based on your assessment, here are some helpful videos:</p>
         <div class="resource-preview-grid">
             {% for resource in quick_resources %}
-            <a href="{% url 'accounts:patient_resources' %}" class="resource-preview-card">
-                <div class="resource-preview-title">{{ resource.title|truncatechars:50 }}</div>
-                <div class="resource-preview-meta">{{ resource.get_category_display }}{% if resource.duration %} · {{ resource.duration }}{% endif %}</div>
-            </a>
-            {% empty %}
-            <a href="{% url 'accounts:patient_resources' %}" class="resource-preview-card">
-                <div class="resource-preview-title">Browse Wellness Resources</div>
-                <div class="resource-preview-meta">Open videos and guided support for your care plan.</div>
+            <a href="{{ resource.youtube_watch_url }}" target="_blank" class="resource-preview-card" style="background-image: url('{{ resource.youtube_thumbnail }}'); background-size: cover; background-position: center; min-height: 150px; display: flex; align-items: flex-end; padding: 12px; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.7);">
+                <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; width: 100%;">
+                    <div class="resource-preview-title" style="color: white;">{{ resource.title }}</div>
+                    <div class="resource-preview-meta" style="color: #f0f0f0;">{{ resource.get_category_display }} · {{ resource.duration }}</div>
+                </div>
             </a>
             {% endfor %}
         </div>
+        <a href="{% url 'accounts:patient_resources' %}" class="btn" style="margin-top: 16px; display: inline-block; background: #4da3a9; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none;">View All Resources</a>
     </div>
 
     <!-- AI Chatbot Support Section -->
     <div class="chatbot-support">
         <div class="chatbot-content">
-            <h3>🤖 24/7 AI Support Available</h3>
-            <p>Need someone to talk to right now? Our AI chatbot is here for you anytime, day or night. It's completely private and non-judgmental.</p>
+            <h3>Need to talk? Our AI is here for you.</h3>
+            <p>Get instant, confidential support whenever you need it. Our AI chatbot can help you with coping strategies, mindfulness exercises, or just be a listening ear.</p>
             <div class="chatbot-features">
-                <span class="chatbot-feature">✓ Instant responses</span>
-                <span class="chatbot-feature">✓ 100% confidential</span>
-                <span class="chatbot-feature">✓ Always available</span>
-                <span class="chatbot-feature">✓ No appointment needed</span>
+                <div class="chatbot-feature">✔️ 24/7 Availability</div>
+                <div class="chatbot-feature">✔️ Confidential</div>
+                <div class="chatbot-feature">✔️ Evidence-Based Techniques</div>
             </div>
         </div>
-        <a href="{% url 'accounts:ai_chatbot' %}" class="chatbot-btn">
-            💬 Start Chatting
-        </a>
+        <a href="{% url 'accounts:ai_chatbot' %}" class="chatbot-btn">Start Chatting</a>
     </div>
 
 

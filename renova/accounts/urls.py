@@ -1,7 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 
-from . import views
+from . import views, payment_views
 
 app_name = "accounts"
 
@@ -10,6 +10,7 @@ urlpatterns = [
 	path("contact/", views.contact_us, name="contact_us"),
 	path("login/", views.login_view, name="login"),
 	path("register/", views.register_view, name="register"),
+	# path('activate/<uidb64>/<token>/', views.activate, name='activate'),
 	path("logout/", views.logout_view, name="logout"),
 	path("dashboard/", views.dashboard_redirect, name="dashboard_redirect"),
 
@@ -58,9 +59,12 @@ urlpatterns = [
 	path("appointment/<int:appointment_id>/complete/", views.complete_appointment, name="complete_appointment"),
 	path("appointment/<int:appointment_id>/rate/", views.rate_therapist, name="rate_therapist"),
 
+	# -- Payment --
+	path('payment/initiate/<int:appointment_id>/', payment_views.esewa_payment_initiation, name='esewa_payment_initiation'),
+    path('payment/verify/', payment_views.esewa_payment_verification, name='esewa_payment_verification'),
 
 	# ── therapist ──
-	path("dashboard/doctor/", views.doctor_dashboard, name="doctor_dashboard"),
+	path("dashboard/therapist/", views.therapist_dashboard, name="therapist_dashboard"),
 	path("dashboard/therapist/appointments/", views.therapist_appointments, name="therapist_appointments"),
 	path("dashboard/therapist/availability/", views.manage_availability, name="manage_availability"),
 	path("dashboard/therapist/reports/", views.session_reports, name="session_reports"),
@@ -70,6 +74,8 @@ urlpatterns = [
 	path("dashboard/therapist/clients/", views.client_list, name="client_list"),
 	path("dashboard/therapist/clients/<int:client_id>/", views.client_profile, name="client_profile"),
 	path("dashboard/therapist/profile/", views.therapist_profile, name="therapist_profile"),
+	path("dashboard/therapist/payout/process/", views.process_monthly_payout, name="process_monthly_payout"),
+
 
 	# ── messaging ──
 	path("messages/", views.inbox, name="inbox"),

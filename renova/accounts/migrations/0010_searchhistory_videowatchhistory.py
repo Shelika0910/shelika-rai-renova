@@ -12,21 +12,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name='SearchHistory',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('query', models.CharField(max_length=255)),
-                ('results_count', models.PositiveIntegerField(default=0)),
-                ('clicked_video_id', models.CharField(blank=True, help_text='Video ID if user clicked a result', max_length=255)),
-                ('searched_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='search_history', to=settings.AUTH_USER_MODEL)),
-            ],
-            options={
-                'verbose_name': 'Search History',
-                'ordering': ['-searched_at'],
-            },
-        ),
+
         migrations.CreateModel(
             name='VideoWatchHistory',
             fields=[

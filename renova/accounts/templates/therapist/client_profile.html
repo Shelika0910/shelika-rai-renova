@@ -1,49 +1,153 @@
 {% extends "base.html" %}
 
-{% block title %}{{ client.full_name }} — Client Profile | ReNova{% endblock %}
+{% block title %}{{ client.full_name }} — Patient Profile | ReNova{% endblock %}
 
 {% block extra_css %}
 <style>
-    .page-wrap {
-        width: min(1000px, calc(100% - 40px));
-        margin: 40px auto 60px;
+    .doctor-wrap {
+        width: min(1120px, calc(100% - 40px));
+        margin: 28px auto 46px;
     }
+
+    .doctor-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px;
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+        margin-bottom: 18px;
+    }
+
+    .doctor-nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .doctor-nav a {
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dce6e8;
+        background: #f7fbfc;
+        color: #2b4e59;
+        font-weight: 600;
+        font-size: 0.92rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .doctor-nav a.active {
+        background: #4da3a9;
+        color: white;
+        border-color: #4da3a9;
+    }
+
+    .doctor-nav a:hover {
+        background: #e8f4f5;
+        border-color: #4da3a9;
+    }
+
+    .doctor-nav a.active:hover {
+        background: #3c8b90;
+    }
+
     .hero-card {
         background: linear-gradient(135deg, #4da3a9 0%, #2d6a6f 100%);
-        color: white; padding: 24px; border-radius: 16px; margin-bottom: 22px;
+        color: white;
+        padding: 24px;
+        border-radius: 16px;
+        margin-bottom: 22px;
         box-shadow: 0 12px 28px rgba(77, 163, 169, 0.25);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
     }
-    .hero-card h1 { margin: 0 0 6px; font-size: 1.55rem; font-weight: 700; }
-    .hero-card p { margin: 0; opacity: 0.92; }
 
-    .profile-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; margin-bottom: 16px; }
+    .hero-card-left h1 { margin: 0 0 6px; font-size: 1.55rem; font-weight: 700; }
+    .hero-card-left p { margin: 0; opacity: 0.92; }
 
-    .card {
-        background: #fff; border: 1px solid #e7ddd6; border-radius: 16px;
-        padding: 20px; box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+    .btn-msg {
+        background: white;
+        color: #2d6a6f;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: inline-block;
     }
-    .card h3 { margin: 0 0 12px; font-size: 1.05rem; color: #2c4652; border-bottom: 2px solid #e7ddd6; padding-bottom: 8px; }
 
-    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f2f4; font-size: 0.93rem; }
+    .btn-msg:hover {
+        background: #e8f4f5;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .section-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 16px;
+        padding: 22px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+    }
+
+    .section-card h3 {
+        margin: 0 0 16px;
+        font-size: 1.1rem;
+        color: #2c4652;
+        border-bottom: 2px solid #f0f2f4;
+        padding-bottom: 8px;
+    }
+
+    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f9fbfc; font-size: 0.93rem; }
     .info-row:last-child { border-bottom: none; }
     .info-label { font-weight: 600; color: #2c4652; }
     .info-value { color: #627180; }
 
-    .chart-container { position: relative; height: 220px; margin-top: 12px; }
+    .bio-box {
+        margin-top: 14px;
+        padding: 12px 14px;
+        background: #f9fbfc;
+        border: 1px solid #e7ddd6;
+        border-radius: 10px;
+        color: #4a5568;
+        font-size: 0.88rem;
+    }
 
-    .timeline-wrap { margin-bottom: 16px; }
     .timeline-item {
         background: #fff; border: 1px solid #e7ddd6; border-radius: 12px;
-        padding: 14px 18px; margin-bottom: 10px; border-left: 4px solid #4da3a9;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.03);
+        padding: 16px; margin-bottom: 12px; border-left: 4px solid #4da3a9;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.02);
     }
-    .timeline-item .date { font-size: 0.85rem; color: #8a95a0; }
+    .timeline-item .date { font-size: 0.85rem; color: #8a95a0; margin-bottom: 6px; display: block; }
     .timeline-item .title { font-weight: 700; color: #2c4652; }
-    .timeline-item .details { font-size: 0.9rem; color: #627180; margin-top: 4px; }
+    .timeline-item .details { font-size: 0.9rem; color: #627180; margin-top: 6px; }
 
     .status-badge {
-        display: inline-block; padding: 2px 8px; border-radius: 999px;
+        display: inline-block; padding: 3px 10px; border-radius: 999px;
         font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+        margin-left: 8px;
     }
     .status-completed { background: #d1fae5; color: #065f46; }
     .status-confirmed { background: #dbeafe; color: #1e40af; }
@@ -51,152 +155,197 @@
     .status-cancelled { background: #fee2e2; color: #991b1b; }
 
     .report-link {
-        display: inline-block; padding: 4px 12px; background: #edf8f8; color: #2d6a6f;
+        display: inline-block; padding: 6px 14px; background: #edf8f8; color: #2d6a6f;
         border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;
-        margin-top: 6px;
+        margin-top: 10px;
     }
     .report-link:hover { background: #d5eeef; }
 
-    .btn-row { display: flex; gap: 12px; }
-    .btn {
-        padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
-        text-decoration: none; transition: all 0.2s;
+    @media (max-width: 768px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+        .nav-links {
+            width: 100%;
+            justify-content: center;
+        }
     }
-    .btn-back { background: #f0f2f4; color: #374151; }
-    .btn-back:hover { background: #e5e7eb; }
-    .btn-msg { background: #4da3a9; color: white; }
-    .btn-msg:hover { background: #3c8b90; }
-
-    @media (max-width: 768px) { .profile-grid { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="page-wrap">
+<section class="doctor-wrap">
+    <nav class="doctor-nav" aria-label="Doctor Navigation">
+        <div class="doctor-nav-row">
+            <div class="nav-links">
+                <a href="{% url 'accounts:therapist_dashboard' %}" class="nav-item">Dashboard</a>
+                <a href="{% url 'accounts:client_list' %}" class="nav-item active">Patients</a>
+                <a href="{% url 'accounts:therapist_appointments' %}" class="nav-item">Appointments</a>
+                <a href="{% url 'accounts:manage_availability' %}" class="nav-item">Availability</a>
+                <a href="{% url 'accounts:therapist_profile' %}" class="nav-item">Profile</a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <a href="{% url 'accounts:notifications' %}" style="position: relative; padding: 8px 12px; border-radius: 8px; color: #000; text-decoration: none; font-size: 1.2rem; transition: all 0.2s ease;" title="Notifications">
+                    🔔
+                    {% if unread_notifications > 0 %}
+                        <span style="position: absolute; top: -4px; right: -4px; background: #dc3545; color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; min-width: 16px; text-align: center;">{{ unread_notifications }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </nav>
+
     <div class="hero-card">
-        <h1>{{ client.full_name }}</h1>
-        <p>Client profile, progress tracking, and session history.</p>
+        <div class="hero-card-left">
+            <h1>{{ client.full_name }}</h1>
+            <p>{{ client.email }}</p>
+        </div>
+        <div>
+            <a href="{% url 'accounts:conversation' client.pk %}" class="btn-msg">Message Patient</a>
+        </div>
     </div>
 
-    <div class="profile-grid">
-        <!-- Client Details -->
-        <div class="card">
-            <h3>Client Information</h3>
-            <div class="info-row">
-                <span class="info-label">Email</span>
-                <span class="info-value">{{ client.email }}</span>
-            </div>
+    <div class="content-grid">
+        <section class="section-card">
+            <h3>Patient Information</h3>
             <div class="info-row">
                 <span class="info-label">Phone</span>
                 <span class="info-value">{{ client.phone|default:"Not provided" }}</span>
             </div>
             <div class="info-row">
-                <span class="info-label">Joined</span>
-                <span class="info-value">{{ client.date_joined|date:"F j, Y" }}</span>
+                <span class="info-label">Joined ReNova</span>
+                <span class="info-value">{{ client.date_joined|date:"M d, Y" }}</span>
             </div>
-            {% if mcq %}
-            <div class="info-row">
-                <span class="info-label">Assessment Category</span>
-                <span class="info-value">{{ mcq.get_category_display }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Assessment Score</span>
-                <span class="info-value">{{ mcq.score }}/30</span>
-            </div>
-            {% endif %}
             <div class="info-row">
                 <span class="info-label">Total Sessions</span>
                 <span class="info-value">{{ appointments|length }}</span>
             </div>
-            {% if client.bio %}
-            <div style="margin-top: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; font-size: 0.9rem; color: #627180;">
-                <strong>Bio:</strong> {{ client.bio }}
+            {% if mcq %}
+            <div class="info-row">
+                <span class="info-label">Primary Concern</span>
+                <span class="info-value">{{ mcq.get_category_display }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Initial Assessment Score</span>
+                <span class="info-value">{{ mcq.score }}/30</span>
             </div>
             {% endif %}
-        </div>
 
-        <!-- Progress Chart -->
-        <div class="card">
+            {% if client.bio %}
+            <div class="bio-box">
+                <strong>Patient Notes/Bio:</strong><br>
+                {{ client.bio|linebreaksbr }}
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="section-card">
             <h3>Progress Tracking</h3>
             {% if reports %}
-            <canvas id="progressChart" style="width:100%; height: 220px;"></canvas>
+            <div style="position: relative; height: 240px; width: 100%;">
+                <canvas id="progressChart"></canvas>
+            </div>
             {% else %}
-            <div style="text-align: center; padding: 40px 20px; color: #8a95a0;">
-                <p>No session data available yet for charting.</p>
+            <div style="text-align: center; padding: 40px 20px; color: #8a95a0; background: #f9fbfc; border-radius: 12px; margin-top: 10px;">
+                <p>No session reports available yet to generate a chart.</p>
             </div>
             {% endif %}
-        </div>
+        </section>
     </div>
 
-    <!-- Session History -->
-    <div class="card" style="margin-bottom: 16px;">
+    <section class="section-card" style="margin-top: 18px;">
         <h3>Session History</h3>
-    </div>
-    <div class="timeline-wrap">
-        {% for apt in appointments %}
-        <div class="timeline-item">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <span class="date">{{ apt.date_time|date:"F j, Y" }} at {{ apt.date_time|time:"g:i A" }}</span>
-                    <span class="status-badge status-{{ apt.status }}">{{ apt.get_status_display }}</span>
+        
+        <div style="margin-top: 16px;">
+            {% for apt in appointments %}
+            <div class="timeline-item">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <span class="date">{{ apt.date_time|date:"M d, Y" }} at {{ apt.date_time|time:"g:i A" }} • {{ apt.duration_minutes }} mins</span>
+                        <strong style="color: #2c4652; font-size: 1.05rem;">Session Appointment</strong>
+                        <span class="status-badge status-{{ apt.status }}">{{ apt.get_status_display }}</span>
+                    </div>
                 </div>
-                <span class="date">{{ apt.duration_minutes }} min</span>
-            </div>
-            {% if apt.notes %}
-            <div class="details">{{ apt.notes|truncatechars:100 }}</div>
-            {% endif %}
-            {% for r in reports %}
-                {% if r.appointment_id == apt.pk %}
-                    <a href="{% url 'accounts:view_session_report' r.pk %}" class="report-link">View Report</a>
+                
+                {% if apt.notes %}
+                <div class="details">{{ apt.notes }}</div>
                 {% endif %}
+                
+                {% for r in reports %}
+                    {% if r.appointment_id == apt.pk %}
+                        <a href="{% url 'accounts:view_session_report' r.pk %}" class="report-link">Read Session Report</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% empty %}
+            <div style="text-align: center; padding: 30px; color: #8a95a0; border: 1px dashed #e7ddd6; border-radius: 12px; background: #f9fbfc;">
+                No scheduled sessions found for this patient.
+            </div>
             {% endfor %}
         </div>
-        {% empty %}
-        <div style="text-align: center; padding: 30px; color: #8a95a0;">No sessions yet.</div>
-        {% endfor %}
-    </div>
+    </section>
 
-    <div class="btn-row">
-        <a href="{% url 'accounts:client_list' %}" class="btn btn-back">&larr; Back to Clients</a>
-    </div>
 </section>
 
 {% if reports %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
-const moodData = {{ mood_data|safe }};
-const progressData = {{ progress_data|safe }};
-const labels = moodData.map((_, i) => 'Session ' + (i + 1));
+document.addEventListener("DOMContentLoaded", function() {
+    const moodData = {{ mood_data|safe }};
+    const progressData = {{ progress_data|safe }};
+    const labels = moodData.map((_, i) => 'Session ' + (i + 1));
 
-new Chart(document.getElementById('progressChart'), {
-    type: 'line',
-    data: {
-        labels: labels,
-        datasets: [
-            {
-                label: 'Mood',
-                data: moodData,
-                borderColor: '#0369a1',
-                backgroundColor: 'rgba(3,105,161,0.1)',
-                fill: true,
-                tension: 0.3,
-                pointRadius: 4,
+    const ctx = document.getElementById('progressChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Mood Level',
+                        data: moodData,
+                        borderColor: '#4da3a9',
+                        backgroundColor: 'rgba(77, 163, 169, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#4da3a9'
+                    },
+                    {
+                        label: 'Therapy Progress',
+                        data: progressData,
+                        borderColor: '#2d6a6f',
+                        backgroundColor: 'transparent',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#2d6a6f'
+                    }
+                ]
             },
-            {
-                label: 'Progress',
-                data: progressData,
-                borderColor: '#15803d',
-                backgroundColor: 'rgba(21,128,61,0.1)',
-                fill: true,
-                tension: 0.3,
-                pointRadius: 4,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        max: 10,
+                        grid: { color: '#f0f2f4' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                },
+                plugins: { 
+                    legend: { 
+                        position: 'top',
+                        labels: { usePointStyle: true, boxWidth: 8 }
+                    } 
+                }
             }
-        ]
-    },
-    options: {
-        responsive: true, maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, max: 10, title: { display: true, text: 'Rating' } } },
-        plugins: { legend: { position: 'top' } }
+        });
     }
 });
 </script>

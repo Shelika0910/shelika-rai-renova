@@ -205,11 +205,23 @@
             <div class="stat-label">Sessions Completed</div>
         </div>
         <div class="stat-item">
+            <div class="stat-num">
+                {% if avg_rating > 0 %}
+                    <span style="color: #f59e0b;">★</span> {{ avg_rating|floatformat:1 }}
+                {% else %}
+                    New
+                {% endif %}
+            </div>
+            <div class="stat-label">
+                {% if rating_count == 1 %}1 Review{% else %}{{ rating_count }} Reviews{% endif %}
+            </div>
+        </div>
+        <div class="stat-item">
             <div class="stat-num">{{ slots|length }}</div>
             <div class="stat-label">Weekly Slots</div>
         </div>
         <div class="stat-item">
-            <div class="stat-num">
+            <div class="stat-num" style="font-size: 1.1rem; padding-top: 5px;">
                 {% if therapist.specialization %}{{ therapist.get_specialization_display }}{% else %}General{% endif %}
             </div>
             <div class="stat-label">Focus Area</div>

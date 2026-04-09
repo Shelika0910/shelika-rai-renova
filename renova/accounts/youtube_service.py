@@ -16,6 +16,7 @@ def get_youtube_videos(query, max_results=6):
         return cached
 
     api_key = str(getattr(settings, "YOUTUBE_API_KEY", "")).strip()
+
     if not api_key:
         return []
 
@@ -35,7 +36,10 @@ def get_youtube_videos(query, max_results=6):
         response = requests.get(YOUTUBE_URL, params=params, timeout=4)
         response.raise_for_status()
         data = response.json()
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError, KeyError):
+        return []
+
+    if data.get("error"):
         return []
 
     videos = []

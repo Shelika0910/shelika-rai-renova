@@ -40,3 +40,8 @@ tzdata==2025.3
 ujson==5.11.0
 urllib3==2.6.3
 zope.interface==8.2
+transformers==4.41.2
+torch==2.3.1
+accelerate==0.33.0
+sentencepiece==0.2.0email-validator
+dnspython

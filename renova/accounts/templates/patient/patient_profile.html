@@ -440,16 +440,16 @@
 
     {% if therapists_worked_with %}
     <div class="card">
-        <h3>👨‍⚕️ My Therapists</h3>
+        <h3>👨‍⚕️ Chat with my Therapists</h3>
         <div class="therapist-list">
             {% for t in therapists_worked_with %}
-            <div class="therapist-chip">
+            <a href="{% url 'accounts:conversation' t.pk %}" class="therapist-chip" style="text-decoration: none; color: inherit;">
                 <div class="therapist-avatar">{{ t.full_name|first }}</div>
                 <div>
                     <div class="therapist-name">{{ t.full_name }}</div>
                     <div class="therapist-spec">{{ t.get_specialization_display|default:"General" }}</div>
                 </div>
-            </div>
+            </a>
             {% endfor %}
         </div>
     </div>

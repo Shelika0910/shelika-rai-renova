@@ -291,6 +291,7 @@
                     <strong>📅 {{ appointment.date_time|date:"F j, Y" }} at {{ appointment.date_time|time:"g:i A" }}</strong><br>
                     ⏱️ Duration: {{ appointment.duration_minutes }} minutes<br>
                     {% if appointment.session_type == 'video_call' %}🎥 Video Call{% elif appointment.session_type == 'audio_call' %}🎙 Audio Call{% else %}💬 Text Chat{% endif %}<br>
+                    💳 Payment: {% if appointment.payment_status == 'paid' %}Paid{% elif appointment.payment_status == 'refunded' %}Refunded{% else %}Pending{% endif %} · NPR {{ appointment.fee_amount }}<br>
                     📧 Contact: {{ appointment.therapist.email }}<br>
                     🏥 Specialization: {{ appointment.therapist.get_specialization_display|default:"General" }}
                     {% if appointment.notes %}
@@ -327,6 +328,8 @@
                 <div class="appointment-details">
                     <strong>📅 Requested for: {{ appointment.date_time|date:"F j, Y" }} at {{ appointment.date_time|time:"g:i A" }}</strong><br>
                     ⏱️ Duration: {{ appointment.duration_minutes }} minutes<br>
+                    {% if appointment.session_type == 'video_call' %}🎥 Video Call{% elif appointment.session_type == 'audio_call' %}🎙 Audio Call{% else %}💬 Text Chat{% endif %}<br>
+                    💳 Payment: {% if appointment.payment_status == 'paid' %}Paid{% elif appointment.payment_status == 'refunded' %}Refunded{% else %}Pending{% endif %} · NPR {{ appointment.fee_amount }}<br>
                     📧 Contact: {{ appointment.therapist.email }}<br>
                     🏥 Specialization: {{ appointment.therapist.get_specialization_display|default:"General" }}<br>
                     📤 Requested on: {{ appointment.created_at|date:"M j, Y" }}
@@ -335,6 +338,7 @@
                     {% endif %}
                 </div>
                 <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+
                     <a href="{% url 'accounts:cancel_appointment' appointment.id %}" style="padding:6px 14px;background:#f8d7da;color:#721c24;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;">Cancel Request</a>
                 </div>
             </div>
@@ -400,6 +404,8 @@
                 <div class="appointment-details">
                     <strong>📅 {{ appointment.date_time|date:"F j, Y" }} at {{ appointment.date_time|time:"g:i A" }}</strong><br>
                     ⏱️ Duration: {{ appointment.duration_minutes }} minutes<br>
+                    💳 Payment: {% if appointment.payment_status == 'paid' %}Paid{% elif appointment.payment_status == 'refunded' %}Refunded{% else %}Pending{% endif %} · NPR {{ appointment.fee_amount }}<br>
+                    {% if appointment.refund_status == 'refunded' %}💸 Refund: Processed{% elif appointment.refund_status == 'not_eligible' %}💸 Refund: Not eligible (within 24h){% endif %}<br>
                     📧 Contact: {{ appointment.therapist.email }}<br>
                     🏥 Specialization: {{ appointment.therapist.get_specialization_display|default:"General" }}<br>
                     ⚠️ Status: Appointment time has passed without attendance

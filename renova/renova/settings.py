@@ -12,12 +12,10 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 from decouple import config
-import decouple
-config = decouple.config
+import dotenv
 
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+dotenv.load_dotenv(BASE_DIR / '.env', override=True)
 
 
 # Quick-start development settings - unsuitable for production
@@ -35,6 +33,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '127.0.0.1:8000']
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -98,10 +97,8 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER', default='noreply@renova.com')
 CONTACT_EMAIL = 'raishelika@gmail.com'
 
-YOUTUBE_API_KEY = ""
-
-HF_API_TOKEN = config("HF_API_TOKEN", default="")
-HF_CHAT_MODEL = config("HF_CHAT_MODEL", default="mistralai/Mistral-7B-Instruct-v0.2")
+YOUTUBE_API_KEY = config('YOUTUBE_API_KEY', default='')
+GOOGLE_API_KEY = config('GOOGLE_API_KEY', default='')
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -177,6 +174,15 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Esewa Payment Gateway
+ESEWA_IS_PRODUCTION = config("ESEWA_IS_PRODUCTION", default=False, cast=bool)
+ESEWA_PRODUCT_CODE = config("ESEWA_PRODUCT_CODE", default="EPAYTEST")
+if ESEWA_IS_PRODUCTION:
+    ESEWA_SECRET_KEY = config("ESEWA_PRODUCTION_KEY")
+    ESEWA_URL = "https://epay.esewa.com.np/api/epay/main/v2/form"
+else:
+    ESEWA_SECRET_KEY = config("ESEWA_SANDBOX_KEY", default="8gBm/:&EnhH.1/q")
+    ESEWA_URL = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
@@ -188,3 +194,38 @@ MEDIA_URL = 'media/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field    
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+JAZZMIN_SETTINGS = {
+    "site_title": "Renova Admin",
+    "site_header": "Renova",
+    "site_brand": "Renova",
+    
+     
+    "welcome_sign": "Welcome to the Renova Admin",
+    "search_model": None,
+    "user_avatar": None,
+    "topmenu_links": [
+        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+    ],
+    "usermenu_links": [
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": ["auth.User"],
+    "order_with_respect_to": ["auth", "accounts", "accounts.CustomUser", "accounts.PatientMCQResult"],
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "accounts.CustomUser": "fas fa-user-plus",
+    },
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+    "related_modal_active": False,
+    "custom_css": None,
+    "custom_js": None,
+    "show_ui_builder": False,
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {"auth.user": "collapsible", "auth.group": "vertical_tabs"},
+}

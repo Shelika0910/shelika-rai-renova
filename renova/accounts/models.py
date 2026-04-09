@@ -60,6 +60,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 	bio = models.TextField(blank=True, default="", help_text="Short bio or about me")
 	profile_image = models.ImageField(upload_to="profile_images/", blank=True, null=True)
 	is_verified = models.BooleanField(default=False)
+	is_approved = models.BooleanField(default=False)
 	is_active = models.BooleanField(default=True)
 	is_staff = models.BooleanField(default=False)
 	date_joined = models.DateTimeField(default=timezone.now)
@@ -84,8 +85,10 @@ class PatientMCQResult(models.Model):
 		("anxiety", "Anxiety"),
 		("depression", "Depression"),
 		("stress", "Stress"),
-		("ptsd", "PTSD"),
+		("ptsd", "Trauma & PTSD"),
 		("general", "General Wellness"),
+		("addiction", "Addiction"),
+		("family", "Family Issues"),
 	]
 
 	user = models.OneToOneField(
@@ -155,6 +158,21 @@ class Appointment(models.Model):
 		("rescheduled", "Rescheduled"),
 		("rejected", "Rejected"),
 	]
+	PAYMENT_STATUS_CHOICES = [
+		("pending", "Pending"),
+		("paid", "Paid"),
+		("refunded", "Refunded"),
+	]
+	REFUND_STATUS_CHOICES = [
+		("none", "None"),
+		("eligible", "Eligible"),
+		("not_eligible", "Not Eligible"),
+		("refunded", "Refunded"),
+	]
+	PAYOUT_STATUS_CHOICES = [
+		("pending", "Pending"),
+		("paid", "Paid"),
+	]
 
 	patient = models.ForeignKey(
 		CustomUser, on_delete=models.CASCADE, related_name="patient_appointments"
@@ -179,6 +197,16 @@ class Appointment(models.Model):
 		max_length=20, choices=SESSION_TYPE_CHOICES, default="text_chat",
 		help_text="How the session will be conducted",
 	)
+	reminder_sent = models.BooleanField(default=False)
+	fee_amount = models.PositiveIntegerField(default=0, help_text="Session fee in NPR")
+	payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending")
+	payment_method = models.CharField(max_length=20, default="card")
+	payment_reference = models.CharField(max_length=100, blank=True)
+	paid_at = models.DateTimeField(null=True, blank=True)
+	refund_status = models.CharField(max_length=20, choices=REFUND_STATUS_CHOICES, default="none")
+	refunded_at = models.DateTimeField(null=True, blank=True)
+	therapist_payout_status = models.CharField(max_length=20, choices=PAYOUT_STATUS_CHOICES, default="pending")
+	therapist_paid_out_at = models.DateTimeField(null=True, blank=True)
 	cancellation_reason = models.TextField(blank=True)
 	rescheduled_from = models.ForeignKey(
 		"self", on_delete=models.SET_NULL, null=True, blank=True, related_name="rescheduled_to"
@@ -209,6 +237,22 @@ class Appointment(models.Model):
 	def end_time(self):
 		from datetime import timedelta
 		return self.date_time + timedelta(minutes=self.duration_minutes)
+
+	@property
+	def session_fee(self):
+		fee_map = {
+			30: 1000,
+			60: 2000,
+			90: 3000,
+		}
+		return fee_map.get(self.duration_minutes, 200)
+
+	@property
+	def is_refund_eligible(self):
+		if self.status != "cancelled":
+			return False
+		remaining = self.date_time - timezone.now()
+		return remaining.total_seconds() > 24 * 3600
 
 
 class TherapySession(models.Model):
@@ -251,6 +295,12 @@ class SessionMessage(models.Model):
 
 	def __str__(self):
 		return f"{self.sender.full_name}: {self.content[:50]}"
+
+
+class Payment(Appointment):
+	"""Proxy model to manage payments in the Django admin separately."""
+	class Meta:
+		proxy = True
 
 
 class SessionReport(models.Model):
@@ -325,6 +375,10 @@ class Notification(models.Model):
 		Appointment, on_delete=models.CASCADE, null=True, blank=True
 	)
 	redirect_url = models.CharField(max_length=255, blank=True, default="", help_text="URL to redirect when clicked")
+	program_title = models.CharField(max_length=255, blank=True, null=True)
+	program_description = models.TextField(blank=True, null=True)
+	program_link = models.URLField(blank=True, null=True)
+	program_datetime = models.DateTimeField(blank=True, null=True)
 
 	class Meta:
 		ordering = ["-created_at"]
@@ -526,3 +580,28 @@ class Meta:
 
 def __str__(self):
 	return f"[{self.role}] {self.content[:60]}"
+
+
+class OnlineAwarenessProgram(models.Model):
+	"""Online awareness programs created by admins."""
+
+	title = models.CharField(max_length=255)
+	description = models.TextField()
+	date = models.DateField()
+	time = models.TimeField()
+	link = models.URLField()
+	created_by = models.ForeignKey(
+		CustomUser,
+		on_delete=models.CASCADE,
+		related_name="created_awareness_programs",
+		limit_choices_to={"role": "admin"},
+	)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ["-date", "-time"]
+		verbose_name = "Online Awareness Program"
+		verbose_name_plural = "Online Awareness Programs"
+
+	def __str__(self):
+		return self.title

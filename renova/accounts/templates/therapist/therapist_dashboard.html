@@ -86,6 +86,28 @@
         margin-bottom: 18px;
     }
 
+        /* ----- Charts Grid ----- */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .chart-card {
+        background: #fff;
+        border: 1px solid #e7ddd6;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+    }
+
+    .chart-card h3 {
+        margin-bottom: 10px;
+        font-size: 1rem;
+        color: #2c4652;
+    }
+
     .stat {
         background: #fff;
         border: 1px solid #e7ddd6;
@@ -265,8 +287,8 @@
 
     <div id="dashboard-content">
         <div class="hero-card">
-            <h1>Doctor Dashboard</h1>
-            <p>Welcome back, <span class="muted-email">{{ request.user.email }}</span>.</p>
+            <h1>Welcome back, {{ request.user.full_name }}!</h1>
+            <p>Therapist Dashboard</span>.</p>
             <div class="hero-sub">Your practice overview for today: appointments, patient updates, and clinical insights.</div>
         </div>
 
@@ -338,6 +360,18 @@
             </section>
         </div>
 
+            <!-- Charts -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Weekly Appointments</h3>
+            <canvas id="appointmentsChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>Monthly Earnings</h3>
+            <canvas id="earningsChart"></canvas>
+        </div>
+    </div>
+
         <div class="quick-grid">
             <article class="quick-card">
                 <h4>Patients</h4>
@@ -363,4 +397,42 @@
     </div>
 
 </section>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx1 = document.getElementById('appointmentsChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: {{ week_days|safe }},
+            datasets: [{
+                label: 'Appointments',
+                data: {{ week_appointments|safe }},
+                backgroundColor: 'rgba(77,163,169,0.2)',
+                borderColor: '#4da3a9',
+                tension: 0.4,
+                fill: true
+            }]
+        }
+    });
+
+    const ctx2 = document.getElementById('earningsChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: {{ months|safe }},
+            datasets: [{
+                label: 'Earnings (NPR)',
+                data: {{ earnings_data|safe }},
+                backgroundColor: '#4da3a9'
+            }]
+        },
+        options: {
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+</script>
 {% endblock %}

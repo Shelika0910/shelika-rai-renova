@@ -42,12 +42,6 @@ urlpatterns = [
 	path("dashboard/patient/find-therapist/", views.find_therapist, name="find_therapist"),
 	path("dashboard/patient/appointments/", views.patient_appointments, name="patient_appointments"),
 	path("dashboard/patient/book/", views.book_appointment, name="book_appointment"),
-<<<<<<< HEAD
-=======
-	path("dashboard/patient/appointment/<int:appointment_id>/payment/", views.esewa_payment, name="esewa_payment"),
-	path("dashboard/patient/appointment/<int:appointment_id>/payment/success/", views.esewa_payment_success, name="esewa_payment_success"),
-	path("dashboard/patient/appointment/<int:appointment_id>/payment/failed/", views.esewa_payment_failed, name="esewa_payment_failed"),
->>>>>>> parent of 482fd21 (Admin portal)
 	path("dashboard/patient/resources/", views.patient_resources, name="patient_resources"),
 	path("ai-chatbot/", views.chatbot_page, name="ai_chatbot"),
     path("ai-chatbot/<int:session_id>/", views.chatbot_page, name="chatbot_load_session"),

@@ -302,49 +302,6 @@ class Payment(Appointment):
 	class Meta:
 		proxy = True
 
-
-class TherapySession(models.Model):
-	"""Tracks a live online therapy session room."""
-
-	appointment = models.OneToOneField(
-		Appointment, on_delete=models.CASCADE, related_name="therapy_session"
-	)
-	room_code = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-	is_active = models.BooleanField(default=False)
-	started_at = models.DateTimeField(null=True, blank=True)
-	ended_at = models.DateTimeField(null=True, blank=True)
-	created_at = models.DateTimeField(auto_now_add=True)
-
-	class Meta:
-		ordering = ["-created_at"]
-
-	def __str__(self):
-		return f"Session: {self.appointment}"
-
-
-class SessionMessage(models.Model):
-	"""Chat messages sent during a live therapy session."""
-
-	MESSAGE_TYPE_CHOICES = [
-		("text", "Text"),
-		("system", "System"),
-	]
-
-	session = models.ForeignKey(
-		TherapySession, on_delete=models.CASCADE, related_name="session_messages"
-	)
-	sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="session_messages")
-	content = models.TextField()
-	message_type = models.CharField(max_length=10, choices=MESSAGE_TYPE_CHOICES, default="text")
-	created_at = models.DateTimeField(auto_now_add=True)
-
-	class Meta:
-		ordering = ["created_at"]
-
-	def __str__(self):
-		return f"{self.sender.full_name}: {self.content[:50]}"
-
-
 class SessionReport(models.Model):
 	"""Therapist session reports / notes after appointments."""
 

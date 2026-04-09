@@ -822,10 +822,6 @@ def book_appointment(request):
 	}
 	return render(request, "patient/book_appointment.html", context)
 
-
-
-
-
 @login_required
 def esewa_payment(request, appointment_id):
 	"""Simple eSewa checkout simulation page for an appointment."""
@@ -1492,6 +1488,8 @@ def log_activity(request):
 		return JsonResponse({"error": str(e)}, status=500)
 
 
+from datetime import timedelta
+import json
 # ─── therapist dashboard ───────────────────────────────────────────────────
 @login_required
 def therapist_dashboard(request):
@@ -1530,6 +1528,8 @@ def therapist_dashboard(request):
 	)
 	month_earnings = (month_eligible.aggregate(total=Sum("fee_amount"))["total"] or 0) * 0.75
 
+	total_sessions = all_apts.count()
+	
 	month_paid_out = (all_apts.filter(
 		status="completed",
 		therapist_payout_status="paid",
@@ -1543,6 +1543,42 @@ def therapist_dashboard(request):
 		therapist_payout_status="pending",
 	).aggregate(total=Sum("fee_amount"))["total"] or 0) * 0.75
 
+	# Chart data
+	# Weekly appointments
+	today = timezone.now().date()
+	week_start = today - timedelta(days=6)
+	week_days = [(week_start + timedelta(days=i)).strftime("%a") for i in range(7)]
+	week_appointments = []
+	for i in range(7):
+		day = week_start + timedelta(days=i)
+		count = all_apts.filter(status="completed", date_time__date=day).count()
+		week_appointments.append(count)
+
+	# Monthly earnings for the last 6 months
+	months, earnings_data = [], []
+	for i in range(5, -1, -1):
+		month = today.month - i
+		year = today.year
+		if month <= 0:
+			month += 12
+			year -= 1
+		
+		month_start = timezone.now().replace(year=year, month=month, day=1, hour=0, minute=0, second=0)
+		if month_start.month == 12:
+			next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+		else:
+			next_month_start = month_start.replace(month=month_start.month + 1)
+
+		earnings = (all_apts.filter(
+			status="completed",
+			payment_status="paid",
+			date_time__gte=month_start,
+			date_time__lt=next_month_start
+		).aggregate(total=Sum("fee_amount"))["total"] or 0) * 0.75
+		
+		months.append(month_start.strftime("%b"))
+		earnings_data.append(earnings)
+
 	context = {
 		"therapist": request.user,
 		"unread_notifications": _unread(request.user),
@@ -1552,12 +1588,44 @@ def therapist_dashboard(request):
 		"pending_requests": pending_requests,
 		"total_patients": total_patients,
 		"completed_sessions": completed_sessions,
+		"total_sessions": total_sessions,
 		"reports_count": reports_count,
 		"month_earnings": month_earnings,
 		"month_paid_out": month_paid_out,
 		"pending_payout_amount": pending_payout_amount,
+		"week_days": json.dumps(week_days),
+		"week_appointments": json.dumps(week_appointments),
+		"months": json.dumps(months),
+		"earnings_data": json.dumps(earnings_data),
 	}
 	return render(request, "therapist/therapist_dashboard.html", context)
+
+
+@login_required
+def process_payout(request):
+	if request.method == "POST" and request.user.role == "therapist":
+		now = timezone.now()
+		
+		# Select appointments that are completed, paid by patient, and pending payout
+		payout_appointments = Appointment.objects.filter(
+			therapist=request.user,
+			status="completed",
+			payment_status="paid",
+			therapist_payout_status="pending"
+		)
+
+		# Mark them as paid
+		updated_count = payout_appointments.update(
+			therapist_payout_status="paid",
+			therapist_paid_out_at=now
+		)
+
+		if updated_count > 0:
+			messages.success(request, f"Successfully processed payout for {updated_count} completed session(s).")
+		else:
+			messages.info(request, "No pending payouts to process.")
+
+	return redirect("accounts:therapist_dashboard")
 
 
 @login_required

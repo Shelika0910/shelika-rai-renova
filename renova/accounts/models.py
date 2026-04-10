@@ -59,6 +59,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 	phone = models.CharField(max_length=20, blank=True, default="")
 	bio = models.TextField(blank=True, default="", help_text="Short bio or about me")
 	profile_image = models.ImageField(upload_to="profile_images/", blank=True, null=True)
+	terms_accepted = models.BooleanField(default=False)
 	is_verified = models.BooleanField(default=False)
 	is_approved = models.BooleanField(default=False)
 	is_active = models.BooleanField(default=True)
@@ -516,6 +517,32 @@ class ActivityLog(models.Model):
 
 	def __str__(self):
 		return f"{self.user.full_name} — {self.get_activity_type_display()}: {self.title}"
+
+
+class EmailOTP(models.Model):
+	"""Stores one-time verification codes sent for auth flows."""
+
+	PURPOSE_CHOICES = [
+		("register", "Register"),
+		("password_reset", "Password Reset"),
+	]
+
+	user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="email_otps")
+	purpose = models.CharField(max_length=30, choices=PURPOSE_CHOICES)
+	code = models.CharField(max_length=6)
+	sent_to = models.EmailField()
+	expires_at = models.DateTimeField()
+	is_used = models.BooleanField(default=False)
+	used_at = models.DateTimeField(null=True, blank=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ["-created_at"]
+		verbose_name = "Email OTP"
+		verbose_name_plural = "Email OTPs"
+
+	def __str__(self):
+		return f"{self.user.email} - {self.purpose}"
 
 
 class TherapistRating(models.Model):

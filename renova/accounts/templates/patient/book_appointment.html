@@ -431,19 +431,19 @@ function loadSlots() {
         return;
     }
 
-    // Generate hourly slots
+    // Generate slots from blocks
     let slots = [];
     dayBlocks.forEach(block => {
-        let [sh, sm] = block.start.split(':').map(Number);
-        const [eh, em] = block.end.split(':').map(Number);
-        let cur = sh * 60 + sm;
-        const endMin = eh * 60 + em;
-        while (cur < endMin) {
-            const t = pad2(Math.floor(cur / 60)) + ':' + pad2(cur % 60);
-            const booked = dayBooked.includes(t);
-            slots.push({ time: t, display: formatTime12(t), booked });
-            cur += 60;
-        }
+        const startTime = block.start;
+        const endTime = block.end;
+        const isBooked = dayBooked.some(bookedTime => bookedTime >= startTime && bookedTime < endTime);
+        
+        slots.push({
+            startTime: startTime,
+            endTime: endTime,
+            display: `${formatTime12(startTime)} - ${formatTime12(endTime)}`,
+            booked: isBooked
+        });
     });
 
     if (slots.filter(s => !s.booked).length === 0) {
@@ -454,7 +454,7 @@ function loadSlots() {
             if (s.booked) {
                 html += `<div class="slot-btn disabled">${s.display}</div>`;
             } else {
-                html += `<div class="slot-btn" onclick="selectSlot(this, '${s.time}', '${s.display}')">${s.display}</div>`;
+                html += `<div class="slot-btn" onclick="selectSlot(this, '${s.startTime}', '${s.display}')">${s.display}</div>`;
             }
         });
         html += '</div>';

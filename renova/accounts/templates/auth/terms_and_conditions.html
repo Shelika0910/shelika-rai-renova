@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Terms and Conditions | ReNova{% endblock %}
+
+{% block extra_css %}
+<style>
+    .terms-wrap {
+        min-height: 72vh;
+        display: grid;
+        place-items: center;
+        padding: 30px 0 48px;
+    }
+
+    .terms-shell {
+        width: min(920px, 100%);
+        display: grid;
+        grid-template-columns: 0.95fr 1.05fr;
+        background: #fff;
+        border: 1px solid #e8dfd8;
+        border-radius: 26px;
+        overflow: hidden;
+        box-shadow: 0 24px 50px rgba(31, 42, 55, 0.1);
+    }
+
+    .terms-side {
+        padding: 34px;
+        background: linear-gradient(150deg, #2f7d83 0%, #4da3a9 54%, #dff3f4 100%);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 18px;
+    }
+
+    .terms-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        font-size: 0.82rem;
+        font-weight: 600;
+        width: fit-content;
+    }
+
+    .terms-title {
+        margin: 12px 0 10px;
+        font-size: 1.9rem;
+        line-height: 1.2;
+        max-width: 320px;
+    }
+
+    .terms-copy {
+        margin: 0;
+        max-width: 320px;
+        color: #ecfbfb;
+    }
+
+    .terms-note {
+        padding: 14px 15px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        font-size: 0.92rem;
+        color: #f7ffff;
+    }
+
+    .terms-card {
+        padding: 34px 30px;
+    }
+
+    .terms-card h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        color: #1e2b37;
+    }
+
+    .terms-card p {
+        margin: 8px 0 18px;
+        color: #5f6b7a;
+    }
+
+    .terms-box {
+        border: 1px solid #e4ddd7;
+        background: #fcfaf8;
+        border-radius: 18px;
+        padding: 18px 18px 10px;
+        margin-bottom: 18px;
+    }
+
+    .terms-box h2 {
+        margin: 0 0 10px;
+        font-size: 1rem;
+        color: #24333f;
+    }
+
+    .terms-list {
+        margin: 0;
+        padding-left: 18px;
+        color: #4f6673;
+    }
+
+    .terms-list li {
+        margin-bottom: 10px;
+    }
+
+    .consent-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: #f5fbfb;
+        border: 1px solid #d9ecee;
+        margin-bottom: 16px;
+    }
+
+    .consent-row input {
+        width: 18px;
+        height: 18px;
+        margin-top: 3px;
+        accent-color: #4da3a9;
+        flex-shrink: 0;
+    }
+
+    .consent-row label {
+        color: #24333f;
+        font-weight: 600;
+        line-height: 1.45;
+        cursor: pointer;
+    }
+
+    .submit-btn {
+        width: 100%;
+        border: 0;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #4da3a9, #3a8f95);
+        color: #fff;
+        padding: 12px 16px;
+        font-weight: 700;
+        cursor: pointer;
+        letter-spacing: 0.2px;
+    }
+
+    .submit-btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+    .flash {
+        margin-bottom: 14px;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 0.94rem;
+    }
+
+    .flash.error { background: #ffe7e7; color: #952727; }
+    .flash.success { background: #e8f8ea; color: #23683b; }
+
+    @media (max-width: 860px) {
+        .terms-shell {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="terms-wrap">
+    <div class="terms-shell">
+        <aside class="terms-side">
+            <div>
+                <span class="terms-pill">Required Before Access</span>
+                <h2 class="terms-title">Please review and accept the ReNova terms</h2>
+                <p class="terms-copy">This confirmation keeps your session access and platform usage aligned with the rules shown here.</p>
+            </div>
+            <div class="terms-note">You only need to accept this once unless the terms change.</div>
+        </aside>
+
+        <div class="terms-card">
+            <h1>Terms and Conditions</h1>
+            <p>Read the summary below and confirm that you agree before continuing to your dashboard.</p>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="terms-box">
+                <h2>Summary</h2>
+                <ul class="terms-list">
+                    <li>Use ReNova for lawful, respectful, and appropriate mental health support only.</li>
+                    <li>Keep your account credentials private and do not share access with others.</li>
+                    <li>Appointments, messages, and resource access are subject to platform availability and professional review.</li>
+                    <li>Emergency or crisis situations should be handled through local emergency services, not this platform.</li>
+                </ul>
+            </div>
+
+            <form method="post" id="termsForm">
+                {% csrf_token %}
+                <div class="consent-row">
+                    <input type="checkbox" id="accept_terms" name="accept_terms" value="on" required>
+                    <label for="accept_terms">I accept the Terms and Conditions and I understand I must agree before using ReNova.</label>
+                </div>
+
+                <button class="submit-btn" id="acceptBtn" type="submit" disabled>Continue to Dashboard</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<script>
+    (function () {
+        const checkbox = document.getElementById('accept_terms');
+        const button = document.getElementById('acceptBtn');
+        if (!checkbox || !button) return;
+        const syncState = () => {
+            button.disabled = !checkbox.checked;
+        };
+        checkbox.addEventListener('change', syncState);
+        syncState();
+    }());
+</script>
+{% endblock %}

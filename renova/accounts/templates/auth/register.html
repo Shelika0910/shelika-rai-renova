@@ -245,7 +245,7 @@
                     Access wellness resources, secure messaging, and appointments.
                 </div>
                 <div class="note-card">
-                    <strong>Doctor Account</strong>
+                    <strong>Therapist Account</strong>
                     Manage patients, session schedules, and treatment workflow.
                 </div>
             </div>
@@ -281,7 +281,7 @@
                     <label for="role">Account Role</label>
                     <select id="role" name="role" required onchange="toggleSpecialization()">
                         <option value="patient" {% if request.POST.role == 'patient' %}selected{% endif %}>Patient</option>
-                        <option value="doctor" {% if request.POST.role == 'doctor' %}selected{% endif %}>Doctor</option>
+                        <option value="doctor" {% if request.POST.role == 'doctor' %}selected{% endif %}>Therapist</option>
                     </select>
                 </div>
 

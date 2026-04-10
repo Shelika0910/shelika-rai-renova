@@ -1,11 +1,13 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from unittest.mock import patch
+from .models import PatientMCQResult, EmailOTP
 
 User = get_user_model()
 
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
 class AuthenticationTests(TestCase):
     """ Unit Tests for User Authentication and Profile Management """
     
@@ -15,16 +17,37 @@ class AuthenticationTests(TestCase):
         self.therapist = User.objects.create_user(email="therapist@test.com", password="password123", role="therapist")
 
     def test_registration_and_login(self):
-        print("\n---> Testing: User Authentication - Register, login, and logout functionality")
+        print("\n---> Testing: User Authentication - Register + OTP verify + login + logout")
         
         # Test Registration
         register_response = self.client.post(reverse("accounts:register"), {
             "full_name": "New User",
             "email": "newuser@test.com",
-            "password": "newpassword123",
+            "password1": "newpassword123",
+            "password2": "newpassword123",
             "role": "patient",
         })
         self.assertEqual(register_response.status_code, 302) # Expect redirect on success
+        self.assertIn(reverse("accounts:verify_otp"), register_response.url)
+
+        new_user = User.objects.get(email="newuser@test.com")
+        self.assertFalse(new_user.is_active)
+
+        otp = EmailOTP.objects.filter(user=new_user, purpose="register", is_used=False).first()
+        self.assertIsNotNone(otp)
+
+        verify_response = self.client.post(reverse("accounts:verify_otp"), {
+            "otp_code": otp.code,
+        })
+        self.assertEqual(verify_response.status_code, 302)
+        self.assertIn(reverse("accounts:dashboard_redirect"), verify_response.url)
+
+        new_user.refresh_from_db()
+        self.assertTrue(new_user.is_active)
+
+        # Logout first because OTP verification auto-logs the user in
+        logout_response = self.client.get(reverse("accounts:logout"))
+        self.assertEqual(logout_response.status_code, 302)
         
         # Test Login
         login_response = self.client.post(reverse("accounts:login"), {
@@ -34,16 +57,60 @@ class AuthenticationTests(TestCase):
         self.assertEqual(login_response.status_code, 302)
         
         # Test Logout
-        logout_response = self.client.get(reverse("accounts:logout"))
-        self.assertEqual(logout_response.status_code, 302)
+        logout_response_2 = self.client.get(reverse("accounts:logout"))
+        self.assertEqual(logout_response_2.status_code, 302)
+
+    def test_terms_redirect_when_not_accepted(self):
+        print("\n---> Testing: Terms flow - redirect unaccepted users to the consent page")
+        self.client.login(email="patient@test.com", password="password123")
+        response = self.client.get(reverse("accounts:patient_dashboard"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("accounts:terms_and_conditions"), response.url)
+
+    def test_accept_terms_flow(self):
+        print("\n---> Testing: Terms flow - checkbox acceptance persists and unlocks access")
+        self.client.login(email="patient@test.com", password="password123")
+        response = self.client.post(reverse("accounts:terms_and_conditions"), {"accept_terms": "on"})
+        self.assertEqual(response.status_code, 302)
+        self.patient.refresh_from_db()
+        self.assertTrue(self.patient.terms_accepted)
+        self.assertIn(reverse("accounts:dashboard_redirect"), response.url)
 
     def test_password_recovery_flows(self):
-        print("\n---> Testing: User Authentication - Password recovery, reset forms")
+        print("\n---> Testing: User Authentication - Password recovery pages and OTP flow")
         response = self.client.get(reverse("accounts:password_reset"))
         self.assertEqual(response.status_code, 200)
 
         response_done = self.client.get(reverse("accounts:password_reset_done"))
         self.assertEqual(response_done.status_code, 200)
+
+        forgot_start = self.client.post(reverse("accounts:forgot_password"), {
+            "email": self.patient.email,
+        })
+        self.assertEqual(forgot_start.status_code, 302)
+        self.assertIn(reverse("accounts:forgot_password_verify_otp"), forgot_start.url)
+
+        reset_otp = EmailOTP.objects.filter(user=self.patient, purpose="password_reset", is_used=False).first()
+        self.assertIsNotNone(reset_otp)
+
+        verify_reset = self.client.post(reverse("accounts:forgot_password_verify_otp"), {
+            "otp_code": reset_otp.code,
+        })
+        self.assertEqual(verify_reset.status_code, 302)
+        self.assertIn(reverse("accounts:forgot_password_set_new"), verify_reset.url)
+
+        set_new = self.client.post(reverse("accounts:forgot_password_set_new"), {
+            "password1": "brandnewpass123",
+            "password2": "brandnewpass123",
+        })
+        self.assertEqual(set_new.status_code, 302)
+        self.assertIn(reverse("accounts:login"), set_new.url)
+
+        login_new = self.client.post(reverse("accounts:login"), {
+            "email": self.patient.email,
+            "password": "brandnewpass123",
+        })
+        self.assertEqual(login_new.status_code, 302)
 
 
 class PatientFeaturesTests(TestCase):
@@ -53,6 +120,9 @@ class PatientFeaturesTests(TestCase):
         self.client = Client()
         self.patient = User.objects.create_user(email="patient@test.com", password="password123", role="patient")
         self.therapist = User.objects.create_user(email="therapist@test.com", password="password123", role="therapist")
+        self.patient.terms_accepted = True
+        self.patient.save(update_fields=["terms_accepted"])
+        PatientMCQResult.objects.create(user=self.patient, answers={}, category="general", score=0)
         self.client.login(email="patient@test.com", password="password123")
 
     def test_patient_dashboards_and_profiles(self):
@@ -66,7 +136,8 @@ class PatientFeaturesTests(TestCase):
     def test_patient_mcq(self):
         print("\n---> Testing: Patient Features - Mental health assessment questionnaires (MCQ)")
         mcq_page = self.client.get(reverse("accounts:patient_mcq"))
-        self.assertEqual(mcq_page.status_code, 200)
+        self.assertEqual(mcq_page.status_code, 302)
+        self.assertIn(reverse("accounts:patient_dashboard"), mcq_page.url)
 
     def test_patient_resources_and_tracking(self):
         print("\n---> Testing: Patient Features - Access resources & Track video watch time")
@@ -86,7 +157,11 @@ class PatientFeaturesTests(TestCase):
 
     def test_activity_logging(self):
         print("\n---> Testing: Patient Features - Log daily activities")
-        log_page = self.client.get(reverse("accounts:log_activity"))
+        log_page = self.client.post(
+            reverse("accounts:log_activity"),
+            data='{"activity_type":"task","title":"Walk","description":"Short walk","points":10}',
+            content_type="application/json",
+        )
         self.assertEqual(log_page.status_code, 200)
 
 
@@ -96,6 +171,10 @@ class TherapistFeaturesTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.therapist = User.objects.create_user(email="therapist@test.com", password="password123", role="therapist")
+        self.therapist.terms_accepted = True
+        self.therapist.save(update_fields=["terms_accepted"])
+        self.therapist.is_approved = True
+        self.therapist.save(update_fields=["is_approved"])
         self.client.login(email="therapist@test.com", password="password123")
 
     def test_therapist_dashboard_and_availability(self):
@@ -114,7 +193,8 @@ class TherapistFeaturesTests(TestCase):
     def test_therapist_financials(self):
         print("\n---> Testing: Therapist Features - Process monthly payouts")
         payouts = self.client.get(reverse("accounts:process_monthly_payout"))
-        self.assertEqual(payouts.status_code, 200)
+        self.assertEqual(payouts.status_code, 302)
+        self.assertIn(reverse("accounts:therapist_dashboard"), payouts.url)
 
 
 class AdminFeaturesTests(TestCase):
@@ -142,6 +222,8 @@ class AppointmentManagementTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.patient = User.objects.create_user(email="patient@test.com", password="password123", role="patient")
+        self.patient.terms_accepted = True
+        self.patient.save(update_fields=["terms_accepted"])
         self.client.login(email="patient@test.com", password="password123")
 
     def test_appointment_booking(self):
@@ -171,6 +253,8 @@ class TelehealthAndCommunicationTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.patient = User.objects.create_user(email="patient@test.com", password="password123", role="patient")
+        self.patient.terms_accepted = True
+        self.patient.save(update_fields=["terms_accepted"])
         self.client.login(email="patient@test.com", password="password123")
 
     def test_messaging_and_notifications(self):
@@ -197,6 +281,8 @@ class PaymentsTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.patient = User.objects.create_user(email="patient@test.com", password="password123", role="patient")
+        self.patient.terms_accepted = True
+        self.patient.save(update_fields=["terms_accepted"])
         self.client.login(email="patient@test.com", password="password123")
 
     def test_esewa_initiation(self):

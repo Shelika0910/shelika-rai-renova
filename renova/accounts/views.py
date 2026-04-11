@@ -2571,10 +2571,6 @@ def session_room(request, appointment_id):
 		messages.error(request, "Session is only available for confirmed appointments.")
 		return redirect("accounts:dashboard_redirect")
 
-	if not apt.can_join:
-		messages.error(request, "You can only join this session during its scheduled time (or up to 5 minutes before).")
-		return redirect("accounts:dashboard_redirect")
-
 	# Get or create the session room
 	session, created = TherapySession.objects.get_or_create(
 		appointment=apt,

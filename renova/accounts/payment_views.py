@@ -53,7 +53,7 @@ def esewa_payment_initiation(request, appointment_id):
 		"signature": signature,
         "signed_field_names": "total_amount,transaction_uuid,product_code",
 		"success_url": request.build_absolute_uri(reverse("accounts:esewa_payment_verification")),
-		"failure_url": request.build_absolute_uri(reverse("accounts:patient_appointments")), # Or a custom failure page
+		"failure_url": request.build_absolute_uri(reverse("accounts:patient_appointments")), 
 	}
 
 	return render(request, "payment/esewa_initiate.html", context)
@@ -117,7 +117,15 @@ def esewa_payment_verification(request):
 						appointment,
 						"/dashboard/therapist/appointments/"
 					)
-					messages.success(request, "Payment successful and appointment is now pending therapist approval.")
+					return render(
+						request,
+						"payment/success.html",
+						{
+							"appointment": appointment,
+							"redirect_url": reverse("accounts:patient_appointments"),
+							"redirect_seconds": 8,
+						},
+					)
 				else:
 					# Signature mismatch
 					appointment.payment_status = "failed"

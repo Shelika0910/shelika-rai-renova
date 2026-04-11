@@ -350,15 +350,9 @@
                     </div>
                     <div class="appointment-actions">
                         {% if appointment.status == 'confirmed' %}
-                            {% if appointment.can_join %}
-                                <a href="{% url 'accounts:session_room' appointment.pk %}" class="btn btn-primary">
-                                    {% if appointment.session_type == 'video_call' %}🎥{% elif appointment.session_type == 'audio_call' %}🎙{% else %}💬{% endif %} Join Session
-                                </a>
-                            {% else %}
-                                <button class="btn btn-primary" disabled title="You can join 5 minutes before the session starts">
-                                    {% if appointment.session_type == 'video_call' %}🎥{% elif appointment.session_type == 'audio_call' %}🎙{% else %}💬{% endif %} Join Session
-                                </button>
-                            {% endif %}
+                            <a href="{% url 'accounts:session_room' appointment.pk %}" class="btn btn-primary">
+                                {% if appointment.session_type == 'video_call' %}🎥{% elif appointment.session_type == 'audio_call' %}🎙{% else %}💬{% endif %} Join Session
+                            </a>
                         {% endif %}
                         {% if appointment.status == 'requested' %}
                             <a href="{% url 'accounts:confirm_appointment' appointment.pk %}" class="btn btn-success">✓ Confirm</a>

@@ -299,15 +299,9 @@
                     {% endif %}
                 </div>
                 <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-                    {% if appointment.can_join %}
-                        <a href="{% url 'accounts:session_room' appointment.id %}" style="padding:6px 14px;background:#4da3a9;color:#fff;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;">
-                            {% if appointment.session_type == 'video_call' %}🎥{% elif appointment.session_type == 'audio_call' %}🎙{% else %}💬{% endif %} Join Session
-                        </a>
-                    {% else %}
-                        <button disabled title="You can join 5 minutes before the session starts" style="padding:6px 14px;background:#b2d8da;color:#fff;border:none;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:not-allowed;">
-                            {% if appointment.session_type == 'video_call' %}🎥{% elif appointment.session_type == 'audio_call' %}🎙{% else %}💬{% endif %} Join Session
-                        </button>
-                    {% endif %}
+                    <a href="{% url 'accounts:session_room' appointment.id %}" style="padding:6px 14px;background:#4da3a9;color:#fff;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;">
+                        {% if appointment.session_type == 'video_call' %}🎥{% elif appointment.session_type == 'audio_call' %}🎙{% else %}💬{% endif %} Join Session
+                    </a>
                     <a href="{% url 'accounts:reschedule_appointment' appointment.id %}" style="padding:6px 14px;background:#fff3cd;color:#856404;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;">Reschedule</a>
                     <a href="{% url 'accounts:cancel_appointment' appointment.id %}" style="padding:6px 14px;background:#f8d7da;color:#721c24;border-radius:8px;font-size:0.82rem;font-weight:600;text-decoration:none;">Cancel</a>
                 </div>

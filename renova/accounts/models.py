@@ -227,14 +227,6 @@ class Appointment(models.Model):
 		return self.date_time > timezone.now() and self.status in ["requested", "confirmed"]
 
 	@property
-	def can_join(self):
-		from datetime import timedelta
-		now = timezone.now()
-		# Allow joining 5 minutes before start time until the session ends
-		start_buffer = self.date_time - timedelta(minutes=5)
-		return start_buffer <= now <= self.end_time and self.status == "confirmed"
-
-	@property
 	def is_past(self):
 		return self.date_time <= timezone.now() and self.status == "completed"
 

@@ -6,7 +6,8 @@ from django.utils.translation import ngettext
 from .models import (
 	CustomUser, PatientMCQResult, TherapistAvailability,
 	Appointment, Payment, SessionReport,  Notification,
-	Resource, OnlineAwarenessProgram,
+	Resource, OnlineAwarenessProgram, Message, ActivityLog,
+	VideoWatchHistory, TherapistRating,
 )
 
 @admin.register(CustomUser)
@@ -167,11 +168,39 @@ class PaymentAdmin(admin.ModelAdmin):
 		})
 	)
 
+@admin.register(SessionReport)
 class SessionReportAdmin(admin.ModelAdmin):
-	list_display = ("appointment", "therapist", "mood_rating", "progress_rating", "created_at")
 	list_display = ("appointment", "therapist", "mood_rating", "progress_rating", "created_at")
 	list_filter = ("mood_rating", "progress_rating")
 	search_fields = ("therapist__full_name",)
+
+
+@admin.register(TherapistRating)
+class TherapistRatingAdmin(admin.ModelAdmin):
+	list_display = ("patient", "therapist", "appointment", "rating", "created_at")
+	list_filter = ("rating", "created_at")
+	search_fields = ("patient__full_name", "therapist__full_name", "review")
+
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+	list_display = ("sender", "receiver", "appointment", "is_read", "created_at")
+	list_filter = ("is_read", "created_at")
+	search_fields = ("sender__full_name", "receiver__full_name", "content")
+
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+	list_display = ("user", "activity_type", "title", "mood", "points", "date", "created_at")
+	list_filter = ("activity_type", "date", "completed")
+	search_fields = ("user__full_name", "title", "description")
+
+
+@admin.register(VideoWatchHistory)
+class VideoWatchHistoryAdmin(admin.ModelAdmin):
+	list_display = ("user", "video_title", "category", "video_source", "watched_at")
+	list_filter = ("category", "video_source", "watched_at")
+	search_fields = ("user__full_name", "video_title", "video_id")
 
 
 @admin.register(Notification)

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject }}</title>
+</head>
+<body style="margin:0; padding:0; background:#f6efea; font-family: Arial, Helvetica, sans-serif; color:#1f2a37;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f6efea; padding:32px 16px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:640px; background:#ffffff; border:1px solid #e7ddd6; border-radius:24px; overflow:hidden; box-shadow:0 16px 36px rgba(31,42,55,0.08);">
+                    <tr>
+                        <td style="background:linear-gradient(135deg,#2f7d83 0%,#4da3a9 58%,#dff3f4 100%); padding:28px 28px 24px; color:#ffffff;">
+                            <div style="display:inline-block; padding:7px 12px; border-radius:999px; background:rgba(255,255,255,0.2); font-size:12px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase;">ReNova Admin</div>
+                            <h1 style="margin:16px 0 8px; font-size:28px; line-height:1.2;">New Therapist Registration</h1>
+                            <p style="margin:0; max-width:520px; font-size:15px; line-height:1.6; color:#eefcfd;">Action required: A new therapist account is awaiting approval.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:30px 28px 18px;">
+                            <p style="margin:0 0 18px; font-size:16px; line-height:1.7;">Hello Admin,</p>
+                            <p style="margin:0 0 22px; font-size:15px; line-height:1.7; color:#4f6673;">A new therapist has successfully registered on ReNova and verified their email address. Please review their details below for approval.</p>
+
+                            <div style="margin:0 auto 22px; max-width:480px; text-align:left; border-radius:20px; border:1px solid #d9ecee; background:#f4fcfd; padding:22px 24px;">
+                                <div style="font-size:14px; margin-bottom:12px;"><strong style="color:#4da3a9; font-weight:700;">Name:</strong> <span style="color:#1f2a37;">{{ user.full_name }}</span></div>
+                                <div style="font-size:14px; margin-bottom:12px;"><strong style="color:#4da3a9; font-weight:700;">Email:</strong> <span style="color:#1f2a37;">{{ user.email }}</span></div>
+                                <div style="font-size:14px; margin-bottom:12px;"><strong style="color:#4da3a9; font-weight:700;">Specialization:</strong> <span style="color:#1f2a37;">{{ user.get_specialization_display|default:"Not specified" }}</span></div>
+                                <div style="font-size:14px;"><strong style="color:#4da3a9; font-weight:700;">Date Joined:</strong> <span style="color:#1f2a37;">{{ user.date_joined|date:"M d, Y" }}</span></div>
+                            </div>
+
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%; margin:0 0 18px;">
+                                <tr>
+                                    <td style="padding:14px 16px; border-radius:14px; background:#fcfaf8; border:1px solid #e4ddd7; color:#3f5c67; font-size:14px; line-height:1.6;">
+                                        Head over to the Django Admin panel to review and approve this therapist's account so they can start offering sessions.
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:18px 28px 26px; border-top:1px solid #efe5de; color:#8a97a3; font-size:12px; line-height:1.6; text-align:center;">
+                            The ReNova Team<br>
+                            <span style="color:#a3adb6;">Administrative Notification System.</span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

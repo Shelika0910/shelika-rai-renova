@@ -520,6 +520,36 @@ def otp_verification(request):
 		if is_valid:
 			user.is_active = True
 			user.save(update_fields=["is_active"])
+			
+			if user.role == "therapist":
+				try:
+					admin_emails = list(User.objects.filter(is_superuser=True).values_list("email", flat=True))
+					if not admin_emails and hasattr(django_settings, "CONTACT_EMAIL"):
+						admin_emails = [django_settings.CONTACT_EMAIL]
+					
+					if admin_emails:
+						subject = "New Therapist Registration"
+						body = f"A new therapist has registered on ReNova and verified their email.\n\nName: {user.full_name}\nEmail: {user.email}\nSpecialization: {user.specialization}\n\nPlease review their account for approval."
+						
+						html_content = render_to_string(
+							"auth/emails/admin_new_therapist.html",
+							{
+								"subject": subject,
+								"user": user,
+							}
+						)
+						
+						msg = EmailMultiAlternatives(
+							subject=subject,
+							body=body,
+							from_email=django_settings.DEFAULT_FROM_EMAIL,
+							to=admin_emails,
+						)
+						msg.attach_alternative(html_content, "text/html")
+						msg.send(fail_silently=True)
+				except Exception:
+					pass
+			
 			request.session.pop("otp_user_id", None)
 			request.session.pop("otp_purpose", None)
 			request.session.pop("otp_last_sent", None)
@@ -2539,6 +2569,10 @@ def session_room(request, appointment_id):
 
 	if apt.status != "confirmed":
 		messages.error(request, "Session is only available for confirmed appointments.")
+		return redirect("accounts:dashboard_redirect")
+
+	if not apt.can_join:
+		messages.error(request, "You can only join this session during its scheduled time (or up to 5 minutes before).")
 		return redirect("accounts:dashboard_redirect")
 
 	# Get or create the session room

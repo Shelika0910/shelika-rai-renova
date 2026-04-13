@@ -618,22 +618,6 @@ class VideoWatchHistory(models.Model):
         return f"{self.user} - {self.video_title}"
 
 
-# class SearchHistory(models.Model):
-# 	"""Track user's search queries for personalized recommendations."""
-	
-# 	user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="search_history")
-# 	query = models.CharField(max_length=255)
-# 	results_count = models.PositiveIntegerField(default=0)
-# 	clicked_video_id = models.CharField(max_length=255, blank=True, help_text="Video ID if user clicked a result")
-# 	searched_at = models.DateTimeField(auto_now_add=True)
-	
-# 	class Meta:
-# 		ordering = ["-searched_at"]
-# 		verbose_name = "Search History"
-		
-# 	def __str__(self):
-# 		return f"{self.user.full_name} searched: {self.query}"
-
 class ChatSession(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)

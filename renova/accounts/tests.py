@@ -8,7 +8,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -22,6 +22,7 @@ from .models import (
     PatientMCQResult,
     SessionReport,
     TherapistAvailability,
+    TherapistPayoutRequest,
     TherapistRating,
     TherapySession,
     VideoWatchHistory,
@@ -201,6 +202,43 @@ class AuthenticationFeatureTests(BaseFeatureTestCase):
         self.therapist.refresh_from_db()
         self.assertEqual(self.therapist.full_name, "Updated Therapist")
 
+    def test_therapist_registration_requires_license_number(self):
+        self.announce("Authentication: therapist registration requires license number")
+
+        missing_license = self.client.post(
+            reverse("accounts:register"),
+            {
+                "full_name": "Doctor Without License",
+                "email": "doctor-no-license@test.com",
+                "password1": "newpassword123",
+                "password2": "newpassword123",
+                "role": "doctor",
+                "specialization": "anxiety",
+                "therapist_license_number": "",
+            },
+        )
+        self.assertEqual(missing_license.status_code, 200)
+        self.assertFalse(User.objects.filter(email="doctor-no-license@test.com").exists())
+
+        valid_doctor = self.client.post(
+            reverse("accounts:register"),
+            {
+                "full_name": "Licensed Doctor",
+                "email": "doctor-with-license@test.com",
+                "password1": "newpassword123",
+                "password2": "newpassword123",
+                "role": "doctor",
+                "specialization": "anxiety",
+                "therapist_license_number": "LIC-2026-ABC",
+            },
+        )
+        self.assertEqual(valid_doctor.status_code, 302)
+        self.assertIn(reverse("accounts:verify_otp"), valid_doctor.url)
+
+        doctor_user = User.objects.get(email="doctor-with-license@test.com")
+        self.assertEqual(doctor_user.role, "therapist")
+        self.assertEqual(doctor_user.therapist_license_number, "LIC-2026-ABC")
+
 
 class PatientFeatureTests(BaseFeatureTestCase):
     def setUp(self):
@@ -302,6 +340,7 @@ class TherapistFeatureTests(BaseFeatureTestCase):
         super().setUp()
         self.create_patient_mcq()
         self.login_therapist()
+        self.request_factory = RequestFactory()
 
     def test_therapist_dashboard_availability_clients_reports_and_payout(self):
         self.announce("Therapist: dashboard + availability + client list/profile + reports + payouts")
@@ -356,9 +395,50 @@ class TherapistFeatureTests(BaseFeatureTestCase):
         view_report = self.client.get(reverse("accounts:view_session_report", args=[report.id]))
         self.assertEqual(view_report.status_code, 200)
 
-        payout_response = self.client.post(reverse("accounts:process_monthly_payout"))
+        payout_response = self.client.post(
+            reverse("accounts:therapist_payout_request"),
+            {
+                "bank_name": "Nabil Bank",
+                "branch_name": "Kathmandu",
+                "account_holder_name": "Therapist User",
+                "account_number": "123456789",
+                "note": "Monthly payout",
+            },
+        )
         self.assertEqual(payout_response.status_code, 302)
+        payout_request = TherapistPayoutRequest.objects.get(therapist=self.therapist)
+        self.assertEqual(float(payout_request.requested_amount), 150.0)
+        self.assertEqual(payout_request.bank_name, "Nabil Bank")
         completed_appointment.refresh_from_db()
+        self.assertEqual(completed_appointment.therapist_payout_status, "pending")
+
+    def test_admin_can_mark_payout_request_as_paid(self):
+        self.announce("Therapist payout request: admin can mark request paid")
+
+        completed_appointment = self.create_appointment(
+            status="completed",
+            payment_status="paid",
+            therapist_payout_status="pending",
+            date_time=timezone.now() - timedelta(days=1),
+        )
+        payout_request = TherapistPayoutRequest.objects.create(
+            therapist=self.therapist,
+            requested_amount=150.0,
+            bank_name="Nabil Bank",
+            account_holder_name="Therapist User",
+            account_number="123456789",
+        )
+
+        admin_request = self.request_factory.post("/admin/accounts/therapistpayoutrequest/")
+        admin_request.user = self.admin_user
+        payout_request.is_paid = True
+        payout_admin = admin.site._registry[TherapistPayoutRequest]
+        payout_admin.save_model(admin_request, payout_request, form=None, change=True)
+
+        payout_request.refresh_from_db()
+        completed_appointment.refresh_from_db()
+        self.assertTrue(payout_request.is_paid)
+        self.assertIsNotNone(payout_request.paid_at)
         self.assertEqual(completed_appointment.therapist_payout_status, "paid")
 
 

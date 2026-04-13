@@ -34,7 +34,7 @@ from .models import (
 	Resource, ActivityLog, TherapistRating,
 	VideoWatchHistory, TherapySession, SessionMessage,
 	ChatSession, ChatMessage,
-	OnlineAwarenessProgram, EmailOTP,
+	OnlineAwarenessProgram, EmailOTP, TherapistPayoutRequest,
 )
 
 User = get_user_model()
@@ -432,6 +432,7 @@ def register_view(request):
 			password2 = request.POST.get("password2", "")
 		role = request.POST.get("role", "patient").strip().lower()
 		account_role = "therapist" if role == "doctor" else "patient"
+		therapist_license_number = request.POST.get("therapist_license_number", "").strip()
 		has_error = False
 
 		if not full_name:
@@ -448,6 +449,9 @@ def register_view(request):
 			has_error = True
 		elif not email:
 			messages.error(request, "Email is required.")
+			has_error = True
+		elif role == "doctor" and not therapist_license_number:
+			messages.error(request, "Therapist license number is required.")
 			has_error = True
 
 		if not has_error:
@@ -476,6 +480,7 @@ def register_view(request):
 					full_name=full_name,
 					role=account_role,
 					specialization=specialization,
+					therapist_license_number=therapist_license_number if role == "doctor" else "",
 					is_active=False,
 					password=password1,
 				)
@@ -2106,36 +2111,91 @@ def complete_appointment(request, appointment_id):
 
 
 @login_required
-def process_monthly_payout(request):
-	"""Marks eligible completed sessions as paid out to therapist."""
+def therapist_payout_request(request):
+	"""Collect bank details and create an admin-reviewed payout request."""
 	if not request.user.role == "therapist":
 		return redirect("accounts:patient_dashboard")
 
-	if request.method != "POST":
-		return redirect("accounts:therapist_dashboard")
-
-	now = timezone.now()
-	paid_count = 0
-	paid_total = 0
 	eligible_qs = Appointment.objects.filter(
 		therapist=request.user,
 		status="completed",
 		payment_status="paid",
 		therapist_payout_status="pending",
-	)
-	for apt in eligible_qs:
-		apt.therapist_payout_status = "paid"
-		apt.therapist_paid_out_at = now
-		apt.save(update_fields=["therapist_payout_status", "therapist_paid_out_at", "updated_at"])
-		paid_count += 1
-		paid_total += apt.fee_amount * 0.75
+	).order_by("date_time")
+	eligible_total = sum(apt.fee_amount * 0.75 for apt in eligible_qs)
 
-	if paid_count:
-		messages.success(request, f"Payout processed for {paid_count} session(s). Total NPR {paid_total:.2f}.")
-	else:
-		messages.info(request, "No eligible completed paid sessions for payout right now.")
+	if request.method == "POST":
+		if TherapistPayoutRequest.objects.filter(therapist=request.user, is_paid=False).exists():
+			messages.info(request, "You already have a pending payout request under review.")
+			return redirect("accounts:therapist_dashboard")
 
-	return redirect("accounts:therapist_dashboard")
+		if not eligible_qs.exists() or eligible_total <= 0:
+			messages.info(request, "No eligible completed paid sessions for payout right now.")
+			return redirect("accounts:therapist_dashboard")
+
+		bank_name = request.POST.get("bank_name", "").strip()
+		account_holder_name = request.POST.get("account_holder_name", "").strip()
+		account_number = request.POST.get("account_number", "").strip()
+		branch_name = request.POST.get("branch_name", "").strip()
+
+		if not bank_name or not account_holder_name or not account_number:
+			messages.error(request, "Bank name, account holder name, and account number are required.")
+			return render(request, "therapist/payout_request_form.html", {
+				"eligible_count": eligible_qs.count(),
+				"eligible_total": eligible_total,
+				"existing_request": TherapistPayoutRequest.objects.filter(
+					therapist=request.user,
+					is_paid=False,
+				).first(),
+				"unread_notifications": _unread(request.user),
+			})
+
+		payout_request = TherapistPayoutRequest.objects.create(
+			therapist=request.user,
+			requested_amount=eligible_total,
+			session_count=eligible_qs.count(),
+			status="pending",
+			admin_note="",
+			bank_name=bank_name,
+			account_holder_name=account_holder_name,
+			account_number=account_number,
+			branch_name=branch_name,
+		)
+
+		for admin_user in User.objects.filter(role="admin", is_active=True):
+			Notification.objects.create(
+				user=admin_user,
+				type="system",
+				title="New Therapist Payout Request",
+				message=(
+					f"{request.user.full_name} requested payout of NPR {eligible_total:.2f}. "
+					f"Bank: {bank_name}, Account Holder: {account_holder_name}, "
+					f"Account No: {account_number}."
+				),
+				redirect_url="/admin/accounts/therapistpayoutrequest/",
+			)
+
+		messages.success(request, "Payout request submitted. Admin will review your bank details and amount.")
+		return redirect("accounts:therapist_dashboard")
+
+	existing_request = TherapistPayoutRequest.objects.filter(
+		therapist=request.user,
+		is_paid=False,
+	).first()
+
+	context = {
+		"eligible_count": eligible_qs.count(),
+		"eligible_total": eligible_total,
+		"existing_request": existing_request,
+		"unread_notifications": _unread(request.user),
+	}
+	return render(request, "therapist/payout_request_form.html", context)
+
+
+@login_required
+def process_monthly_payout(request):
+	"""Backward-compatible endpoint that now routes to payout request form."""
+	return redirect("accounts:therapist_payout_request")
 
 
 # ─── session reports ────────────────────────────────────────────────────────

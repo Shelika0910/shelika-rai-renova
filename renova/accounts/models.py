@@ -57,6 +57,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 		help_text="Therapist specialization (only for therapists)",
 	)
 	phone = models.CharField(max_length=20, blank=True, default="")
+	therapist_license_number = models.CharField(max_length=100, blank=True, default="")
 	bio = models.TextField(blank=True, default="", help_text="Short bio or about me")
 	profile_image = models.ImageField(upload_to="profile_images/", blank=True, null=True)
 	terms_accepted = models.BooleanField(default=False)
@@ -302,6 +303,49 @@ class Payment(Appointment):
 	"""Proxy model to manage payments in the Django admin separately."""
 	class Meta:
 		proxy = True
+
+
+class TherapistPayoutRequest(models.Model):
+	"""Therapist submits payout requests with bank details for admin review."""
+	STATUS_CHOICES = [
+		("pending", "Pending"),
+		("approved", "Approved"),
+		("rejected", "Rejected"),
+		("paid", "Paid"),
+	]
+
+	therapist = models.ForeignKey(
+		CustomUser,
+		on_delete=models.CASCADE,
+		related_name="payout_requests",
+	)
+	requested_amount = models.DecimalField(max_digits=12, decimal_places=2)
+	session_count = models.PositiveIntegerField(default=0)
+	status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+	admin_note = models.TextField(blank=True, default="")
+	bank_name = models.CharField(max_length=120)
+	account_holder_name = models.CharField(max_length=120)
+	account_number = models.CharField(max_length=60)
+	branch_name = models.CharField(max_length=120, blank=True, default="")
+	requested_at = models.DateTimeField(auto_now_add=True)
+	processed_at = models.DateTimeField(null=True, blank=True)
+	processed_by = models.ForeignKey(
+		CustomUser,
+		on_delete=models.SET_NULL,
+		null=True,
+		blank=True,
+		related_name="processed_payout_requests",
+	)
+	is_paid = models.BooleanField(default=False)
+	paid_at = models.DateTimeField(null=True, blank=True)
+
+	class Meta:
+		ordering = ["-requested_at"]
+		verbose_name = "Therapist Payout Request"
+		verbose_name_plural = "Therapist Payout Requests"
+
+	def __str__(self):
+		return f"{self.therapist.full_name} payout request - NPR {self.requested_amount}"
 
 class SessionReport(models.Model):
 	"""Therapist session reports / notes after appointments."""
@@ -574,21 +618,21 @@ class VideoWatchHistory(models.Model):
         return f"{self.user} - {self.video_title}"
 
 
-class SearchHistory(models.Model):
-	"""Track user's search queries for personalized recommendations."""
+# class SearchHistory(models.Model):
+# 	"""Track user's search queries for personalized recommendations."""
 	
-	user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="search_history")
-	query = models.CharField(max_length=255)
-	results_count = models.PositiveIntegerField(default=0)
-	clicked_video_id = models.CharField(max_length=255, blank=True, help_text="Video ID if user clicked a result")
-	searched_at = models.DateTimeField(auto_now_add=True)
+# 	user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="search_history")
+# 	query = models.CharField(max_length=255)
+# 	results_count = models.PositiveIntegerField(default=0)
+# 	clicked_video_id = models.CharField(max_length=255, blank=True, help_text="Video ID if user clicked a result")
+# 	searched_at = models.DateTimeField(auto_now_add=True)
 	
-	class Meta:
-		ordering = ["-searched_at"]
-		verbose_name = "Search History"
+# 	class Meta:
+# 		ordering = ["-searched_at"]
+# 		verbose_name = "Search History"
 		
-	def __str__(self):
-		return f"{self.user.full_name} searched: {self.query}"
+# 	def __str__(self):
+# 		return f"{self.user.full_name} searched: {self.query}"
 
 class ChatSession(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

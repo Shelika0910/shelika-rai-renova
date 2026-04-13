@@ -81,6 +81,7 @@ urlpatterns = [
 	path("dashboard/therapist/clients/", views.client_list, name="client_list"),
 	path("dashboard/therapist/clients/<int:client_id>/", views.client_profile, name="client_profile"),
 	path("dashboard/therapist/profile/", views.therapist_profile, name="therapist_profile"),
+	path("dashboard/therapist/payout/request/", views.therapist_payout_request, name="therapist_payout_request"),
 	path("dashboard/therapist/payout/process/", views.process_monthly_payout, name="process_monthly_payout"),
 
 

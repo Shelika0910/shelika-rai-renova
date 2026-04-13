@@ -305,10 +305,7 @@
     </div>
     <div style="margin:-6px 0 16px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;">
         <span style="font-size:0.9rem;color:#2c4652;background:#f8fdfd;border:1px solid #c9e8ea;border-radius:999px;padding:6px 12px;">Pending payout: NPR {{ pending_payout|floatformat:2 }}</span>
-        <form method="post" action="{% url 'accounts:process_monthly_payout' %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-primary">Process Therapist Payout</button>
-        </form>
+        <a href="{% url 'accounts:therapist_payout_request' %}" class="btn btn-primary">Request Therapist Payout</a>
     </div>
 
     <!-- Tabs -->

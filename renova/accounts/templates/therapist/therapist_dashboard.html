@@ -318,10 +318,7 @@
         <div style="display:flex;justify-content:flex-end;gap:10px;align-items:center;margin-top:-4px;margin-bottom:14px;flex-wrap:wrap;">
             <span style="background:#f8fdfd;border:1px solid #c9e8ea;padding:7px 12px;border-radius:999px;font-size:.88rem;color:#2c4652;">Pending payout: NPR {{ pending_payout_amount|floatformat:2 }}</span>
             <span style="background:#f0f7ff;border:1px solid #c8dcff;padding:7px 12px;border-radius:999px;font-size:.88rem;color:#1e4f86;">Paid out this month: NPR {{ month_paid_out|floatformat:2 }}</span>
-            <form method="post" action="{% url 'accounts:process_monthly_payout' %}">
-                {% csrf_token %}
-                <button type="submit" style="padding:8px 14px;border:none;border-radius:10px;background:#4da3a9;color:#fff;font-weight:700;cursor:pointer;">Process Payout</button>
-            </form>
+            <a href="{% url 'accounts:therapist_payout_request' %}" style="display:inline-block;padding:8px 14px;border:none;border-radius:10px;background:#4da3a9;color:#fff;font-weight:700;cursor:pointer;text-decoration:none;">Request Payout</a>
         </div>
 
         <div class="content-grid">

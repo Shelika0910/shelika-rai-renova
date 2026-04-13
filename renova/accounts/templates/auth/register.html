@@ -300,6 +300,12 @@
                     <div class="hint">Choose your area of expertise.</div>
                 </div>
 
+                <div class="field" id="license-field" style="display: none;">
+                    <label for="therapist_license_number">License Number</label>
+                    <input id="therapist_license_number" type="text" name="therapist_license_number" value="{{ request.POST.therapist_license_number|default:'' }}">
+                    <div class="hint">Enter your therapist registration/license number.</div>
+                </div>
+
                 <div class="grid">
                     <div class="field">
                         <label for="password1">Password</label>
@@ -341,13 +347,20 @@ function toggleSpecialization() {
     const role = document.getElementById('role').value;
     const specField = document.getElementById('spec-field');
     const specSelect = document.getElementById('specialization');
+    const licenseField = document.getElementById('license-field');
+    const licenseInput = document.getElementById('therapist_license_number');
     if (role === 'doctor') {
         specField.style.display = 'block';
         specSelect.required = true;
+        licenseField.style.display = 'block';
+        licenseInput.required = true;
     } else {
         specField.style.display = 'none';
         specSelect.required = false;
         specSelect.value = '';
+        licenseField.style.display = 'none';
+        licenseInput.required = false;
+        licenseInput.value = '';
     }
 }
 // Run on page load (in case of form re-render after error)

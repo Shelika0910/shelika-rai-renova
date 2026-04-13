@@ -1,18 +1,19 @@
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import ngettext
+from django.utils import timezone
 
 
 from .models import (
 	CustomUser, PatientMCQResult, TherapistAvailability,
 	Appointment, Payment, SessionReport,  Notification,
 	Resource, OnlineAwarenessProgram, Message, ActivityLog,
-	VideoWatchHistory, TherapistRating,
+	VideoWatchHistory, TherapistRating, TherapistPayoutRequest,
 )
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
-	list_display = ("email", "full_name", "role", "is_approved", "is_active", "is_staff", "date_joined")
+	list_display = ("email", "full_name", "role", "therapist_license_number", "is_approved", "is_active", "is_staff", "date_joined")
 	list_filter = ("role", "is_active", "is_staff", "is_approved", "specialization")
 	search_fields = ("email", "full_name")
 	ordering = ("-date_joined",)
@@ -20,7 +21,7 @@ class CustomUserAdmin(UserAdmin):
 
 	fieldsets = (
 		(None, {"fields": ("email", "password")}),
-		("Personal Info", {"fields": ("full_name", "phone", "bio", "profile_image")}),
+		("Personal Info", {"fields": ("full_name", "phone", "bio", "profile_image", "therapist_license_number")}),
 		("Role & Specialization", {"fields": ("role", "specialization", "is_verified", "is_approved")}),
 		("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
 		("Dates", {"fields": ("date_joined",)}),
@@ -59,7 +60,6 @@ class CustomUserAdmin(UserAdmin):
 
 	def reject_therapists(self, request, queryset):
 		# For simplicity, we're not asking for a reason in the action itself.
-		# Admins can set it in the user's profile.
 		updated = queryset.update(is_approved=False, rejected=True)
 		self.message_user(
 			request,
@@ -167,6 +167,71 @@ class PaymentAdmin(admin.ModelAdmin):
 			"fields": ("refund_status", "refunded_at")
 		})
 	)
+
+
+@admin.register(TherapistPayoutRequest)
+class TherapistPayoutRequestAdmin(admin.ModelAdmin):
+	list_display = (
+		"therapist",
+		"requested_amount",
+		"session_count",
+		"status",
+		"bank_name",
+		"account_holder_name",
+		"account_number",
+		"is_paid",
+		"paid_at",
+		"requested_at",
+	)
+	list_filter = ("status", "is_paid", "requested_at", "paid_at")
+	search_fields = (
+		"therapist__full_name",
+		"therapist__email",
+		"bank_name",
+		"account_holder_name",
+		"account_number",
+	)
+	list_editable = ("is_paid",)
+	readonly_fields = ("requested_at", "processed_at", "processed_by")
+
+	fieldsets = (
+		("Therapist", {"fields": ("therapist",)}),
+		("Request", {"fields": ("requested_amount", "session_count", "status", "requested_at")}),
+		("Bank Details", {"fields": ("bank_name", "account_holder_name", "account_number", "branch_name")}),
+		("Payment Review", {"fields": ("is_paid", "paid_at", "admin_note", "processed_at", "processed_by")}),
+	)
+
+	def save_model(self, request, obj, form, change):
+		was_paid = False
+		if change and obj.pk:
+			previous = TherapistPayoutRequest.objects.get(pk=obj.pk)
+			was_paid = previous.is_paid
+
+		if obj.is_paid and not was_paid:
+			obj.paid_at = timezone.now()
+			obj.status = "paid"
+			obj.processed_at = obj.paid_at
+			obj.processed_by = request.user
+		elif not obj.is_paid:
+			obj.paid_at = None
+			if obj.status == "paid":
+				obj.status = "pending"
+			obj.processed_at = None
+			obj.processed_by = None
+
+		super().save_model(request, obj, form, change)
+
+		if obj.is_paid and not was_paid:
+			paid_at = obj.paid_at or timezone.now()
+			Appointment.objects.filter(
+				therapist=obj.therapist,
+				status="completed",
+				payment_status="paid",
+				therapist_payout_status="pending",
+			).update(
+				therapist_payout_status="paid",
+				therapist_paid_out_at=paid_at,
+			)
 
 @admin.register(SessionReport)
 class SessionReportAdmin(admin.ModelAdmin):

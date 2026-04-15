@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load time_filters %}
 
 {% block title %}Session Reports | ReNova{% endblock %}
 
@@ -108,7 +109,7 @@
                     <div class="report-title">{{ report.appointment.patient.full_name }}</div>
                     <div class="report-date">Session: {{ report.appointment.date_time|date:"F j, Y" }} at {{ report.appointment.date_time|time:"g:i A" }}</div>
                 </div>
-                <div class="report-date">Created {{ report.created_at|timesince }} ago</div>
+                <div class="report-date">Created {{ report.created_at|time_ago }}</div>
             </div>
             <div class="report-details">
                 {{ report.summary|truncatechars:150 }}

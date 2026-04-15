@@ -229,12 +229,6 @@
                 Use the email you registered with. We will route you to the correct dashboard.
             </div>
 
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="flash {{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-
             <form method="post">
                 {% csrf_token %}
                 <div class="field">

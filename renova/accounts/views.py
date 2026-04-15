@@ -229,6 +229,45 @@ def _session_fee(duration_minutes):
 	return DURATION_PRICING.get(duration_minutes, 200)
 
 
+def _find_overlapping_appointment(appointments, requested_start, requested_duration):
+	requested_end = requested_start + timedelta(minutes=requested_duration)
+	for apt in appointments.only("id", "date_time", "duration_minutes"):
+		apt_end = apt.date_time + timedelta(minutes=apt.duration_minutes)
+		if apt.date_time < requested_end and apt_end > requested_start:
+			return apt
+	return None
+
+
+def _booking_overlap_error(patient, therapist, requested_start, requested_duration, exclude_appointment_id=None):
+	active_appointments = Appointment.objects.filter(status__in=["requested", "confirmed"])
+	if exclude_appointment_id is not None:
+		active_appointments = active_appointments.exclude(pk=exclude_appointment_id)
+
+	therapist_overlap = _find_overlapping_appointment(
+		active_appointments.filter(therapist=therapist),
+		requested_start,
+		requested_duration,
+	)
+	if therapist_overlap:
+		return "This therapist already has an appointment during that time."
+
+	patient_overlap = _find_overlapping_appointment(
+		active_appointments.filter(patient=patient),
+		requested_start,
+		requested_duration,
+	)
+	if patient_overlap:
+		return "You already have an appointment during that time."
+
+	return None
+
+
+def _therapist_day_off_error(therapist, requested_start):
+	if TherapistDayOff.objects.filter(therapist=therapist, date=requested_start.date()).exists():
+		return "This therapist is on day off for the selected date. Please choose another date."
+	return None
+
+
 def _daily_rotation(items, count, seed_value):
 	if not items:
 		return []
@@ -1074,15 +1113,17 @@ def patient_appointments(request):
 		return redirect("accounts:therapist_dashboard")
 
 	now = timezone.now()
-	upcoming = Appointment.objects.filter(
-		patient=request.user, date_time__gt=now, status="confirmed"
+	upcoming_candidates = Appointment.objects.filter(
+		patient=request.user, status="confirmed"
 	).order_by("date_time")
+	upcoming = [apt for apt in upcoming_candidates if apt.end_time > now]
 	past = Appointment.objects.filter(
 		patient=request.user, status="completed"
 	).order_by("-date_time")
-	missed = Appointment.objects.filter(
-		patient=request.user, date_time__lt=now, status__in=["requested", "confirmed"]
+	missed_candidates = Appointment.objects.filter(
+		patient=request.user, status__in=["requested", "confirmed"]
 	).order_by("-date_time")
+	missed = [apt for apt in missed_candidates if apt.end_time <= now]
 	requested = Appointment.objects.filter(
 		patient=request.user, status="requested"
 	).order_by("-created_at")
@@ -1134,12 +1175,19 @@ def book_appointment(request):
 			messages.error(request, "Cannot book appointments in the past.")
 			return redirect("accounts:book_appointment")
 
-		# Check for conflicting appointments
-		conflict = Appointment.objects.filter(
-			therapist=therapist, date_time=dt, status__in=["requested", "confirmed"]
-		).exists()
-		if conflict:
-			messages.error(request, "This time slot is not available. Please choose another.")
+		day_off_error = _therapist_day_off_error(therapist=therapist, requested_start=dt)
+		if day_off_error:
+			messages.error(request, day_off_error)
+			return redirect("accounts:book_appointment")
+
+		overlap_error = _booking_overlap_error(
+			patient=request.user,
+			therapist=therapist,
+			requested_start=dt,
+			requested_duration=duration,
+		)
+		if overlap_error:
+			messages.error(request, overlap_error)
 			return redirect("accounts:book_appointment")
 
 		apt = Appointment.objects.create(
@@ -1335,14 +1383,40 @@ def reschedule_appointment(request, appointment_id):
 			messages.error(request, "Cannot reschedule to a past time.")
 			return redirect("accounts:reschedule_appointment", appointment_id=appointment_id)
 
+		day_off_error = _therapist_day_off_error(therapist=old_apt.therapist, requested_start=dt)
+		if day_off_error:
+			messages.error(request, day_off_error)
+			return redirect("accounts:reschedule_appointment", appointment_id=appointment_id)
+
+		overlap_error = _booking_overlap_error(
+			patient=old_apt.patient,
+			therapist=old_apt.therapist,
+			requested_start=dt,
+			requested_duration=old_apt.duration_minutes,
+			exclude_appointment_id=old_apt.id,
+		)
+		if overlap_error:
+			messages.error(request, overlap_error)
+			return redirect("accounts:reschedule_appointment", appointment_id=appointment_id)
+
 		old_apt.status = "rescheduled"
 		old_apt.save()
+
+		is_already_paid = old_apt.payment_status == "paid"
 
 		new_apt = Appointment.objects.create(
 			patient=old_apt.patient,
 			therapist=old_apt.therapist,
 			date_time=dt,
 			duration_minutes=old_apt.duration_minutes,
+			session_type=old_apt.session_type,
+			patient_notes=old_apt.patient_notes,
+			fee_amount=old_apt.fee_amount,
+			payment_status="paid" if is_already_paid else "pending",
+			payment_method=old_apt.payment_method if is_already_paid else "",
+			payment_reference=old_apt.payment_reference if is_already_paid else "",
+			paid_at=old_apt.paid_at if is_already_paid else None,
+			refund_status="none",
 			status="requested",
 			rescheduled_from=old_apt,
 		)
@@ -1394,7 +1468,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "recommended",
 		"label": "Recommended",
-		"icon": "🎯",
+		"icon": "",
 		"title": "Recommended For You",
 		"description": "YouTube videos matched to your current wellness focus.",
 		"tag": "Recommended",
@@ -1406,7 +1480,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "positive",
 		"label": "Positive & Motivational",
-		"icon": "✨",
+		"icon": "",
 		"title": "Positive & Motivational",
 		"description": "Uplifting YouTube content to boost mood and confidence.",
 		"tag": "Motivation",
@@ -1418,7 +1492,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "meditation",
 		"label": "Meditation",
-		"icon": "🧘",
+		"icon": "",
 		"title": "Guided Meditation",
 		"description": "Mindfulness and calming meditation videos from YouTube.",
 		"tag": "Meditation",
@@ -1430,7 +1504,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "meditation_tutorial",
 		"label": "Meditation Tutorial",
-		"icon": "🎓",
+		"icon": "",
 		"title": "Learn Meditation",
 		"description": "Beginner-friendly meditation tutorials and foundations.",
 		"tag": "Tutorial",
@@ -1442,7 +1516,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "yoga",
 		"label": "Yoga",
-		"icon": "🧘‍♂️",
+		"icon": "",
 		"title": "Yoga & Movement",
 		"description": "Gentle yoga flows and body-based grounding practices.",
 		"tag": "Yoga",
@@ -1454,7 +1528,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "yoga_tutorial",
 		"label": "Yoga Tutorial",
-		"icon": "🎯",
+		"icon": "",
 		"title": "Learn Yoga Fundamentals",
 		"description": "Foundational yoga videos focused on technique and safe form.",
 		"tag": "Tutorial",
@@ -1466,7 +1540,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "breathing",
 		"label": "Breathing",
-		"icon": "🌬️",
+		"icon": "",
 		"title": "Breathing Exercises",
 		"description": "Quick breathing techniques for calm and stress reduction.",
 		"tag": "Breathing",
@@ -1478,7 +1552,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "sleep",
 		"label": "Sleep",
-		"icon": "🌙",
+		"icon": "",
 		"title": "Sleep & Relaxation",
 		"description": "Sleep meditations and calming wind-down sessions.",
 		"tag": "Sleep",
@@ -1490,7 +1564,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "mindfulness",
 		"label": "Mindfulness",
-		"icon": "🌱",
+		"icon": "",
 		"title": "Mindfulness Practice",
 		"description": "Daily awareness and grounding videos to stay present.",
 		"tag": "Mindfulness",
@@ -1502,7 +1576,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "stress_relief",
 		"label": "Stress Relief",
-		"icon": "🛡️",
+		"icon": "",
 		"title": "Stress Relief",
 		"description": "Evidence-based techniques to lower pressure and reset.",
 		"tag": "Stress Relief",
@@ -1514,7 +1588,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "anxiety_help",
 		"label": "Anxiety Help",
-		"icon": "🤝",
+		"icon": "",
 		"title": "Anxiety Support",
 		"description": "Practical videos for understanding and reducing anxiety.",
 		"tag": "Anxiety Help",
@@ -1526,7 +1600,7 @@ RESOURCE_SECTION_CONFIG = [
 	{
 		"slug": "self_care",
 		"label": "Self Care",
-		"icon": "💝",
+		"icon": "",
 		"title": "Self-Care Essentials",
 		"description": "Gentle, practical self-care resources for daily wellbeing.",
 		"tag": "Self Care",
@@ -2011,9 +2085,11 @@ def therapist_appointments(request):
 	now = timezone.now()
 	all_apts = Appointment.objects.filter(therapist=request.user)
 
-	upcoming = all_apts.filter(date_time__gt=now, status="confirmed").order_by("date_time")
+	upcoming_candidates = all_apts.filter(status="confirmed").order_by("date_time")
+	upcoming = [apt for apt in upcoming_candidates if apt.end_time > now]
 	past = all_apts.filter(status="completed").order_by("-date_time")
-	missed = all_apts.filter(date_time__lt=now, status__in=["requested", "confirmed"]).order_by("-date_time")
+	missed_candidates = all_apts.filter(status__in=["requested", "confirmed"]).order_by("-date_time")
+	missed = [apt for apt in missed_candidates if apt.end_time <= now]
 	requested = all_apts.filter(status="requested").order_by("-created_at")
 	cancelled = all_apts.filter(status__in=["cancelled", "rescheduled"]).order_by("-updated_at")
 	current_month_completed_paid = (all_apts.filter(

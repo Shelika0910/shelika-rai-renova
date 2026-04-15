@@ -264,14 +264,6 @@
         <div class="form-card">
             <h2>Edit Profile</h2>
 
-            {% if messages %}
-                {% for message in messages %}
-                    <div style="padding:10px 16px;border-radius:10px;margin-bottom:14px;font-size:0.88rem;font-weight:600;{% if message.tags == 'success' %}background:#d5f5e3;color:#1e8449;{% else %}background:#f8d7da;color:#721c24;{% endif %}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
 

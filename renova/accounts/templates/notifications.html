@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load time_filters %}
 
 {% block title %}Notifications | ReNova{% endblock %}
 
@@ -247,7 +248,7 @@
                 {{ notification.message }}
             </div>
             <div class="notification-time">
-                {{ notification.created_at|timesince }} ago
+                {{ notification.created_at|time_ago }}
                 {% if not notification.is_read %}
                     <span style="color: #4da3a9; font-weight: 600;"> • Unread</span>
                 {% endif %}

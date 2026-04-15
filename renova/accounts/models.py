@@ -225,7 +225,7 @@ class Appointment(models.Model):
 
 	@property
 	def is_upcoming(self):
-		return self.date_time > timezone.now() and self.status in ["requested", "confirmed"]
+		return self.end_time > timezone.now() and self.status in ["requested", "confirmed"]
 
 	@property
 	def is_past(self):
@@ -233,7 +233,7 @@ class Appointment(models.Model):
 
 	@property
 	def is_missed(self):
-		return self.date_time <= timezone.now() and self.status in ["requested", "confirmed"]
+		return self.end_time <= timezone.now() and self.status in ["requested", "confirmed"]
 
 	@property
 	def end_time(self):

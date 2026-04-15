@@ -214,12 +214,6 @@
             <p>Enter your 6-digit code to activate account access.</p>
             <div class="email-chip">Sent to: {{ email }}</div>
 
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="flash {{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-
             <form method="post" id="otpForm">
                 {% csrf_token %}
                 <div class="otp-grid" aria-label="OTP Input">

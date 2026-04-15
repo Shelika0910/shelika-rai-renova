@@ -255,12 +255,6 @@
             <h1>Get Started</h1>
             <p>Complete your profile details to create your account.</p>
 
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="flash {{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-
             <form method="post">
                 {% csrf_token %}
 

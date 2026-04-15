@@ -189,6 +189,15 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Session Settings - Ensure timezone-aware sessions
+SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
+# Expire session on browser close
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+# Session cookie age in seconds (2 weeks)
+SESSION_COOKIE_AGE = 1209600
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+
 # Esewa Payment Gateway
 ESEWA_IS_PRODUCTION = config("ESEWA_IS_PRODUCTION", default=False, cast=bool)
 ESEWA_PRODUCT_CODE = config("ESEWA_PRODUCT_CODE", default="EPAYTEST")

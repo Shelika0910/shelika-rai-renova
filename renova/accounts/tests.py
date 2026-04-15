@@ -22,6 +22,7 @@ from .models import (
     PatientMCQResult,
     SessionReport,
     TherapistAvailability,
+    TherapistDayOff,
     TherapistPayoutRequest,
     TherapistRating,
     TherapySession,
@@ -334,6 +335,61 @@ class PatientFeatureTests(BaseFeatureTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(TherapistRating.objects.filter(appointment=completed_appointment).count(), 1)
 
+    def test_patient_cannot_book_overlapping_appointment_window(self):
+        self.announce("Patient: block overlapping appointment request windows")
+
+        base_start = timezone.localtime(timezone.now() + timedelta(days=3)).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        self.create_appointment(
+            status="confirmed",
+            payment_status="paid",
+            date_time=base_start,
+            duration_minutes=60,
+        )
+
+        overlapping_response = self.client.post(
+            reverse("accounts:book_appointment"),
+            {
+                "therapist_id": self.therapist.id,
+                "appointment_date": base_start.strftime("%Y-%m-%d"),
+                "appointment_time": (base_start + timedelta(minutes=30)).strftime("%H:%M"),
+                "duration": 30,
+                "session_type": "video_call",
+            },
+        )
+
+        self.assertEqual(overlapping_response.status_code, 302)
+        self.assertEqual(overlapping_response.url, reverse("accounts:book_appointment"))
+        self.assertEqual(Appointment.objects.filter(patient=self.patient).count(), 1)
+
+    def test_patient_cannot_book_on_therapist_day_off(self):
+        self.announce("Patient: block booking on therapist day off")
+
+        day_off_start = timezone.localtime(timezone.now() + timedelta(days=4)).replace(
+            hour=11, minute=0, second=0, microsecond=0
+        )
+        TherapistDayOff.objects.create(
+            therapist=self.therapist,
+            date=day_off_start.date(),
+            reason="Personal day",
+        )
+
+        booking_response = self.client.post(
+            reverse("accounts:book_appointment"),
+            {
+                "therapist_id": self.therapist.id,
+                "appointment_date": day_off_start.strftime("%Y-%m-%d"),
+                "appointment_time": day_off_start.strftime("%H:%M"),
+                "duration": 60,
+                "session_type": "video_call",
+            },
+        )
+
+        self.assertEqual(booking_response.status_code, 302)
+        self.assertEqual(booking_response.url, reverse("accounts:book_appointment"))
+        self.assertEqual(Appointment.objects.filter(patient=self.patient).count(), 0)
+
 
 class TherapistFeatureTests(BaseFeatureTestCase):
     def setUp(self):
@@ -509,6 +565,81 @@ class AppointmentManagementFeatureTests(BaseFeatureTestCase):
         self.assertEqual(complete_response.status_code, 302)
         complete_apt.refresh_from_db()
         self.assertEqual(complete_apt.status, "completed")
+
+    def test_reschedule_blocks_overlapping_appointment_window(self):
+        self.announce("Appointment Management: reschedule blocked for overlapping windows")
+
+        overlap_start = timezone.localtime(timezone.now() + timedelta(days=5)).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        self.create_appointment(
+            status="confirmed",
+            payment_status="paid",
+            date_time=overlap_start,
+            duration_minutes=60,
+        )
+
+        reschedule_apt = self.create_appointment(
+            status="confirmed",
+            payment_status="paid",
+            date_time=timezone.now() + timedelta(days=6),
+            duration_minutes=60,
+        )
+
+        self.login_patient()
+        response = self.client.post(
+            reverse("accounts:reschedule_appointment", args=[reschedule_apt.id]),
+            {
+                "appointment_date": overlap_start.strftime("%Y-%m-%d"),
+                "appointment_time": (overlap_start + timedelta(minutes=30)).strftime("%H:%M"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            reverse("accounts:reschedule_appointment", args=[reschedule_apt.id]),
+        )
+        reschedule_apt.refresh_from_db()
+        self.assertEqual(reschedule_apt.status, "confirmed")
+        self.assertFalse(Appointment.objects.filter(rescheduled_from=reschedule_apt).exists())
+
+    def test_reschedule_blocks_therapist_day_off(self):
+        self.announce("Appointment Management: reschedule blocked on therapist day off")
+
+        blocked_start = timezone.localtime(timezone.now() + timedelta(days=6)).replace(
+            hour=12, minute=0, second=0, microsecond=0
+        )
+        TherapistDayOff.objects.create(
+            therapist=self.therapist,
+            date=blocked_start.date(),
+            reason="Unavailable",
+        )
+
+        reschedule_apt = self.create_appointment(
+            status="confirmed",
+            payment_status="paid",
+            date_time=timezone.now() + timedelta(days=7),
+            duration_minutes=60,
+        )
+
+        self.login_patient()
+        response = self.client.post(
+            reverse("accounts:reschedule_appointment", args=[reschedule_apt.id]),
+            {
+                "appointment_date": blocked_start.strftime("%Y-%m-%d"),
+                "appointment_time": blocked_start.strftime("%H:%M"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            reverse("accounts:reschedule_appointment", args=[reschedule_apt.id]),
+        )
+        reschedule_apt.refresh_from_db()
+        self.assertEqual(reschedule_apt.status, "confirmed")
+        self.assertFalse(Appointment.objects.filter(rescheduled_from=reschedule_apt).exists())
 
 
 class TelehealthAndCommunicationFeatureTests(BaseFeatureTestCase):

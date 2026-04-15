@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load time_filters %}
 
 {% block title %}Therapist Appointments - ReNova{% endblock %}
 
@@ -391,7 +392,7 @@
                         {% if appointment.patient_notes %}
                             <div>📝 {{ appointment.patient_notes|truncatechars:50 }}</div>
                         {% endif %}
-                        <div style="color: #92400e; font-weight: 600;">⏰ Requested {{ appointment.created_at|timesince }} ago</div>
+                        <div style="color: #92400e; font-weight: 600;">⏰ Requested {{ appointment.created_at|time_ago }}</div>
                     </div>
                     <div class="appointment-actions">
                         <a href="{% url 'accounts:confirm_appointment' appointment.pk %}" class="btn btn-success">✓ Accept</a>

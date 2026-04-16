@@ -641,6 +641,51 @@ class AppointmentManagementFeatureTests(BaseFeatureTestCase):
         self.assertEqual(reschedule_apt.status, "confirmed")
         self.assertFalse(Appointment.objects.filter(rescheduled_from=reschedule_apt).exists())
 
+    def test_patient_cannot_cancel_within_24_hours(self):
+        self.announce("Appointment Management: patient cancellation blocked within 24 hours")
+
+        cancel_apt = self.create_appointment(
+            status="confirmed",
+            payment_status="paid",
+            date_time=timezone.now() + timedelta(hours=10),
+        )
+
+        self.login_patient()
+        response = self.client.post(
+            reverse("accounts:cancel_appointment", args=[cancel_apt.id]),
+            {"cancellation_reason": "Need to cancel late"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("accounts:patient_appointments"))
+        cancel_apt.refresh_from_db()
+        self.assertEqual(cancel_apt.status, "confirmed")
+
+    def test_patient_cannot_reschedule_within_12_hours(self):
+        self.announce("Appointment Management: patient reschedule blocked within 12 hours")
+
+        reschedule_apt = self.create_appointment(
+            status="confirmed",
+            payment_status="paid",
+            date_time=timezone.now() + timedelta(hours=8),
+        )
+
+        self.login_patient()
+        new_slot = timezone.localtime(timezone.now() + timedelta(days=3))
+        response = self.client.post(
+            reverse("accounts:reschedule_appointment", args=[reschedule_apt.id]),
+            {
+                "appointment_date": new_slot.strftime("%Y-%m-%d"),
+                "appointment_time": new_slot.strftime("%H:%M"),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("accounts:patient_appointments"))
+        reschedule_apt.refresh_from_db()
+        self.assertEqual(reschedule_apt.status, "confirmed")
+        self.assertFalse(Appointment.objects.filter(rescheduled_from=reschedule_apt).exists())
+
 
 class TelehealthAndCommunicationFeatureTests(BaseFeatureTestCase):
     def test_messaging_notifications_and_secure_session_rooms(self):
@@ -697,7 +742,7 @@ class TelehealthAndCommunicationFeatureTests(BaseFeatureTestCase):
         self.assertContains(appointments_page, reverse("accounts:session_room", args=[active_session_apt.id]))
 
     def test_join_session_opens_room_for_confirmed_future_appointment(self):
-        self.announce("Telehealth: join session opens room for confirmed future appointment")
+        self.announce("Telehealth: join session stays locked until the 15-minute window opens")
 
         self.login_patient()
         future_confirmed = self.create_appointment(
@@ -708,8 +753,8 @@ class TelehealthAndCommunicationFeatureTests(BaseFeatureTestCase):
         )
 
         join_room = self.client.get(reverse("accounts:session_room", args=[future_confirmed.id]))
-        self.assertEqual(join_room.status_code, 200)
-        self.assertTrue(TherapySession.objects.filter(appointment=future_confirmed, is_active=True).exists())
+        self.assertEqual(join_room.status_code, 302)
+        self.assertFalse(TherapySession.objects.filter(appointment=future_confirmed).exists())
 
 
 @override_settings(ESEWA_SECRET_KEY="8gBm/:&EnhH.1/q")

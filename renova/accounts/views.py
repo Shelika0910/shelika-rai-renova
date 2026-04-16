@@ -1314,6 +1314,10 @@ def cancel_appointment(request, appointment_id):
 		messages.error(request, "Unauthorized.")
 		return redirect("accounts:dashboard_redirect")
 
+	if request.user == apt.patient and not apt.can_patient_cancel:
+		messages.error(request, "You can cancel this appointment only before 24 hours of the session time.")
+		return redirect("accounts:patient_appointments")
+
 	if request.method == "POST":
 		reason = request.POST.get("cancellation_reason", "")
 		apt.status = "cancelled"
@@ -1376,6 +1380,10 @@ def reschedule_appointment(request, appointment_id):
 	if request.user not in (old_apt.patient, old_apt.therapist):
 		messages.error(request, "Unauthorized.")
 		return redirect("accounts:dashboard_redirect")
+
+	if request.user == old_apt.patient and not old_apt.can_patient_reschedule:
+		messages.error(request, "You can reschedule this appointment only before 12 hours of the session time.")
+		return redirect("accounts:patient_appointments")
 
 	if request.method == "POST":
 		date_str = request.POST.get("appointment_date")
@@ -2831,6 +2839,7 @@ def track_video_watch(request):
 def session_room(request, appointment_id):
 	"""Join or start an online therapy session room."""
 	apt = get_object_or_404(Appointment, pk=appointment_id)
+	now = timezone.now()
 
 	if request.user not in (apt.patient, apt.therapist):
 		messages.error(request, "You are not authorised to join this session.")
@@ -2838,6 +2847,17 @@ def session_room(request, appointment_id):
 
 	if apt.status != "confirmed":
 		messages.error(request, "Session is only available for confirmed appointments.")
+		return redirect("accounts:dashboard_redirect")
+
+	if now < apt.join_window_start:
+		messages.error(
+			request,
+			"You can join this session starting 15 minutes before the scheduled time.",
+		)
+		return redirect("accounts:dashboard_redirect")
+
+	if now > apt.end_time:
+		messages.error(request, "This session has already ended.")
 		return redirect("accounts:dashboard_redirect")
 
 	# Get or create the session room

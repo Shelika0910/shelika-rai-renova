@@ -242,11 +242,33 @@ class Appointment(models.Model):
 		return self.date_time + timedelta(minutes=self.duration_minutes)
 
 	@property
+	def join_window_start(self):
+		from datetime import timedelta
+		return self.date_time - timedelta(minutes=15)
+
+	@property
+	def can_join_session(self):
+		now = timezone.now()
+		return self.status == "confirmed" and self.join_window_start <= now <= self.end_time
+
+	@property
+	def hours_until_start(self):
+		return (self.date_time - timezone.now()).total_seconds() / 3600
+
+	@property
+	def can_patient_cancel(self):
+		return self.status in ["requested", "confirmed"] and self.hours_until_start > 24
+
+	@property
+	def can_patient_reschedule(self):
+		return self.status in ["requested", "confirmed"] and self.hours_until_start > 12
+
+	@property
 	def session_fee(self):
 		fee_map = {
-			30: 1000,
-			60: 2000,
-			90: 3000,
+			30: 100,
+			60: 200,
+			90: 300,
 		}
 		return fee_map.get(self.duration_minutes, 200)
 

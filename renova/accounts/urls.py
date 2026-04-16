@@ -78,6 +78,7 @@ urlpatterns = [
 	path("dashboard/therapist/reports/create/<int:appointment_id>/", views.create_session_report, name="create_session_report"),
 	path("dashboard/therapist/reports/edit/<int:report_id>/", views.edit_session_report, name="edit_session_report"),
 	path("dashboard/therapist/reports/view/<int:report_id>/", views.view_session_report, name="view_session_report"),
+	path("report/<int:report_id>/download-pdf/", views.download_report_pdf, name="download_report_pdf"),
 	path("dashboard/therapist/clients/", views.client_list, name="client_list"),
 	path("dashboard/therapist/clients/<int:client_id>/", views.client_profile, name="client_profile"),
 	path("dashboard/therapist/profile/", views.therapist_profile, name="therapist_profile"),

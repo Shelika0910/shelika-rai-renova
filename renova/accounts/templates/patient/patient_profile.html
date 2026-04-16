@@ -162,7 +162,6 @@
     .rating-fill { height: 100%; border-radius: 3px; }
     .rating-fill.mood { background: linear-gradient(90deg, #4da3a9, #2d6a6f); }
     .rating-fill.progress { background: linear-gradient(90deg, #f59e0b, #d97706); }
-    .record-summary { font-size: 0.9rem; color: #4a5568; line-height: 1.5; }
     .record-homework { margin-top: 10px; padding: 10px; background: #fff; border-radius: 8px; border-left: 3px solid #4da3a9; }
     .record-homework-title { font-weight: 600; color: #2d6a6f; font-size: 0.82rem; margin-bottom: 4px; }
     .record-homework-text { font-size: 0.88rem; color: #4a5568; }
@@ -518,7 +517,6 @@
                             <span style="font-weight: 600;">{{ report.progress_rating }}/10</span>
                         </div>
                     </div>
-                    <div class="record-summary">{{ report.summary|truncatechars:200 }}</div>
                     {% if report.homework %}
                     <div class="record-homework">
                         <div class="record-homework-title">📝 Homework / Exercises</div>
@@ -570,35 +568,10 @@
                             <div class="record-date">Report date: {{ report.created_at|date:"F j, Y" }} · Session: {{ report.appointment.date_time|date:"M j, Y" }}</div>
                         </div>
                     </div>
-                    <div class="record-homework" style="margin-top: 0; margin-bottom: 10px; border-left-color: #2d6a6f;">
-                        <div class="record-homework-title">Session Summary</div>
-                        <div class="record-homework-text">{{ report.summary }}</div>
+                    <div style="display: flex; gap: 10px; margin-top: 12px;">
+                        <a href="{% url 'accounts:view_session_report' report.pk %}" style="padding: 8px 16px; background: #4da3a9; color: white; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;">View Report</a>
+                        <a href="{% url 'accounts:download_report_pdf' report.pk %}" style="padding: 8px 16px; background: #f59e0b; color: white; border-radius: 8px; font-size: 0.85rem; font-weight: 600; text-decoration: none;">Download PDF</a>
                     </div>
-                    {% if report.diagnosis_notes %}
-                    <div class="record-homework" style="margin-bottom: 10px; border-left-color: #f59e0b;">
-                        <div class="record-homework-title">Diagnosis Notes</div>
-                        <div class="record-homework-text">{{ report.diagnosis_notes }}</div>
-                    </div>
-                    {% endif %}
-                    {% if report.treatment_plan %}
-                    <div class="record-homework" style="margin-bottom: 10px; border-left-color: #4da3a9;">
-                        <div class="record-homework-title">Treatment Plan</div>
-                        <div class="record-homework-text">{{ report.treatment_plan }}</div>
-                    </div>
-                    {% endif %}
-                    {% if report.homework %}
-                    <div class="record-homework" style="margin-bottom: 10px; border-left-color: #10b981;">
-                        <div class="record-homework-title">Homework / Exercises</div>
-                        <div class="record-homework-text">{{ report.homework }}</div>
-                    </div>
-                    {% endif %}
-                    {% if report.attachment %}
-                    <div style="margin-top: 6px;">
-                        <a href="{{ report.attachment.url }}" target="_blank" rel="noopener" style="font-size: 0.88rem; font-weight: 600; color: #2d6a6f;">
-                            View Attached Report
-                        </a>
-                    </div>
-                    {% endif %}
                 </div>
                 {% endfor %}
             </div>

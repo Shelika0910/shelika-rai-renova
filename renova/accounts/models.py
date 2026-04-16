@@ -3,6 +3,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 import uuid
 
@@ -651,6 +652,14 @@ class OnlineAwarenessProgram(models.Model):
 		limit_choices_to={"role": "admin"},
 	)
 	created_at = models.DateTimeField(auto_now_add=True)
+
+	def clean(self):
+		super().clean()
+		word_count = len(self.description.split())
+		if word_count > 35:
+			raise ValidationError({
+				"description": "Description can contain at most 35 words."
+			})
 
 	class Meta:
 		ordering = ["-date", "-time"]

@@ -100,9 +100,12 @@
 </section>
 
 <section class="clients-wrap">
-    <div class="hero-card">
-        <h1>My Clients</h1>
-        <p>View and manage your patient caseload, track progress, and access profiles.</p>
+    <div class="hero-card" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1>My Clients</h1>
+            <p>View and manage your patient caseload, track progress, and access profiles.</p>
+        </div>
+        <a href="{% url 'accounts:session_reports' %}" style="padding: 14px 24px; background: white; color: #397e83; border-radius: 8px; font-weight: 700; font-size: 0.95rem; text-decoration: none; transition: all 0.2s; white-space: nowrap; margin-left: 20px;">Patient Reports</a>
     </div>
 
     {% if clients %}

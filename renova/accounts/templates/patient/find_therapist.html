@@ -119,8 +119,6 @@
         background: #edf8f8; color: #2d6a6f; font-size: 0.8rem; font-weight: 600;
     }
 
-    .therapist-bio { color: #627180; font-size: 0.9rem; line-height: 1.5; margin-bottom: 12px; }
-
     .avail-preview { margin-bottom: 14px; }
     .avail-preview-title { font-weight: 600; color: #2c4652; font-size: 0.85rem; margin-bottom: 6px; }
     .avail-chip {
@@ -228,10 +226,6 @@
                     </div>
                 </div>
 
-                {% if t.bio %}
-                <div class="therapist-bio">{{ t.bio|truncatechars:120 }}</div>
-                {% endif %}
-
                 <div class="card-actions">
                     <a href="{% url 'accounts:view_therapist_profile' t.pk %}" class="btn-profile">View Profile</a>
                     <a href="{% url 'accounts:book_appointment' %}?therapist={{ t.pk }}" class="btn-book">Book Now</a>
@@ -261,10 +255,6 @@
                     {% endif %}
                 </div>
             </div>
-
-            {% if t.bio %}
-            <div class="therapist-bio">{{ t.bio|truncatechars:120 }}</div>
-            {% endif %}
 
             <div class="card-actions">
                 <a href="{% url 'accounts:view_therapist_profile' t.pk %}" class="btn-profile">View Profile</a>

@@ -16,7 +16,7 @@ from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.conf import settings as django_settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from django.template.loader import render_to_string
@@ -239,7 +239,9 @@ def _find_overlapping_appointment(appointments, requested_start, requested_durat
 
 
 def _booking_overlap_error(patient, therapist, requested_start, requested_duration, exclude_appointment_id=None):
-	active_appointments = Appointment.objects.filter(status__in=["requested", "confirmed"])
+	active_appointments = Appointment.objects.filter(
+		Q(status="confirmed") | Q(status="requested", payment_status="paid")
+	)
 	if exclude_appointment_id is not None:
 		active_appointments = active_appointments.exclude(pk=exclude_appointment_id)
 
@@ -1075,7 +1077,8 @@ def view_therapist_profile(request, therapist_id):
 		therapist=therapist,
 		date_time__gte=timezone.now(),
 		date_time__lte=future_cutoff,
-		status__in=["requested", "confirmed"],
+	).filter(
+		Q(status="confirmed") | Q(status="requested", payment_status="paid")
 	).order_by("date_time")
 
 	# Group booked by date for display
@@ -1121,11 +1124,13 @@ def patient_appointments(request):
 		patient=request.user, status="completed"
 	).order_by("-date_time")
 	missed_candidates = Appointment.objects.filter(
-		patient=request.user, status__in=["requested", "confirmed"]
+		patient=request.user,
+	).filter(
+		Q(status="confirmed") | Q(status="requested", payment_status="paid")
 	).order_by("-date_time")
 	missed = [apt for apt in missed_candidates if apt.end_time <= now]
 	requested = Appointment.objects.filter(
-		patient=request.user, status="requested"
+		patient=request.user, status="requested", payment_status="paid"
 	).order_by("-created_at")
 	cancelled = Appointment.objects.filter(
 		patient=request.user, status__in=["cancelled", "rescheduled"]
@@ -1223,7 +1228,8 @@ def book_appointment(request):
 		therapist__in=therapists,
 		date_time__gte=timezone.now(),
 		date_time__lte=future_cutoff,
-		status__in=["requested", "confirmed"],
+	).filter(
+		Q(status="confirmed") | Q(status="requested", payment_status="paid")
 	).values_list("therapist_id", "date_time")
 	allBooked = {}  # {therapist_id: {date_str: [time_str]}}
 	for tid, dt_val in booked_qs:
@@ -1448,7 +1454,8 @@ def reschedule_appointment(request, appointment_id):
 		therapist=old_apt.therapist,
 		date_time__gte=timezone.now(),
 		date_time__lte=future_cutoff,
-		status__in=["requested", "confirmed"],
+	).filter(
+		Q(status="confirmed") | Q(status="requested", payment_status="paid")
 	).values_list("date_time", flat=True)
 	booked_map = {}
 	for dt_val in booked_qs:
@@ -1956,7 +1963,7 @@ def therapist_dashboard(request):
 	
 	today_apts = all_apts.filter(date_time__range=[today_start, today_end], status="confirmed")
 	upcoming_apts = all_apts.filter(date_time__gt=now, status="confirmed").order_by("date_time")[:5]
-	pending_requests = all_apts.filter(status="requested").count()
+	pending_requests = all_apts.filter(status="requested", payment_status="paid").count()
 	
 	total_patients = all_apts.values("patient").distinct().count()
 	completed_sessions = all_apts.filter(status="completed").count()
@@ -2088,9 +2095,11 @@ def therapist_appointments(request):
 	upcoming_candidates = all_apts.filter(status="confirmed").order_by("date_time")
 	upcoming = [apt for apt in upcoming_candidates if apt.end_time > now]
 	past = all_apts.filter(status="completed").order_by("-date_time")
-	missed_candidates = all_apts.filter(status__in=["requested", "confirmed"]).order_by("-date_time")
+	missed_candidates = all_apts.filter(
+		Q(status="confirmed") | Q(status="requested", payment_status="paid")
+	).order_by("-date_time")
 	missed = [apt for apt in missed_candidates if apt.end_time <= now]
-	requested = all_apts.filter(status="requested").order_by("-created_at")
+	requested = all_apts.filter(status="requested", payment_status="paid").order_by("-created_at")
 	cancelled = all_apts.filter(status__in=["cancelled", "rescheduled"]).order_by("-updated_at")
 	current_month_completed_paid = (all_apts.filter(
 		status="completed",
@@ -2372,6 +2381,130 @@ def view_session_report(request, report_id):
 		"unread_notifications": _unread(request.user),
 	}
 	return render(request, "therapist/view_report.html", context)
+
+
+@login_required
+def download_report_pdf(request, report_id):
+	"""Download session report as PDF."""
+	report = get_object_or_404(SessionReport, pk=report_id)
+	apt = report.appointment
+	if request.user not in (apt.patient, apt.therapist):
+		messages.error(request, "Unauthorized.")
+		return redirect("accounts:dashboard_redirect")
+
+	try:
+		from reportlab.lib.pagesizes import letter
+		from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
+		from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+		from reportlab.lib.units import inch
+		from reportlab.lib import colors
+		from io import BytesIO
+	except ImportError:
+		messages.error(request, "PDF generation is not available. Please contact support.")
+		return redirect("accounts:view_session_report", report_id=report_id)
+
+	# Create PDF in memory
+	buffer = BytesIO()
+	doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+	elements = []
+	styles = getSampleStyleSheet()
+
+	# Custom styles
+	title_style = ParagraphStyle(
+		'CustomTitle',
+		parent=styles['Heading1'],
+		fontSize=18,
+		textColor=colors.HexColor('#2d6a6f'),
+		spaceAfter=12,
+		alignment=1  # Center
+	)
+	heading_style = ParagraphStyle(
+		'CustomHeading',
+		parent=styles['Heading2'],
+		fontSize=12,
+		textColor=colors.HexColor('#4da3a9'),
+		spaceAfter=6,
+		spaceBefore=6,
+	)
+
+	# Title
+	elements.append(Paragraph("Session Report", title_style))
+	elements.append(Spacer(1, 0.3*inch))
+
+	# Patient & Therapist Info
+	patient_name = apt.patient.full_name
+	therapist_name = apt.therapist.full_name
+	report_date = report.created_at.strftime('%B %d, %Y')
+	session_date = apt.date_time.strftime('%B %d, %Y')
+
+	info_data = [
+		['Patient:', patient_name],
+		['Therapist:', f'Dr. {therapist_name}'],
+		['Report Date:', report_date],
+		['Session Date:', session_date],
+	]
+	info_table = Table(info_data, colWidths=[1.5*inch, 4.5*inch])
+	info_table.setStyle(TableStyle([
+		('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0fafa')),
+		('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+		('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+		('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+		('FONTSIZE', (0, 0), (-1, -1), 10),
+		('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+		('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#e7ddd6')),
+	]))
+	elements.append(info_table)
+	elements.append(Spacer(1, 0.3*inch))
+
+	# Summary
+	if report.summary:
+		elements.append(Paragraph("Session Summary", heading_style))
+		elements.append(Paragraph(report.summary, styles['BodyText']))
+		elements.append(Spacer(1, 0.15*inch))
+
+	# Diagnosis Notes
+	if report.diagnosis_notes:
+		elements.append(Paragraph("Diagnosis Notes", heading_style))
+		elements.append(Paragraph(report.diagnosis_notes, styles['BodyText']))
+		elements.append(Spacer(1, 0.15*inch))
+
+	# Treatment Plan
+	if report.treatment_plan:
+		elements.append(Paragraph("Treatment Plan", heading_style))
+		elements.append(Paragraph(report.treatment_plan, styles['BodyText']))
+		elements.append(Spacer(1, 0.15*inch))
+
+	# Homework
+	if report.homework:
+		elements.append(Paragraph("Homework / Exercises", heading_style))
+		elements.append(Paragraph(report.homework, styles['BodyText']))
+		elements.append(Spacer(1, 0.15*inch))
+
+	# Ratings
+	ratings_data = [
+		['Mood Rating:', f'{report.mood_rating}/10'],
+		['Progress Rating:', f'{report.progress_rating}/10'],
+	]
+	ratings_table = Table(ratings_data, colWidths=[1.5*inch, 4.5*inch])
+	ratings_table.setStyle(TableStyle([
+		('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#fff3cd')),
+		('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+		('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+		('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+		('FONTSIZE', (0, 0), (-1, -1), 10),
+		('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+		('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#f59e0b')),
+	]))
+	elements.append(Paragraph("Ratings", heading_style))
+	elements.append(ratings_table)
+
+	# Build PDF
+	doc.build(elements)
+	buffer.seek(0)
+
+	response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+	response['Content-Disposition'] = f'attachment; filename="Report_{apt.patient.email}_{report.created_at.strftime("%Y%m%d")}.pdf"'
+	return response
 
 
 # ─── client profiles & progress (therapist) ────────────────────────────────
